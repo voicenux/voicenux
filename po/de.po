@@ -1456,3 +1456,6 @@ msgstr "Nächste Stimme"
 
 msgid "Previous voice"
 msgstr "Vorige Stimme"
+
+msgid "Needs a tray icon area. On GNOME, install the AppIndicator extension."
+msgstr "Braucht einen Bereich für Tray-Symbole. Installier unter GNOME die AppIndicator-Erweiterung."

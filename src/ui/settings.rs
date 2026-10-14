@@ -303,6 +303,10 @@ pub fn build(st: &St, window: &adw::ApplicationWindow) -> adw::ToolbarView {
         .subtitle(t("Voicenux stays in the tray, so your voice keeps working after you close the window."))
         .active(c.close_to_tray)
         .build();
+    if !st.tray.get() {
+        tray.set_sensitive(false);
+        tray.set_subtitle(t("Needs a tray icon area. On GNOME, install the AppIndicator extension."));
+    }
     tray.connect_active_notify({
         let st = st.clone();
         move |r| st.update(|c| c.close_to_tray = r.is_active())

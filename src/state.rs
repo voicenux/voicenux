@@ -58,6 +58,8 @@ pub struct State {
     pub users: RefCell<Vec<String>>,
     pub muted: Cell<bool>,
     pub ready: Cell<bool>,
+    /// A tray icon is there to bring the window back.
+    pub tray: Cell<bool>,
     pub error: RefCell<Option<String>>,
     listeners: RefCell<Vec<Listener>>,
     sounds: RefCell<HashMap<String, Arc<SoundData>>>,
@@ -89,6 +91,7 @@ impl State {
             users: RefCell::default(),
             muted: Cell::new(false),
             ready: Cell::new(false),
+            tray: Cell::new(false),
             error: RefCell::default(),
             listeners: RefCell::default(),
             sounds: RefCell::default(),
@@ -181,6 +184,11 @@ impl State {
             *v = if target > *v { target } else { target + (*v - target) * fall };
         }
         self.levels.set(l);
+    }
+
+    /// Closing the window keeps Voicenux running only when the tray can bring it back.
+    pub fn runs_in_tray(&self) -> bool {
+        self.config.borrow().close_to_tray && self.tray.get()
     }
 
     pub fn subscribe(&self, f: impl Fn(&Change) + 'static) {

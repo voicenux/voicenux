@@ -180,7 +180,7 @@ pub fn build(app: &adw::Application, st: &St) -> Window {
                 c.height = height;
             }
             st.save_now();
-            if st.config.borrow().close_to_tray {
+            if st.runs_in_tray() {
                 w.set_visible(false);
                 return glib::Propagation::Stop;
             }

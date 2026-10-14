@@ -144,7 +144,7 @@ impl Ctx {
     }
 
     fn keep_running(&self) {
-        let want = self.st.config.borrow().close_to_tray;
+        let want = self.st.runs_in_tray();
         let mut hold = self.hold.borrow_mut();
         if want && hold.is_none() {
             *hold = Some(self.app.hold());
@@ -249,11 +249,11 @@ pub fn run() -> glib::ExitCode {
                 hold: RefCell::default(),
                 welcomed: Default::default(),
             });
-            c.keep_running();
-
             // Tray.
             let (tx, rx) = async_channel::unbounded();
             *c.tray.borrow_mut() = tray::spawn(tx, c.snapshot());
+            st.tray.set(c.tray.borrow().is_some());
+            c.keep_running();
             glib::spawn_future_local({
                 let c = c.clone();
                 async move {
