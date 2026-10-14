@@ -8,7 +8,7 @@ use adw::prelude::*;
 use gtk::{gdk, gio, glib};
 
 use super::visuals::progress_ring;
-use super::{animate_in, bounce, clear, icon, icon_picker, label, smooth_scroll};
+use super::{animate_in, bounce, clear, icon, icon_picker, label, smooth_scroll, value_field};
 use crate::i18n::{fill, t, t_dyn};
 use crate::soundboard::{PlayMode, Sound};
 use crate::state::{Change, St};
@@ -237,11 +237,9 @@ fn volume_button(st: &St) -> gtk::MenuButton {
     bx.set_width_request(260);
     let title = label(t("Soundboard volume"), &["heading"]);
     title.set_xalign(0.0);
-    let scale = gtk::Scale::with_range(gtk::Orientation::Horizontal, 0.0, 1.0, 0.01);
-    scale.set_value(st.config.borrow().sound_volume as f64);
-    scale.connect_value_changed({
+    let scale = volume_slider(st.config.borrow().sound_volume as f64, 1.0, {
         let st = st.clone();
-        move |s| st.update(|c| c.sound_volume = s.value() as f32)
+        move |v| st.update(|c| c.sound_volume = v as f32)
     });
     let row = gtk::Box::new(gtk::Orientation::Horizontal, 8);
     let l = label(t("Hear sounds myself"), &[]);
@@ -263,6 +261,73 @@ fn volume_button(st: &St) -> gtk::MenuButton {
     p.set_child(Some(&bx));
     b.set_popover(Some(&p));
     b
+}
+
+/// A volume slider with a speaker that shows the level, and the value in percent. Click the value
+/// to type one. Above 100 %, the slider stops at 100 % on the way, so that is easy to hit.
+fn volume_slider(value: f64, max: f64, on_change: impl Fn(f64) + 'static) -> gtk::Box {
+    let row = gtk::Box::new(gtk::Orientation::Horizontal, 10);
+    row.add_css_class("vn-volume");
+    let speaker = gtk::Image::new();
+    speaker.add_css_class("vn-volume-icon");
+    // Steps of 5 %, so the keyboard gets past the stop at 100 %.
+    let scale = gtk::Scale::with_range(gtk::Orientation::Horizontal, 0.0, max, 0.05);
+    scale.set_hexpand(true);
+    scale.set_value(value);
+    let text = |v: f64| format!("{:.0} %", v * 100.0);
+    // A typed value goes in as it is, without the stop at 100 %.
+    let typed = Rc::new(Cell::new(false));
+    let field = value_field(
+        {
+            let scale = scale.clone();
+            move || format!("{:.0}", scale.value() * 100.0)
+        },
+        {
+            let scale = scale.clone();
+            let typed = typed.clone();
+            move |f, typed_text| {
+                if let Ok(n) = typed_text.replace('%', "").replace(',', ".").trim().parse::<f64>()
+                    && n.is_finite()
+                {
+                    typed.set(true);
+                    scale.set_value((n / 100.0).clamp(0.0, max));
+                    typed.set(false);
+                }
+                // Also puts the old value back after something that is not a number.
+                f.set_text(&text(scale.value()));
+            }
+        },
+    );
+    field.add_css_class("vn-volume-value");
+    field.set_width_chars(5);
+    field.set_max_width_chars(5);
+    let show = {
+        let (speaker, field) = (speaker.clone(), field.clone());
+        move |v: f64| {
+            speaker.set_icon_name(Some(match v {
+                v if v < 0.005 => "audio-volume-muted-symbolic",
+                v if v < 0.4 => "audio-volume-low-symbolic",
+                v if v < 0.8 => "audio-volume-medium-symbolic",
+                _ => "audio-volume-high-symbolic",
+            }));
+            field.set_text(&text(v));
+        }
+    };
+    show(value);
+    scale.connect_value_changed(move |s| {
+        let v = s.value();
+        if !typed.get() && max > 1.0 && v != 1.0 && (v - 1.0).abs() < 0.04 {
+            // Calls this again with 1.0.
+            s.set_value(1.0);
+            return;
+        }
+        show(v);
+        on_change(v);
+    });
+    row.append(&speaker);
+    row.append(&scale);
+    row.append(&field);
+    row
 }
 
 fn pad(st: &St, s: &Sound) -> Pad {
@@ -389,18 +454,14 @@ fn editor(st: &St, s: &Sound) -> gtk::Popover {
     let vol_label = label(t("Volume"), &["caption-heading"]);
     vol_label.set_xalign(0.0);
     b.append(&vol_label);
-    let vol = gtk::Scale::with_range(gtk::Orientation::Horizontal, 0.0, 2.0, 0.01);
-    vol.set_value(s.volume as f64);
-    vol.add_mark(1.0, gtk::PositionType::Bottom, None);
-    vol.connect_value_changed({
+    b.append(&volume_slider(s.volume as f64, 2.0, {
         let st = st.clone();
         let sound = sound.clone();
         move |v| {
-            sound.borrow_mut().volume = v.value() as f32;
-            st.set_sound_volume(&sound.borrow().id, v.value() as f32);
+            sound.borrow_mut().volume = v as f32;
+            st.set_sound_volume(&sound.borrow().id, v as f32);
         }
-    });
-    b.append(&vol);
+    }));
 
     let mode_label = label(t("When pressed"), &["caption-heading"]);
     mode_label.set_xalign(0.0);

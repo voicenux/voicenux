@@ -8,7 +8,7 @@ use adw::prelude::*;
 use gtk::glib;
 
 use super::visuals::Orb;
-use super::{animate_in, cat_class, clear, icon, label, smooth_scroll};
+use super::{animate_in, cat_class, clear, icon, label, smooth_scroll, value_field};
 use crate::dsp::blocks::{self, Kind};
 use crate::i18n::{t, t_dyn};
 use crate::state::{Change, St};
@@ -642,27 +642,43 @@ pub fn param_row(p: &'static blocks::ParamSpec, value: f32, on_change: impl Fn(f
             top.append(&dd);
         }
         Kind::Float | Kind::Int => {
-            let shown = label(&blocks::format_value(p, value), &["vn-param-value"]);
-            top.append(&shown);
             // Log sliders run on log(value), the rest on the value itself.
-            let (lo, hi, v) = if p.log {
-                (p.min.max(1e-3).ln() as f64, p.max.ln() as f64, value.max(1e-3).ln() as f64)
-            } else {
-                (p.min as f64, p.max as f64, value as f64)
+            let to_scale = move |v: f32| if p.log { v.max(1e-3).ln() as f64 } else { v as f64 };
+            let from_scale = move |s: &gtk::Scale| {
+                let raw = s.value() as f32;
+                p.clamp(if p.log { raw.exp() } else { raw })
             };
+            let (lo, hi) = (to_scale(p.min), to_scale(p.max));
             let step = if matches!(p.kind, Kind::Int) { 1.0 } else { (hi - lo) / 400.0 };
             let scale = gtk::Scale::with_range(gtk::Orientation::Horizontal, lo, hi, step);
-            scale.set_value(v);
+            scale.set_value(to_scale(value));
             scale.set_draw_value(false);
             scale.set_hexpand(true);
             if !p.log && p.min < 0.0 && p.max > 0.0 {
                 scale.add_mark(0.0, gtk::PositionType::Bottom, None);
             }
-            let log = p.log;
+            let shown = value_field(
+                {
+                    let scale = scale.clone();
+                    move || blocks::format_value(p, from_scale(&scale))
+                },
+                {
+                    let scale = scale.clone();
+                    move |f, text| {
+                        if let Some(v) = blocks::parse_value(p, text) {
+                            scale.set_value(to_scale(v));
+                        }
+                        // Also puts the old value back after something that is not a value.
+                        f.set_text(&blocks::format_value(p, from_scale(&scale)));
+                    }
+                },
+            );
+            shown.add_css_class("vn-param-value");
+            shown.set_text(&blocks::format_value(p, value));
+            top.append(&shown);
             scale.connect_value_changed(move |s| {
-                let raw = s.value() as f32;
-                let v = p.clamp(if log { raw.exp() } else { raw });
-                shown.set_label(&blocks::format_value(p, v));
+                let v = from_scale(s);
+                shown.set_text(&blocks::format_value(p, v));
                 on_change(v);
             });
             row.append(&scale);

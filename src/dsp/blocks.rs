@@ -519,10 +519,87 @@ pub fn format_value(spec: &ParamSpec, v: f32) -> String {
     }
 }
 
+/// Reads a typed value back, like "350 ms", "1,2 kHz", "-3" or "C#4". A plain number counts in
+/// the unit that is shown. None when the text is not a value.
+pub fn parse_value(spec: &ParamSpec, text: &str) -> Option<f32> {
+    let t = text.trim().replace(',', ".").to_lowercase();
+    let t = t.as_str();
+    let num = |s: &str| s.trim().trim_start_matches('+').parse::<f32>().ok().filter(|v| v.is_finite());
+    let v = match spec.unit {
+        Unit::Percent => num(t.trim_end_matches('%'))? / 100.0,
+        Unit::Hz => match t.strip_suffix("khz") {
+            Some(k) => num(k)? * 1000.0,
+            None => num(t.trim_end_matches("hz"))?,
+        },
+        Unit::Ms => match (t.strip_suffix("ms"), t.strip_suffix('s')) {
+            (Some(ms), _) => num(ms)?,
+            (None, Some(s)) => num(s)? * 1000.0,
+            _ => num(t)?,
+        },
+        Unit::Seconds => num(t.trim_end_matches('s'))?,
+        Unit::Db => num(t.trim_end_matches("db"))?,
+        Unit::Cents => num(t.trim_end_matches("ct"))?,
+        Unit::Semitones => num(t.trim_end_matches("st"))?,
+        Unit::PerSecond => num(t.trim_end_matches("/s"))?,
+        Unit::Note => num(t).or_else(|| parse_note(t))?,
+        Unit::None => num(t)?,
+    };
+    Some(spec.clamp(v))
+}
+
+/// "c#4", "bb3" or "a4" as a MIDI note.
+fn parse_note(t: &str) -> Option<f32> {
+    let mut chars = t.chars();
+    let base = match chars.next()? {
+        'c' => 0,
+        'd' => 2,
+        'e' => 4,
+        'f' => 5,
+        'g' => 7,
+        'a' => 9,
+        'b' => 11,
+        _ => return None,
+    };
+    let rest = chars.as_str();
+    let (sharp, rest) = match (rest.strip_prefix('#'), rest.strip_prefix('b').filter(|r| !r.is_empty())) {
+        (Some(r), _) => (1, r),
+        (None, Some(r)) => (-1, r),
+        _ => (0, rest),
+    };
+    let octave: i32 = rest.trim().parse().ok()?;
+    Some(((octave + 1) * 12 + base + sharp) as f32)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
     use crate::dsp::Ctx;
+
+    #[test]
+    fn typed_values_read_back() {
+        for b in BLOCKS {
+            for p in b.params.iter().filter(|p| matches!(p.kind, Kind::Float | Kind::Int)) {
+                for v in [p.min, p.default, p.max] {
+                    let shown = format_value(p, v);
+                    let back = parse_value(p, &shown).unwrap_or_else(|| panic!("{}.{}: {shown}", b.kind, p.key));
+                    assert_eq!(format_value(p, back), shown, "{}.{}", b.kind, p.key);
+                }
+            }
+        }
+        let find_param = |kind: &str, key: &str| *find(kind).unwrap().params.iter().find(|p| p.key == key).unwrap();
+        let pitch = find_param("pitch", "semitones");
+        assert_eq!(parse_value(&pitch, "-3"), Some(-3.0));
+        assert_eq!(parse_value(&pitch, "+40"), Some(24.0));
+        assert_eq!(parse_value(&pitch, "loud"), None);
+        let mix = find_param("pitch", "mix");
+        assert_eq!(parse_value(&mix, "37,5 %"), Some(0.375));
+        let ring = find_param("ringmod", "freq");
+        assert_eq!(parse_value(&ring, "1,5 kHz"), Some(1500.0));
+        assert_eq!(parse_value(&ring, "90"), Some(90.0));
+        assert_eq!(parse_note("c#4"), Some(61.0));
+        assert_eq!(parse_note("bb3"), Some(58.0));
+        assert_eq!(parse_note("a4"), Some(69.0));
+    }
 
     #[test]
     fn every_block_builds_and_runs() {

@@ -209,6 +209,9 @@ msgstr "Sound bearbeiten"
 msgid "Volume"
 msgstr "Lautstärke"
 
+msgid "Click to type a value"
+msgstr "Klicke, um einen Wert einzutippen"
+
 msgid "When pressed"
 msgstr "Beim Drücken"
 

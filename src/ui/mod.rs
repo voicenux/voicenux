@@ -132,6 +132,64 @@ pub fn bounce(p: &gtk::Popover) {
     });
 }
 
+/// A value that looks like a label. A click opens it for typing: `start` gives the text to begin
+/// with, `done` gets the field and what was typed, and must set the shown text again. Enter or a
+/// click anywhere else puts the value in, Escape keeps the old one.
+pub fn value_field(
+    start: impl Fn() -> String + 'static,
+    done: impl Fn(&gtk::EditableLabel, &str) + 'static,
+) -> gtk::EditableLabel {
+    let field = gtk::EditableLabel::new("");
+    field.add_css_class("vn-value-field");
+    // Narrow, so the field hugs the shown text. Longer typing scrolls.
+    field.set_width_chars(3);
+    field.set_max_width_chars(4);
+    field.set_alignment(0.5);
+    field.set_tooltip_text(Some(crate::i18n::t("Click to type a value")));
+    // While typing: a click watcher on the window or popover the field is in.
+    let outside: std::rc::Rc<RefCell<Option<(gtk::Widget, gtk::GestureClick)>>> = Default::default();
+    field.connect_editing_notify(move |f| {
+        if f.is_editing() {
+            f.set_text(&start());
+            f.select_region(0, -1);
+            if let Some(native) = f.native() {
+                let native: gtk::Widget = native.upcast();
+                *outside.borrow_mut() = Some((native.clone(), click_outside(f, &native)));
+            }
+        } else {
+            if let Some((native, click)) = outside.take() {
+                native.remove_controller(&click);
+            }
+            done(f, &f.text());
+        }
+    });
+    field
+}
+
+/// Stops typing in `field` when a click lands anywhere else in `native`. The click itself goes on
+/// as usual.
+fn click_outside(field: &gtk::EditableLabel, native: &gtk::Widget) -> gtk::GestureClick {
+    let click = gtk::GestureClick::new();
+    click.set_button(0);
+    click.set_propagation_phase(gtk::PropagationPhase::Capture);
+    let field = field.downgrade();
+    click.connect_pressed(move |g, _, x, y| {
+        let (Some(f), Some(w)) = (field.upgrade(), g.widget()) else { return };
+        let hit = w.pick(x, y, gtk::PickFlags::DEFAULT);
+        if hit.is_some_and(|h| h == *f.upcast_ref::<gtk::Widget>() || h.is_ancestor(&f)) {
+            return;
+        }
+        // Later, not while this controller is still busy with the click.
+        glib::idle_add_local_once(move || {
+            if f.is_editing() {
+                f.stop_editing(true);
+            }
+        });
+    });
+    native.add_controller(click.clone());
+    click
+}
+
 /// CSS for the staggered entrance delays.
 pub fn delay_css() -> String {
     (0..40).map(|i| format!(".vn-d{i} {{ animation-delay: {}ms; }}\n", i * 18)).collect()

@@ -313,9 +313,6 @@ flowboxchild:hover .vn-star,
   font-weight: 700;
 }
 
-.vn-param scale highlight {
-  background-image: var(--vn-grad);
-}
 
 .vn-detail-pop {
   animation: vn-pop 460ms ease-out both;
@@ -482,6 +479,69 @@ flowboxchild .sound-pad.playing .vn-pad-icon {
 
 flowboxchild:hover .vn-pad-menu {
   opacity: 1;
+}
+
+/* Sliders for volume and voice settings: a thick gradient bar with a round knob that grows
+   under the mouse. */
+.vn-volume .vn-volume-icon {
+  color: var(--accent-color);
+}
+
+.vn-volume .vn-volume-value {
+  font-feature-settings: "tnum";
+  font-weight: 700;
+  color: var(--accent-color);
+}
+
+/* Values you can click and type into. */
+editablelabel.vn-value-field {
+  padding: 2px 6px;
+  border-radius: 8px;
+  transition: background-color 200ms ease;
+}
+
+editablelabel.vn-value-field:hover {
+  background-color: var(--vn-soft);
+}
+
+editablelabel.vn-value-field text {
+  border-radius: 6px;
+}
+
+.vn-volume scale {
+  padding-left: 0;
+  padding-right: 0;
+}
+
+.vn-volume scale trough,
+.vn-param scale trough {
+  min-height: 8px;
+  border-radius: 99px;
+}
+
+.vn-volume scale highlight,
+.vn-param scale highlight {
+  border-radius: 99px;
+  background-image: var(--vn-grad);
+}
+
+.vn-volume scale slider,
+.vn-param scale slider {
+  min-width: 20px;
+  min-height: 20px;
+  margin: -6px;
+  border-radius: 99px;
+  background-color: #ffffff;
+  background-image: none;
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent-bg-color) 30%, transparent), 0 2px 5px rgba(0, 0, 0, 0.35);
+  transition: transform 260ms cubic-bezier(.2, .9, .3, 1.5);
+}
+
+.vn-volume scale:hover slider,
+.vn-volume scale slider:active,
+.vn-param scale:hover slider,
+.vn-param scale slider:active {
+  transform: scale(1.18);
 }
 
 .vn-autoscroll-mark {
