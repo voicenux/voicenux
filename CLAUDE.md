@@ -42,9 +42,13 @@
   Use "du" in German.
 - Pictures are Fluent Emoji 3D (MIT) in `data/icons`. Add new ones to `scripts/fetch-icons.sh` and
   run `make icons`. Never draw own pictures for voices or sounds.
-- Look: colorful and Voicemod-like is wanted: the Fluent Emoji 3D pictures, the violet to pink
-  gradient, glow and lively animations. A flat libadwaita look and a game-icons look were tried
-  and dropped again. Do not redesign without being asked.
+- Look: colorful and Voicemod-like is wanted: the Fluent Emoji 3D pictures, the blue gradient
+  (deep blue to cyan), glow and lively animations. A flat libadwaita look, a game-icons look and
+  a violet to pink gradient were tried and dropped again. No wiggle animations. Do not redesign
+  without being asked.
+- GTK 4.24 picks the curve of a CSS transition by property, not by its place in the list. So use
+  one curve per `transition` list, and springy curves only for transform alone. Otherwise a
+  shadow can overshoot to a negative blur and GTK crashes.
 - Background sounds and starter sounds are made in code (`src/dsp/ambience.rs`,
   `src/soundboard/synth.rs`). Do not add sample files.
 

@@ -399,6 +399,7 @@ struct Detail {
     name: gtk::Label,
     about: gtk::Label,
     fav: gtk::Button,
+    fav_state: gtk::Stack,
     params: gtk::Box,
     key_slot: gtk::Box,
     reset: gtk::Button,
@@ -435,8 +436,18 @@ impl Detail {
         let buttons = gtk::Box::new(gtk::Orientation::Horizontal, 8);
         buttons.set_halign(gtk::Align::Center);
         buttons.set_margin_top(10);
-        let fav = gtk::Button::new();
+        // Both labels in a stack: the button keeps the width of the longer one, nothing jumps.
+        let fav_state = gtk::Stack::new();
+        fav_state.set_transition_type(gtk::StackTransitionType::Crossfade);
+        for (name, icon, text) in
+            [("off", "non-starred-symbolic", t("Add to favorites")), ("on", "starred-symbolic", t("Favorite"))]
+        {
+            fav_state.add_named(&adw::ButtonContent::builder().icon_name(icon).label(text).build(), Some(name));
+        }
+        let fav = gtk::Button::builder().child(&fav_state).build();
         fav.add_css_class("pill");
+        fav.add_css_class("image-text-button");
+        fav.add_css_class("vn-fav");
         let lab = gtk::Button::new();
         lab.add_css_class("pill");
         lab.set_child(Some(
@@ -486,6 +497,7 @@ impl Detail {
             name,
             about,
             fav: fav.clone(),
+            fav_state,
             params,
             key_slot,
             reset: reset.clone(),
@@ -555,12 +567,12 @@ impl Detail {
     fn toggles(&self) {
         let id = self.shown.borrow().clone();
         let fav = self.st.is_favorite(&id);
-        self.fav.set_child(Some(
-            &adw::ButtonContent::builder()
-                .icon_name(if fav { "starred-symbolic" } else { "non-starred-symbolic" })
-                .label(if fav { t("Favorite") } else { t("Add to favorites") })
-                .build(),
-        ));
+        self.fav_state.set_visible_child_name(if fav { "on" } else { "off" });
+        if fav {
+            self.fav.add_css_class("on");
+        } else {
+            self.fav.remove_css_class("on");
+        }
         let v = self.st.voice(&id);
         let note = match v {
             Some(v) if v.has_background() && !self.st.config.borrow().background => {

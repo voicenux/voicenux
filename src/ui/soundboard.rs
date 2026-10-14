@@ -273,6 +273,7 @@ fn pad(st: &St, s: &Sound) -> Pad {
     let pic = gtk::Overlay::new();
     pic.set_child(Some(&ring));
     let img = icon(&s.icon, 58);
+    img.add_css_class("vn-pad-icon");
     img.set_halign(gtk::Align::Center);
     img.set_valign(gtk::Align::Center);
     pic.add_overlay(&img);
