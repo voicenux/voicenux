@@ -4,7 +4,7 @@ use std::rc::Rc;
 
 use adw::prelude::*;
 
-use super::label;
+use super::{label, smooth_scroll};
 use crate::audio::Device;
 use crate::audio::easyeffects::Use as EasyEffects;
 use crate::i18n::{fill, t, t_dyn};
@@ -146,6 +146,7 @@ pub fn build(st: &St, window: &adw::ApplicationWindow) -> adw::ToolbarView {
     let header = adw::HeaderBar::new();
     header.set_title_widget(Some(&adw::WindowTitle::new(t("Settings"), "")));
     let page = adw::PreferencesPage::new();
+    smooth_scroll(&page);
     let c = st.config.borrow().clone();
 
     // Microphone.

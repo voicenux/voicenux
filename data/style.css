@@ -458,6 +458,10 @@ flowboxchild:hover .sound-pad .vn-pad-menu {
   opacity: 1;
 }
 
+.vn-autoscroll-mark {
+  animation: vn-pop-in 320ms ease-out;
+}
+
 .vn-drop {
   border-radius: 24px;
   border: 2px dashed color-mix(in srgb, var(--accent-bg-color) 60%, transparent);

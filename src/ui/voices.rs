@@ -8,7 +8,7 @@ use adw::prelude::*;
 use gtk::glib;
 
 use super::visuals::Orb;
-use super::{animate_in, cat_class, clear, icon, label};
+use super::{animate_in, cat_class, clear, icon, label, smooth_scroll};
 use crate::dsp::blocks::{self, Kind};
 use crate::i18n::{t, t_dyn};
 use crate::state::{Change, St};
@@ -66,6 +66,7 @@ pub fn build(st: &St, open_lab: OpenLab) -> VoicesPage {
     grid.add_css_class("vn-grid");
     let grid_scroll =
         gtk::ScrolledWindow::builder().hscrollbar_policy(gtk::PolicyType::Never).vexpand(true).child(&grid).build();
+    smooth_scroll(&grid_scroll);
 
     let empty = adw::StatusPage::builder()
         .icon_name("edit-find-symbolic")
@@ -474,6 +475,7 @@ impl Detail {
             .child(&inner)
             .build();
         widget.add_css_class("vn-detail");
+        smooth_scroll(&widget);
 
         let d = Self {
             widget,

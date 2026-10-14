@@ -8,7 +8,7 @@ use adw::prelude::*;
 use gtk::{gdk, gio, glib};
 
 use super::visuals::progress_ring;
-use super::{animate_in, clear, icon, icon_picker, label};
+use super::{animate_in, clear, icon, icon_picker, label, smooth_scroll};
 use crate::i18n::{fill, t, t_dyn};
 use crate::soundboard::{PlayMode, Sound};
 use crate::state::{Change, St};
@@ -55,6 +55,7 @@ pub fn build(st: &St) -> adw::ToolbarView {
     grid.add_css_class("vn-pads");
     let scroll =
         gtk::ScrolledWindow::builder().hscrollbar_policy(gtk::PolicyType::Never).vexpand(true).child(&grid).build();
+    smooth_scroll(&scroll);
 
     let empty = adw::StatusPage::builder()
         .icon_name("view-app-grid-symbolic")

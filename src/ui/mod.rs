@@ -3,6 +3,7 @@
 pub mod bottombar;
 pub mod keys;
 pub mod onboarding;
+mod scroll;
 pub mod settings;
 pub mod soundboard;
 pub mod visuals;
@@ -13,8 +14,10 @@ pub mod window;
 use std::cell::RefCell;
 use std::collections::HashMap;
 
-use gtk::prelude::*;
+use adw::prelude::*;
 use gtk::{gdk, glib};
+
+pub use scroll::smooth_scroll;
 
 pub const RESOURCE: &str = "/io/github/voicenux/Voicenux";
 
@@ -159,6 +162,7 @@ pub fn icon_picker(current: &str, size: i32, on_pick: impl Fn(&str) + 'static) -
         .min_content_width(400)
         .child(&grid)
         .build();
+    smooth_scroll(&scroll);
     popover.set_child(Some(&scroll));
     button.set_popover(Some(&popover));
     button

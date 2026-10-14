@@ -6,7 +6,7 @@ use std::rc::Rc;
 use adw::prelude::*;
 
 use super::voices::param_row;
-use super::{clear, icon, icon_picker, label};
+use super::{clear, icon, icon_picker, label, smooth_scroll};
 use crate::dsp::blocks::{self, BLOCKS, Group};
 use crate::i18n::{fill, t, t_dyn};
 use crate::state::{Change, St};
@@ -49,6 +49,7 @@ pub fn build(st: &St) -> Lab {
         .width_request(230)
         .child(&list)
         .build();
+    smooth_scroll(&list_scroll);
     let list_title = label(t("My voices"), &["heading"]);
     list_title.set_xalign(0.0);
     list_title.set_margin_start(18);
@@ -68,6 +69,7 @@ pub fn build(st: &St) -> Lab {
     let clamp = adw::Clamp::builder().maximum_size(820).child(&editor).build();
     let editor_scroll =
         gtk::ScrolledWindow::builder().hscrollbar_policy(gtk::PolicyType::Never).hexpand(true).child(&clamp).build();
+    smooth_scroll(&editor_scroll);
 
     let empty = adw::StatusPage::builder()
         .icon_name("applications-science-symbolic")
@@ -500,6 +502,7 @@ fn effect_picker(st: &St, editor: &gtk::Box, id: &str) -> gtk::Popover {
         .min_content_width(480)
         .child(&col)
         .build();
+    smooth_scroll(&scroll);
     popover.set_child(Some(&scroll));
     popover
 }

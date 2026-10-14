@@ -151,8 +151,11 @@ pub fn build(app: &adw::Application, st: &St) -> Window {
     root.append(&split);
     root.append(&bottombar::build(st));
 
+    // Room for things that float above the pages, like the autoscroll mark.
+    let layer = gtk::Overlay::new();
+    layer.set_child(Some(&root));
     let toast = adw::ToastOverlay::new();
-    toast.set_child(Some(&root));
+    toast.set_child(Some(&layer));
     window.set_content(Some(&toast));
 
     let win = Window { window: window.clone(), toast, stack, nav, lab: lab.clone(), st: st.clone() };
