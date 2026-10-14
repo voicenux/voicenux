@@ -267,11 +267,22 @@ flowboxchild:hover .vn-star,
   animation: vn-star-pop 600ms ease-out;
 }
 
-.vn-entering {
-  animation: vn-card-in 480ms ease-out both;
+/* Two names, because only a new name starts the animation again. */
+.vn-entering-a {
+  animation: vn-card-in-a 480ms ease-out both;
 }
 
-@keyframes vn-card-in {
+.vn-entering-b {
+  animation: vn-card-in-b 480ms ease-out both;
+}
+
+@keyframes vn-card-in-a {
+  0% { opacity: 0; transform: translateY(16px) scale(0.9); }
+  60% { opacity: 1; transform: translateY(-3px) scale(1.03); }
+  100% { opacity: 1; transform: translateY(0px) scale(1); }
+}
+
+@keyframes vn-card-in-b {
   0% { opacity: 0; transform: translateY(16px) scale(0.9); }
   60% { opacity: 1; transform: translateY(-3px) scale(1.03); }
   100% { opacity: 1; transform: translateY(0px) scale(1); }

@@ -108,15 +108,16 @@ pub fn clear(widget: &impl IsA<gtk::Widget>) {
 
 /// Plays the entrance animation on a widget, `delay` steps of 18 ms late.
 pub fn animate_in(widget: &impl IsA<gtk::Widget>, delay: usize) {
-    let w = widget.as_ref().clone();
-    w.remove_css_class("vn-entering");
+    let w = widget.as_ref();
     for i in 0..40 {
         w.remove_css_class(&format!("vn-d{i}"));
     }
-    glib::idle_add_local_once(move || {
-        w.add_css_class("vn-entering");
-        w.add_css_class(&format!("vn-d{}", delay.min(39)));
-    });
+    w.add_css_class(&format!("vn-d{}", delay.min(39)));
+    // A new animation name starts the animation again, the same name would not.
+    let (old, new) =
+        if w.has_css_class("vn-entering-a") { ("vn-entering-a", "vn-entering-b") } else { ("vn-entering-b", "vn-entering-a") };
+    w.remove_css_class(old);
+    w.add_css_class(new);
 }
 
 /// Makes a popover open with a little bounce. It has no arrow, so nothing stays behind.
