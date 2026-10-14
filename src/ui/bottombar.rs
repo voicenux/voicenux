@@ -93,7 +93,7 @@ pub fn build(st: &St) -> gtk::Box {
             bg.set_active(c.background);
             if st.muted.get() {
                 mute.add_css_class("muted");
-                mute.set_icon_name("microphone-disabled-symbolic");
+                mute.set_icon_name("microphone-sensitivity-muted-symbolic");
             } else {
                 mute.remove_css_class("muted");
                 mute.set_icon_name("audio-input-microphone-symbolic");
