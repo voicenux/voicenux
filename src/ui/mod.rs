@@ -1,6 +1,7 @@
 //! The window and everything in it.
 
 pub mod bottombar;
+mod emoji;
 pub mod keys;
 pub mod onboarding;
 mod scroll;
@@ -17,6 +18,7 @@ use std::collections::HashMap;
 use adw::prelude::*;
 use gtk::{gdk, glib};
 
+pub use emoji::icon_picker;
 pub use scroll::smooth_scroll;
 
 pub const RESOURCE: &str = "/io/github/voicenux/Voicenux";
@@ -31,31 +33,27 @@ pub fn texture(name: &str) -> gdk::Texture {
         if let Some(tex) = t.borrow().get(name) {
             return tex.clone();
         }
-        let path = format!("{RESOURCE}/icons/{name}.png");
-        let tex = if gtk::gio::resources_get_info(&path, gtk::gio::ResourceLookupFlags::NONE).is_ok() {
-            gdk::Texture::from_resource(&path)
-        } else {
-            gdk::Texture::from_resource(&format!("{RESOURCE}/icons/sparkles.png"))
-        };
+        let tex = load_picture(name);
         t.borrow_mut().insert(name.to_string(), tex.clone());
         tex
     })
+}
+
+/// A picture from `data/icons` or `data/emoji`, not cached. Sparkles when there is none.
+pub fn load_picture(name: &str) -> gdk::Texture {
+    for dir in ["icons", "emoji"] {
+        let path = format!("{RESOURCE}/{dir}/{name}.png");
+        if gtk::gio::resources_get_info(&path, gtk::gio::ResourceLookupFlags::NONE).is_ok() {
+            return gdk::Texture::from_resource(&path);
+        }
+    }
+    gdk::Texture::from_resource(&format!("{RESOURCE}/icons/sparkles.png"))
 }
 
 pub fn icon(name: &str, size: i32) -> gtk::Image {
     let img = gtk::Image::from_paintable(Some(&texture(name)));
     img.set_pixel_size(size);
     img
-}
-
-/// All pictures there are, for the icon picker.
-pub fn all_icons() -> Vec<String> {
-    let mut names: Vec<String> =
-        gtk::gio::resources_enumerate_children(&format!("{RESOURCE}/icons/"), gtk::gio::ResourceLookupFlags::NONE)
-            .map(|l| l.iter().map(|s| s.trim_end_matches(".png").to_string()).collect())
-            .unwrap_or_default();
-    names.sort();
-    names
 }
 
 pub fn logo(size: i32) -> gtk::Image {
@@ -193,50 +191,6 @@ fn click_outside(field: &gtk::EditableLabel, native: &gtk::Widget) -> gtk::Gestu
 /// CSS for the staggered entrance delays.
 pub fn delay_css() -> String {
     (0..40).map(|i| format!(".vn-d{i} {{ animation-delay: {}ms; }}\n", i * 18)).collect()
-}
-
-/// A button showing a picture. Clicking it opens a grid of all pictures to choose from.
-pub fn icon_picker(current: &str, size: i32, on_pick: impl Fn(&str) + 'static) -> gtk::MenuButton {
-    let button = gtk::MenuButton::new();
-    button.set_child(Some(&icon(current, size)));
-    button.set_tooltip_text(Some(crate::i18n::t("Change picture")));
-    let grid = gtk::FlowBox::builder()
-        .selection_mode(gtk::SelectionMode::None)
-        .min_children_per_line(6)
-        .max_children_per_line(8)
-        .homogeneous(true)
-        .row_spacing(4)
-        .column_spacing(4)
-        .build();
-    grid.add_css_class("vn-icon-grid");
-    let popover = gtk::Popover::new();
-    bounce(&popover);
-    let on_pick = std::rc::Rc::new(on_pick);
-    for name in all_icons() {
-        let b = gtk::Button::new();
-        b.add_css_class("flat");
-        b.set_child(Some(&icon(&name, 40)));
-        b.set_tooltip_text(Some(&name.replace('-', " ")));
-        let on_pick = on_pick.clone();
-        let popover = popover.clone();
-        let button = button.clone();
-        b.connect_clicked(move |_| {
-            button.set_child(Some(&icon(&name, size)));
-            popover.popdown();
-            on_pick(&name);
-        });
-        grid.append(&b);
-    }
-    let scroll = gtk::ScrolledWindow::builder()
-        .hscrollbar_policy(gtk::PolicyType::Never)
-        .min_content_height(320)
-        .min_content_width(400)
-        .child(&grid)
-        .build();
-    smooth_scroll(&scroll);
-    popover.set_child(Some(&scroll));
-    button.set_popover(Some(&popover));
-    button
 }
 
 /// Renders a widget (the window) into a PNG file.

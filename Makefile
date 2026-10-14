@@ -3,7 +3,7 @@ DESTDIR ?=
 APP_ID = io.github.voicenux.Voicenux
 BIN = target/release/voicenux
 
-.PHONY: all build check e2e run install uninstall icons sounds clean
+.PHONY: all build check e2e run install uninstall icons emoji sounds clean
 
 all: build
 
@@ -39,6 +39,10 @@ uninstall:
 # Downloads missing Fluent Emoji pictures listed in the script.
 icons:
 	scripts/fetch-icons.sh
+
+# Downloads all other Fluent Emoji for the picture picker, small, and their names. Needs Pillow.
+emoji:
+	python3 -I scripts/fetch-emoji.py
 
 # Downloads the CC0 starter sounds from Freesound and levels them. Needs ffmpeg.
 sounds:

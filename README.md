@@ -108,6 +108,6 @@ Many of them come with a background sound: rain, bubbles, a campfire, a stadium 
 
 ## Credits
 
-The pictures are [Fluent Emoji](https://github.com/microsoft/fluentui-emoji) by Microsoft (MIT). The reverb is Freeverb by Jezar at Dreampoint. Noise suppression is RNNoise by Xiph.Org, through [nnnoiseless](https://github.com/jneem/nnnoiseless). Audio files are read with [Symphonia](https://github.com/pdeljanov/Symphonia).
+The pictures are [Fluent Emoji](https://github.com/microsoft/fluentui-emoji) by Microsoft (MIT), their German names come from [Unicode CLDR](https://cldr.unicode.org). The reverb is Freeverb by Jezar at Dreampoint. Noise suppression is RNNoise by Xiph.Org, through [nnnoiseless](https://github.com/jneem/nnnoiseless). Audio files are read with [Symphonia](https://github.com/pdeljanov/Symphonia).
 
 BSD-3-Clause.

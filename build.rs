@@ -9,15 +9,18 @@ fn main() {
     xml.push_str("    <file>style.css</file>\n");
     xml.push_str("    <file alias=\"logo.svg\">app/io.github.voicenux.Voicenux.svg</file>\n");
     xml.push_str("    <file alias=\"hicolor/scalable/apps/io.github.voicenux.Voicenux.svg\">app/io.github.voicenux.Voicenux.svg</file>\n");
-    let mut icons: Vec<String> = std::fs::read_dir("data/icons")
-        .unwrap()
-        .flatten()
-        .map(|e| e.file_name().to_string_lossy().to_string())
-        .filter(|n| n.ends_with(".png"))
-        .collect();
-    icons.sort();
-    for icon in icons {
-        writeln!(xml, "    <file>icons/{icon}</file>").unwrap();
+    // The pictures of voices and sounds, and all other emoji for the picture picker.
+    for dir in ["icons", "emoji"] {
+        let mut icons: Vec<String> = std::fs::read_dir(format!("data/{dir}"))
+            .unwrap()
+            .flatten()
+            .map(|e| e.file_name().to_string_lossy().to_string())
+            .filter(|n| n.ends_with(".png"))
+            .collect();
+        icons.sort();
+        for icon in icons {
+            writeln!(xml, "    <file>{dir}/{icon}</file>").unwrap();
+        }
     }
     xml.push_str("  </gresource>\n</gresources>\n");
     let xml_path = format!("{out}/voicenux.gresource.xml");

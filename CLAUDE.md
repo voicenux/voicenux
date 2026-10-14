@@ -41,7 +41,9 @@
   (voices, effects, sounds) go through `t_dyn()`. `make check` fails when a German text is missing.
   Use "du" in German.
 - Pictures are Fluent Emoji 3D (MIT) in `data/icons`. Add new ones to `scripts/fetch-icons.sh` and
-  run `make icons`. Never draw own pictures for voices or sounds.
+  run `make icons`. Never draw own pictures for voices or sounds. All other emoji are in
+  `data/emoji`, small, for the picture picker; `data/emoji.tsv` has their English and German
+  names for the search. `make emoji` makes both again; run it after `make icons`.
 - Look: colorful and Voicemod-like is wanted: the Fluent Emoji 3D pictures, the blue gradient
   (deep blue to cyan), glow and lively animations. A flat libadwaita look, a game-icons look and
   a violet to pink gradient were tried and dropped again. No wiggle animations. Do not redesign

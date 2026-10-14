@@ -610,9 +610,26 @@ popover.vn-bounce-b > contents {
   padding: 8px 10px;
 }
 
-.vn-icon-grid button {
+gridview.vn-emoji-grid {
+  background: none;
+}
+
+gridview.vn-emoji-grid > child {
+  padding: 6px;
   border-radius: 12px;
-  padding: 4px;
+  transition: background-color 160ms ease;
+}
+
+gridview.vn-emoji-grid > child:hover {
+  background-color: var(--vn-soft);
+}
+
+gridview.vn-emoji-grid > child image {
+  transition: transform 260ms cubic-bezier(.2, .9, .3, 1.5);
+}
+
+gridview.vn-emoji-grid > child:hover image {
+  transform: scale(1.15);
 }
 
 /* Misc */
