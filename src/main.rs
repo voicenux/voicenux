@@ -13,6 +13,12 @@ mod ui;
 mod voice;
 
 fn main() -> gtk::glib::ExitCode {
+    // GTK's Vulkan renderer misses about 6 % of frames on NVIDIA (measured at 180 Hz), GL almost
+    // none. Someone who sets GSK_RENDERER keeps their choice.
+    if std::env::var_os("GSK_RENDERER").is_none() && std::path::Path::new("/sys/module/nvidia").exists() {
+        // SAFETY: first thing in main, no other threads yet.
+        unsafe { std::env::set_var("GSK_RENDERER", "gl") };
+    }
     env_logger::Builder::from_env(env_logger::Env::default().default_filter_or("warn")).init();
     let args: Vec<String> = std::env::args().skip(1).collect();
     // Commands that only read go without starting the app.
