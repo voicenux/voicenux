@@ -8,6 +8,7 @@ use std::sync::Arc;
 
 use gtk::glib;
 
+use crate::audio::easyeffects::Use as EasyEffects;
 use crate::audio::{Ctl, Device, Engine, Event, RtCmd};
 use crate::config::Config;
 use crate::soundboard::{self, Library, PlayMode, SoundData};
@@ -56,6 +57,7 @@ pub struct State {
     pub active_input: RefCell<Option<Device>>,
     pub active_output: RefCell<Option<Device>>,
     pub users: RefCell<Vec<String>>,
+    pub easyeffects: Cell<EasyEffects>,
     pub muted: Cell<bool>,
     pub ready: Cell<bool>,
     /// A tray icon is there to bring the window back.
@@ -89,6 +91,7 @@ impl State {
             active_input: RefCell::default(),
             active_output: RefCell::default(),
             users: RefCell::default(),
+            easyeffects: Cell::default(),
             muted: Cell::new(false),
             ready: Cell::new(false),
             tray: Cell::new(false),
@@ -119,6 +122,7 @@ impl State {
         let e = &self.engine;
         e.send(Ctl::Input(c.input.clone()));
         e.send(Ctl::Output(c.output.clone()));
+        e.send(Ctl::EasyEffects(c.easyeffects));
         e.rt(RtCmd::VoiceOn(c.voice_on));
         e.rt(RtCmd::HearMyself(c.hear_myself));
         e.rt(RtCmd::Background(c.background));
@@ -159,6 +163,10 @@ impl State {
             Event::Users(users) => {
                 *self.users.borrow_mut() = users;
                 self.notify(Change::Users);
+            }
+            Event::EasyEffects(u) => {
+                self.easyeffects.set(u);
+                self.notify(Change::Devices);
             }
             Event::DefaultMic { previous, .. } => {
                 if previous.is_some() {
@@ -482,6 +490,9 @@ impl State {
         }
         if c.output != before.output {
             e.send(Ctl::Output(c.output.clone()));
+        }
+        if c.easyeffects != before.easyeffects {
+            e.send(Ctl::EasyEffects(c.easyeffects));
         }
         if c.input_gain_db != before.input_gain_db {
             e.rt(RtCmd::InputGain(c.input_gain_db));

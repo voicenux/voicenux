@@ -1,6 +1,7 @@
 //! The audio engine: a PipeWire filter between the microphone, the virtual
 //! "Voicenux Microphone" and the headphones.
 
+pub mod easyeffects;
 mod filter;
 mod graph;
 pub mod rt;
@@ -91,6 +92,7 @@ pub enum Ctl {
     LowLatency(bool),
     Input(Option<String>),
     Output(Option<String>),
+    EasyEffects(bool),
     DefaultMic { on: bool, previous: Option<String> },
     Quit,
 }

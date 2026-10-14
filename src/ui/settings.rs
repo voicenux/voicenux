@@ -6,6 +6,7 @@ use adw::prelude::*;
 
 use super::label;
 use crate::audio::Device;
+use crate::audio::easyeffects::Use as EasyEffects;
 use crate::i18n::{fill, t, t_dyn};
 use crate::shortcuts::{self, ACTIONS};
 use crate::state::{Change, St};
@@ -111,6 +112,36 @@ fn device_row(st: &St, title: &str, inputs: bool) -> adw::ComboRow {
     row
 }
 
+/// Shown while EasyEffects runs. Says where its microphone effects end up.
+fn easyeffects_row(st: &St) -> adw::SwitchRow {
+    let row = adw::SwitchRow::builder().title(t("Use EasyEffects")).active(st.config.borrow().easyeffects).build();
+    let sync = {
+        let st = st.clone();
+        let row = row.clone();
+        move || {
+            let u = st.easyeffects.get();
+            row.set_visible(u != EasyEffects::Missing);
+            row.set_subtitle(match u {
+                EasyEffects::After => t("EasyEffects works on the Voicenux Microphone, so its effects come after the voice."),
+                EasyEffects::Before => t("Your EasyEffects microphone effects, like noise reduction, come before the voice."),
+                _ if !row.is_active() => t("Run your EasyEffects microphone effects, like noise reduction, before the voice."),
+                _ => t("Not in use: EasyEffects works on another microphone."),
+            });
+        }
+    };
+    sync();
+    row.connect_active_notify({
+        let st = st.clone();
+        move |r| st.update(|c| c.easyeffects = r.is_active())
+    });
+    st.subscribe(move |c| {
+        if matches!(c, Change::Devices | Change::Settings) {
+            sync();
+        }
+    });
+    row
+}
+
 pub fn build(st: &St, window: &adw::ApplicationWindow) -> adw::ToolbarView {
     let header = adw::HeaderBar::new();
     header.set_title_widget(Some(&adw::WindowTitle::new(t("Settings"), "")));
@@ -166,6 +197,7 @@ pub fn build(st: &St, window: &adw::ApplicationWindow) -> adw::ToolbarView {
     });
     mic.add(&gate);
     mic.add(&gate_level);
+    mic.add(&easyeffects_row(st));
     page.add(&mic);
 
     // Virtual microphone.

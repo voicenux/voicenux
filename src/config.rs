@@ -22,6 +22,8 @@ pub struct Config {
     pub background: bool,
     /// Node name of the microphone, None for the system default.
     pub input: Option<String>,
+    /// Record from EasyEffects when it works on the same microphone.
+    pub easyeffects: bool,
     /// Node name of the headphones for "Hear myself", None for the system default.
     pub output: Option<String>,
     pub input_gain_db: f32,
@@ -60,6 +62,7 @@ impl Default for Config {
             hear_myself: false,
             background: true,
             input: None,
+            easyeffects: true,
             output: None,
             input_gain_db: 0.0,
             mic_volume_db: 0.0,

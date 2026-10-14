@@ -1459,3 +1459,18 @@ msgstr "Vorige Stimme"
 
 msgid "Needs a tray icon area. On GNOME, install the AppIndicator extension."
 msgstr "Braucht einen Bereich für Tray-Symbole. Installier unter GNOME die AppIndicator-Erweiterung."
+
+msgid "Use EasyEffects"
+msgstr "EasyEffects nutzen"
+
+msgid "EasyEffects works on the Voicenux Microphone, so its effects come after the voice."
+msgstr "EasyEffects bearbeitet das Voicenux-Mikrofon, seine Effekte kommen also nach der Stimme."
+
+msgid "Your EasyEffects microphone effects, like noise reduction, come before the voice."
+msgstr "Deine Mikrofon-Effekte aus EasyEffects, etwa die Rauschunterdrückung, kommen vor der Stimme."
+
+msgid "Run your EasyEffects microphone effects, like noise reduction, before the voice."
+msgstr "Lass deine Mikrofon-Effekte aus EasyEffects, etwa die Rauschunterdrückung, vor der Stimme laufen."
+
+msgid "Not in use: EasyEffects works on another microphone."
+msgstr "Nicht aktiv: EasyEffects bearbeitet ein anderes Mikrofon."

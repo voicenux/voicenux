@@ -11,6 +11,7 @@ use pipewire as pw;
 use pw::properties::properties;
 use pw::types::ObjectType;
 
+use super::easyeffects::{self, Use};
 use super::filter::Filter;
 use super::rt::Processor;
 use super::{Ctl, ENGINE_NODE, MIC_DESCRIPTION, MIC_NODE, Meters, RtCmd, Trash};
@@ -42,6 +43,7 @@ pub enum Event {
     DefaultMic {
         previous: Option<String>,
     },
+    EasyEffects(Use),
 }
 
 pub struct Engine {
@@ -129,6 +131,8 @@ struct Graph {
     default_previous: Option<String>,
     want_input: Option<String>,
     want_output: Option<String>,
+    /// Record from EasyEffects when it works on our microphone.
+    easyeffects: bool,
     dirty: bool,
     created: HashMap<(u32, u32), pw::link::Link>,
     metadata: Option<pw::metadata::Metadata>,
@@ -137,6 +141,7 @@ struct Graph {
     sent_active: Option<(Option<Device>, Option<Device>)>,
     sent_users: Option<Vec<String>>,
     sent_default: Option<bool>,
+    sent_easyeffects: Option<Use>,
 }
 
 /// Apps that only watch levels (volume controls), not real users of the microphone.
@@ -166,7 +171,8 @@ impl Graph {
         let mut v: Vec<_> = self
             .nodes
             .iter()
-            .filter(|(_, n)| n.class.starts_with("Audio/Source") && n.name != MIC_NODE)
+            // EasyEffects comes in through its own switch, so it cannot make a loop.
+            .filter(|(_, n)| n.class.starts_with("Audio/Source") && n.name != MIC_NODE && n.name != easyeffects::SOURCE)
             .map(|(id, n)| (*id, n))
             .collect();
         v.sort_by(|a, b| a.1.description.cmp(&b.1.description));
@@ -194,6 +200,35 @@ impl Graph {
             .or_else(|| sources.first().map(|(id, _)| *id))
     }
 
+    /// The microphone EasyEffects works on: seen in its links, else from its settings.
+    fn easyeffects_input(&self) -> Option<String> {
+        let seen = self.links.values().find_map(|l| {
+            let (from, to) = (self.nodes.get(&l.out_node)?, self.nodes.get(&l.in_node)?);
+            (easyeffects::is_mic_pipeline(&to.name) && !easyeffects::is_own(&from.name)).then(|| from.name.clone())
+        });
+        seen.or_else(easyeffects::configured_input).or_else(|| self.default_source.clone())
+    }
+
+    fn easyeffects_use(&self) -> Use {
+        if self.node_id(easyeffects::SOURCE).is_none() {
+            return Use::Missing;
+        }
+        let ee_input = self.easyeffects_input();
+        if ee_input.as_deref() == Some(MIC_NODE) {
+            return Use::After;
+        }
+        let mic = self.pick_input().and_then(|id| self.nodes.get(&id));
+        if self.easyeffects && mic.is_some_and(|m| Some(&m.name) == ee_input.as_ref()) { Use::Before } else { Use::Unused }
+    }
+
+    /// Where the engine records from: the microphone, or EasyEffects working on it.
+    fn input_node(&self) -> Option<u32> {
+        if self.easyeffects_use() == Use::Before {
+            return self.node_id(easyeffects::SOURCE);
+        }
+        self.pick_input()
+    }
+
     fn pick_output(&self) -> Option<u32> {
         let sinks = self.sinks();
         let by_name = |name: &Option<String>| {
@@ -203,10 +238,13 @@ impl Graph {
     }
 
     fn ports_of(&self, node: u32, output: bool) -> Vec<(u32, &PortInfo)> {
+        // Virtual sources (EasyEffects) send through ports marked as monitor. On a sink those are
+        // only the monitor, so skip them there.
+        let source = self.nodes.get(&node).is_some_and(|n| n.class.starts_with("Audio/Source"));
         let mut v: Vec<_> = self
             .ports
             .iter()
-            .filter(|(_, p)| p.node == node && p.output == output && !p.monitor)
+            .filter(|(_, p)| p.node == node && p.output == output && (source || !p.monitor))
             .map(|(id, p)| (*id, p))
             .collect();
         v.sort_by_key(|(id, _)| *id);
@@ -232,7 +270,7 @@ impl Graph {
                 want.push(LinkInfo { out_node, out_port, in_node, in_port });
             }
         };
-        if let Some(src) = self.pick_input() {
+        if let Some(src) = self.input_node() {
             let ports = self.ports_of(src, true);
             // Mono mics have MONO, stereo ones FL and FR. Take one channel only.
             let port = ports
@@ -307,13 +345,26 @@ impl Graph {
         }
     }
 
+    /// Nodes that record from a source.
+    fn recorders(&self, source: u32) -> Vec<&NodeInfo> {
+        self.links.values().filter(|l| l.out_node == source).filter_map(|l| self.nodes.get(&l.in_node)).collect()
+    }
+
     fn users(&self) -> Vec<String> {
         let Some(mic) = self.node_id(MIC_NODE) else { return Vec::new() };
-        let mut users: Vec<String> = self
-            .links
-            .values()
-            .filter(|l| l.out_node == mic)
-            .filter_map(|l| self.nodes.get(&l.in_node))
+        let mut nodes = Vec::new();
+        for n in self.recorders(mic) {
+            if easyeffects::is_own(&n.name) {
+                // EasyEffects works on our mic: the apps behind it hear the voice.
+                if let Some(ee) = self.node_id(easyeffects::SOURCE) {
+                    nodes.extend(self.recorders(ee));
+                }
+            } else {
+                nodes.push(n);
+            }
+        }
+        let mut users: Vec<String> = nodes
+            .into_iter()
             .filter(|n| n.name != ENGINE_NODE)
             .map(|n| if n.app.is_empty() { n.description.clone() } else { n.app.clone() })
             .filter(|a| !WATCHERS.iter().any(|w| a.eq_ignore_ascii_case(w)))
@@ -339,6 +390,11 @@ impl Graph {
         if self.sent_users.as_ref() != Some(&users) {
             self.sent_users = Some(users.clone());
             let _ = events.try_send(Event::Users(users));
+        }
+        let ee = self.easyeffects_use();
+        if self.sent_easyeffects != Some(ee) {
+            self.sent_easyeffects = Some(ee);
+            let _ = events.try_send(Event::EasyEffects(ee));
         }
         let ours = self.configured_source.as_deref() == Some(MIC_NODE);
         if self.sent_default != Some(ours) {
@@ -589,6 +645,11 @@ fn run(
                 g.want_output = name;
                 g.dirty = true;
             }
+            Ctl::EasyEffects(on) => {
+                let mut g = graph.borrow_mut();
+                g.easyeffects = on;
+                g.dirty = true;
+            }
             Ctl::DefaultMic { on, previous } => {
                 let mut g = graph.borrow_mut();
                 g.want_default = Some(on);
@@ -621,5 +682,31 @@ mod tests {
         assert_eq!(parse_default(Some("{\"name\":\"alsa_input.pci\"}")), Some("alsa_input.pci".into()));
         assert_eq!(parse_default(Some("{ \"name\": \"x y\" }")), Some("x y".into()));
         assert_eq!(parse_default(None), None);
+    }
+
+    #[test]
+    fn easyeffects_never_makes_a_loop() {
+        let node = |name: &str, class: &str| NodeInfo {
+            name: name.into(),
+            description: name.into(),
+            class: class.into(),
+            app: String::new(),
+        };
+        let link = |out_node, in_node| LinkInfo { out_node, out_port: 0, in_node, in_port: 0 };
+        let mut g = Graph { easyeffects: true, want_input: Some("mic".into()), ..Default::default() };
+        g.nodes.insert(1, node("mic", "Audio/Source"));
+        g.nodes.insert(2, node(MIC_NODE, "Audio/Source/Virtual"));
+        g.nodes.insert(3, node(easyeffects::SOURCE, "Audio/Source/Virtual"));
+        g.nodes.insert(4, node("ee_sie_gate", ""));
+        // EasyEffects works on the same mic: record from EasyEffects.
+        g.links.insert(10, link(1, 4));
+        assert_eq!((g.easyeffects_use(), g.input_node()), (Use::Before, Some(3)));
+        // EasyEffects works on our own mic: record the mic itself.
+        g.links.insert(10, link(2, 4));
+        assert_eq!((g.easyeffects_use(), g.input_node()), (Use::After, Some(1)));
+        // Switched off.
+        g.links.insert(10, link(1, 4));
+        g.easyeffects = false;
+        assert_eq!((g.easyeffects_use(), g.input_node()), (Use::Unused, Some(1)));
     }
 }
