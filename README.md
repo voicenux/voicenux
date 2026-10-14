@@ -59,7 +59,7 @@ When you close the window, Voicenux keeps running in the tray, so your voice kee
 
 ### Soundboard
 
-<img width="720" src="res/soundboard.png" alt="The soundboard with sound pads; Drum Roll and Applause are playing and show their progress as a ring">
+<img width="720" src="res/soundboard.png" alt="The soundboard with sound pads; Drum Roll and Applause are playing and show their progress as a ring. On the right, Find sounds lists applause sounds from MyInstants, each with a play and an add button">
 
 Sounds play into the Voicenux Microphone, and you hear them too. Add your own with **Add sounds**, or drop audio files on the page. MP3, OGG, FLAC and WAV work. The menu of a sound changes its name, picture, volume and shortcut, and what a press does: play from the start, play and stop, play on top or loop. Right-click a sound to open it.
 
