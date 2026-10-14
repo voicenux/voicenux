@@ -54,12 +54,12 @@ pub fn build(st: &St, open_lab: OpenLab) -> VoicesPage {
         .homogeneous(true)
         .min_children_per_line(2)
         .max_children_per_line(16)
-        .column_spacing(14)
-        .row_spacing(14)
+        .column_spacing(18)
+        .row_spacing(18)
         .valign(gtk::Align::Start)
         .margin_start(20)
         .margin_end(20)
-        .margin_top(6)
+        .margin_top(14)
         .margin_bottom(24)
         .activate_on_single_click(true)
         .build();
@@ -366,7 +366,9 @@ fn card(st: &St, v: &Voice) -> Card {
         move |_| st.toggle_favorite(&id)
     });
 
+    // The overlay lifts on hover, so the star moves along with the card.
     let overlay = gtk::Overlay::new();
+    overlay.add_css_class("vn-lift");
     overlay.set_child(Some(&card));
     overlay.add_overlay(&star);
 

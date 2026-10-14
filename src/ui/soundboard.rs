@@ -43,8 +43,8 @@ pub fn build(st: &St) -> adw::ToolbarView {
         .homogeneous(true)
         .min_children_per_line(2)
         .max_children_per_line(16)
-        .column_spacing(14)
-        .row_spacing(14)
+        .column_spacing(18)
+        .row_spacing(18)
         .valign(gtk::Align::Start)
         .margin_start(20)
         .margin_end(20)
@@ -297,6 +297,7 @@ fn pad(st: &St, s: &Sound) -> Pad {
     menu.set_popover(Some(&editor(st, s)));
 
     let overlay = gtk::Overlay::new();
+    overlay.add_css_class("vn-lift");
     overlay.set_child(Some(&pad));
     overlay.add_overlay(&menu);
     let child = gtk::FlowBoxChild::new();

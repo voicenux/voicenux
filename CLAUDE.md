@@ -49,6 +49,8 @@
 - GTK 4.24 picks the curve of a CSS transition by property, not by its place in the list. So use
   one curve per `transition` list, and springy curves only for transform alone. Otherwise a
   shadow can overshoot to a negative blur and GTK crashes.
+- Rings and glows of tiles that move (voice cards, sound pads) stay inside the tile: use `inset`
+  shadows. Shadows that reach out of a moving tile left broken bits on NVIDIA at 130 % scale.
 - Background sounds and starter sounds are made in code (`src/dsp/ambience.rs`,
   `src/soundboard/synth.rs`). Do not add sample files.
 
