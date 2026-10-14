@@ -547,6 +547,7 @@ impl State {
         let sound = self.library.borrow().find(id)?.clone();
         match soundboard::load(&sound) {
             Ok(d) => {
+                let d = if sound.is_trimmed() { Arc::new(soundboard::trim(&d, sound.start, sound.end)) } else { d };
                 self.sounds.borrow_mut().insert(id.to_string(), d.clone());
                 Some(d)
             }
@@ -595,6 +596,17 @@ impl State {
         self.engine.rt(RtCmd::Stop(PREVIEW));
     }
 
+    /// How far the preview has played, from 0 to 1. None when it does not play.
+    pub fn preview_progress(&self) -> Option<f32> {
+        self.engine.meters.playing().into_iter().find(|(id, _)| *id == PREVIEW).map(|(_, p)| p)
+    }
+
+    /// All of a sound, without its cut, for the trim editor.
+    pub fn sound_uncut(&self, id: &str) -> Option<Arc<SoundData>> {
+        let sound = self.library.borrow().find(id)?.clone();
+        soundboard::load(&sound).map_err(|e| log::warn!("could not load sound {id}: {e}")).ok()
+    }
+
     /// Adds a sound found online.
     pub fn add_found(&self, name: &str, ext: &str, data: &[u8], icon: &str) -> anyhow::Result<()> {
         {
@@ -612,6 +624,10 @@ impl State {
         {
             let mut lib = self.library.borrow_mut();
             if let Some(s) = lib.sound.iter_mut().find(|s| s.id == sound.id) {
+                // A new cut needs the audio cut again.
+                if (s.start, s.end) != (sound.start, sound.end) {
+                    self.sounds.borrow_mut().remove(&sound.id);
+                }
                 *s = sound;
             }
             lib.save();

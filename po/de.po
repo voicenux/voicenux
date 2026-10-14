@@ -1522,3 +1522,21 @@ msgstr "{} ist jetzt auf deinem Soundboard"
 
 msgid "That did not work. Try again."
 msgstr "Das hat nicht geklappt. Versuch es noch mal."
+
+msgid "Trim sound"
+msgstr "Sound kürzen"
+
+msgid "Start"
+msgstr "Anfang"
+
+msgid "End"
+msgstr "Ende"
+
+msgid "Stop"
+msgstr "Stopp"
+
+msgid "Use all of it"
+msgstr "Ganzen Sound nehmen"
+
+msgid "Drag the handles to cut the start and the end. Listening plays in your headphones only."
+msgstr "Zieh die Griffe, um Anfang und Ende abzuschneiden. Anhören spielt nur in deinen Kopfhörern."

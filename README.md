@@ -61,7 +61,11 @@ When you close the window, Voicenux keeps running in the tray, so your voice kee
 
 <img width="720" src="res/soundboard.png" alt="The soundboard with sound pads; Drum Roll and Applause are playing and show their progress as a ring">
 
-Sounds play into the Voicenux Microphone, and you hear them too. Add your own with **Add sounds**, or drop audio files on the page. MP3, OGG, FLAC and WAV work. The menu of a sound changes its name, picture, volume and shortcut, and what a press does: play from the start, play and stop, play on top or loop.
+Sounds play into the Voicenux Microphone, and you hear them too. Add your own with **Add sounds**, or drop audio files on the page. MP3, OGG, FLAC and WAV work. The menu of a sound changes its name, picture, volume and shortcut, and what a press does: play from the start, play and stop, play on top or loop. Right-click a sound to open it.
+
+<img width="720" src="res/trim.png" alt="Trim sound for Drum Roll: the waveform with a blue frame and a handle on each side, from 0.80 s to 5.20 s, and a playhead while it plays">
+
+**Trim sound** in the menu cuts the start and end, like a video clip. Drag the handles over the waveform, or type the times. **Listen** plays the cut sound in your headphones only, and Space does too.
 
 **Find sounds** searches [MyInstants](https://www.myinstants.com). ▶ plays a sound in your headphones only, + adds it to your soundboard. Only the words you search for are sent, and only when you search.
 

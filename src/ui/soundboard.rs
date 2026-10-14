@@ -507,6 +507,11 @@ fn editor(st: &St, s: &Sound) -> gtk::Popover {
     });
     b.append(&mode);
 
+    let trim = gtk::Button::new();
+    trim.add_css_class("pill");
+    trim.set_child(Some(&adw::ButtonContent::builder().icon_name("edit-cut-symbolic").label(t("Trim sound")).build()));
+    b.append(&trim);
+
     b.append(&super::keys::button(st, &format!("sound:{}", s.id), &t_dyn(&s.name)));
 
     let remove = gtk::Button::with_label(t("Remove"));
@@ -522,6 +527,17 @@ fn editor(st: &St, s: &Sound) -> gtk::Popover {
     let p = gtk::Popover::new();
     bounce(&p);
     p.set_child(Some(&b));
+    trim.connect_clicked({
+        let (st, p, id) = (st.clone(), p.downgrade(), s.id.clone());
+        move |b| {
+            let Some(p) = p.upgrade() else { return };
+            p.popdown();
+            // On the window: the grid is made again when the cut is saved.
+            if let Some(window) = b.root() {
+                super::trim::open(&st, &id, &window);
+            }
+        }
+    });
     p.connect_closed({
         let sound = sound.clone();
         let entry = entry.clone();

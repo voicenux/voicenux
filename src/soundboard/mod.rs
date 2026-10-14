@@ -64,10 +64,26 @@ pub struct Sound {
     pub volume: f32,
     #[serde(default)]
     pub mode: PlayMode,
+    /// Where playing starts, in seconds.
+    #[serde(default, skip_serializing_if = "is_zero")]
+    pub start: f32,
+    /// Where playing ends, in seconds. None plays to the end.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub end: Option<f32>,
 }
 
 fn full() -> f32 {
     1.0
+}
+
+fn is_zero(v: &f32) -> bool {
+    *v == 0.0
+}
+
+impl Sound {
+    pub fn is_trimmed(&self) -> bool {
+        self.start > 0.0 || self.end.is_some()
+    }
 }
 
 #[derive(Clone, Debug, Default, Serialize, Deserialize)]
@@ -108,6 +124,8 @@ impl Library {
                     builtin: Some(b.id.to_string()),
                     volume: 1.0,
                     mode: PlayMode::Restart,
+                    start: 0.0,
+                    end: None,
                 })
                 .collect(),
         }
@@ -159,6 +177,8 @@ impl Library {
             builtin: None,
             volume: 1.0,
             mode: PlayMode::Restart,
+            start: 0.0,
+            end: None,
         };
         self.sound.push(sound.clone());
         Ok(sound)
@@ -182,6 +202,8 @@ impl Library {
             builtin: None,
             volume: 1.0,
             mode: PlayMode::Restart,
+            start: 0.0,
+            end: None,
         };
         self.sound.push(sound.clone());
         Ok(sound)
@@ -215,6 +237,40 @@ pub fn load(sound: &Sound) -> anyhow::Result<Arc<SoundData>> {
     }
     let file = sound.file.as_ref().ok_or_else(|| anyhow::anyhow!("sound has no file"))?;
     decode(&dir().join(file)).map(Arc::new)
+}
+
+/// The part of a sound from `start` to `end`, in seconds. Where it is cut, it fades in or out
+/// over 5 ms, so the cut does not click.
+pub fn trim(data: &SoundData, start: f32, end: Option<f32>) -> SoundData {
+    let len = data.frames.len();
+    let at = |s: f32| ((s.max(0.0) * RATE as f32) as usize).min(len);
+    let a = at(start);
+    let b = end.map_or(len, at).max(a);
+    let mut frames = data.frames[a..b].to_vec();
+    let n = frames.len();
+    let fade = (RATE as usize / 200).min(n / 2);
+    for i in 0..fade {
+        let g = i as f32 / fade as f32;
+        if a > 0 {
+            frames[i] = frames[i].map(|x| x * g);
+        }
+        if b < len {
+            frames[n - 1 - i] = frames[n - 1 - i].map(|x| x * g);
+        }
+    }
+    SoundData { frames }
+}
+
+/// The loudest sample in each of `n` equal parts of a sound, from 0 to 1, for drawing it.
+pub fn peaks(data: &SoundData, n: usize) -> Vec<f32> {
+    let len = data.frames.len();
+    (0..n)
+        .map(|i| {
+            let (a, b) = (i * len / n, ((i + 1) * len / n).max(i * len / n + 1).min(len));
+            data.frames.get(a..b).map_or(0.0, |part| part.iter().fold(0.0f32, |m, f| m.max(f[0].abs()).max(f[1].abs())))
+        })
+        .map(|p| p.min(1.0))
+        .collect()
 }
 
 /// Decodes any file Symphonia understands into stereo at 48 kHz.
@@ -348,6 +404,31 @@ mod tests {
         assert!((f - 1000.0).abs() < 5.0, "{f}");
         let peak = mono[1000..40000].iter().fold(0.0f32, |m, v| m.max(v.abs()));
         assert!((peak - 0.5).abs() < 0.02, "{peak}");
+    }
+
+    #[test]
+    fn trims_with_soft_cuts() {
+        let data = SoundData { frames: vec![[0.5, -0.5]; RATE as usize * 2] };
+        let all = trim(&data, 0.0, None);
+        assert_eq!(all.frames.len(), data.frames.len());
+        assert_eq!(all.frames[0], [0.5, -0.5], "no fade where nothing is cut");
+        let part = trim(&data, 0.5, Some(1.5));
+        assert_eq!(part.frames.len(), RATE as usize);
+        assert_eq!(part.frames[0], [0.0, 0.0], "fades in at the cut");
+        assert!(part.frames[part.frames.len() - 1][0].abs() < 0.01, "fades out at the cut");
+        assert_eq!(part.frames[RATE as usize / 2], [0.5, -0.5]);
+        // Out of range or the wrong way round gives a short or empty sound, never a crash.
+        assert!(trim(&data, 5.0, Some(9.0)).frames.is_empty());
+        assert!(trim(&data, 1.5, Some(0.5)).frames.is_empty());
+    }
+
+    #[test]
+    fn peaks_follow_the_loudness() {
+        let mut frames = vec![[0.0f32, 0.0]; 1000];
+        frames[750] = [0.2, -0.9];
+        let p = peaks(&SoundData { frames }, 4);
+        assert_eq!(p, vec![0.0, 0.0, 0.0, 0.9]);
+        assert_eq!(peaks(&SoundData { frames: vec![] }, 3), vec![0.0; 3]);
     }
 
     #[test]
