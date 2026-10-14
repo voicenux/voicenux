@@ -6,7 +6,7 @@ use std::rc::Rc;
 use adw::prelude::*;
 
 use super::voices::param_row;
-use super::{clear, icon, icon_picker, label};
+use super::{cat_class, clear, icon_picker, label, tile};
 use crate::dsp::blocks::{self, BLOCKS, Group};
 use crate::i18n::{fill, t, t_dyn};
 use crate::state::{Change, St};
@@ -75,7 +75,7 @@ pub fn build(st: &St) -> Lab {
         .description(t("Stack effects like pitch, echo or robot and tune every setting. Start from scratch, or press Customize on any voice."))
         .build();
     let start = gtk::Button::with_label(t("New voice"));
-    start.add_css_class("vn-gradient-button");
+    start.add_css_class("vn-gradient");
     start.set_halign(gtk::Align::Center);
     empty.set_child(Some(&start));
 
@@ -116,7 +116,7 @@ pub fn build(st: &St) -> Lab {
             let mine: Vec<Voice> = st.voices.borrow().iter().filter(|v| !v.builtin).cloned().collect();
             for v in &mine {
                 let row = gtk::Box::new(gtk::Orientation::Horizontal, 10);
-                row.append(&icon(&v.icon, 32));
+                row.append(&small_tile(&v.icon));
                 let name = label(&v.name, &[]);
                 name.set_ellipsize(gtk::pango::EllipsizeMode::End);
                 name.set_xalign(0.0);
@@ -171,7 +171,7 @@ pub fn build(st: &St) -> Lab {
         move |c| match c {
             Change::Voices => rebuild_list(),
             Change::VoiceEdited(id) => {
-                // Name or picture may have changed: refresh the row only.
+                // Name or icon may have changed: refresh the row only.
                 if let Some(v) = st.voices.borrow().iter().find(|v| &v.id == id) {
                     let mut row = list.first_child();
                     while let Some(r) = row {
@@ -179,7 +179,7 @@ pub fn build(st: &St) -> Lab {
                             && let Some(lr) = r.downcast_ref::<gtk::ListBoxRow>()
                         {
                             let b = gtk::Box::new(gtk::Orientation::Horizontal, 10);
-                            b.append(&icon(&v.icon, 32));
+                            b.append(&small_tile(&v.icon));
                             let name = label(&v.name, &[]);
                             name.set_ellipsize(gtk::pango::EllipsizeMode::End);
                             b.append(&name);
@@ -212,10 +212,11 @@ fn fill_editor(st: &St, editor: &gtk::Box, id: &str) {
     clear(editor);
     let Some(v) = st.voices.borrow().iter().find(|v| v.id == id).cloned() else { return };
 
-    // Name, picture and actions.
+    // Name, icon and actions.
     let top = gtk::Box::new(gtk::Orientation::Horizontal, 16);
     top.add_css_class("vn-block");
-    let picker = icon_picker(&v.icon, 64, {
+    top.add_css_class("card");
+    let picker = icon_picker(&v.icon, 44, {
         let st = st.clone();
         let id = id.to_string();
         move |name| edit(&st, &id, |v| v.icon = name.to_string())
@@ -330,6 +331,23 @@ fn fill_editor(st: &St, editor: &gtk::Box, id: &str) {
     editor.append(&add);
 }
 
+/// Effects take the colors of a voice category, one per group.
+fn group_color(g: Group) -> &'static str {
+    match g {
+        Group::Voice => "characters",
+        Group::Space => "places",
+        Group::Motion => "scifi",
+        Group::Tone => "horror",
+        Group::Texture => "funny",
+    }
+}
+
+fn small_tile(name: &str) -> gtk::Box {
+    let (b, _) = tile(name, 34, 20);
+    b.add_css_class("cat-custom");
+    b
+}
+
 /// Changes a custom voice and saves it.
 fn edit(st: &St, id: &str, f: impl FnOnce(&mut Voice)) {
     let Some(mut v) = st.voices.borrow().iter().find(|v| v.id == id).cloned() else { return };
@@ -352,13 +370,16 @@ fn edit_quiet(st: &St, id: &str, f: impl FnOnce(&mut Voice)) {
 fn block_card(st: &St, editor: &gtk::Box, id: &str, index: usize, count: usize, b: &BlockDef) -> gtk::Box {
     let card = gtk::Box::new(gtk::Orientation::Vertical, 10);
     card.add_css_class("vn-block");
+    card.add_css_class("card");
     if !b.enabled {
         card.add_css_class("disabled");
     }
     let Some(spec) = blocks::find(&b.kind) else { return card };
 
     let head = gtk::Box::new(gtk::Orientation::Horizontal, 12);
-    head.append(&icon(spec.icon, 36));
+    let (tl, _) = tile(spec.icon, 46, 28);
+    tl.add_css_class(&cat_class(group_color(spec.group)));
+    head.append(&tl);
     let titles = gtk::Box::new(gtk::Orientation::Vertical, 2);
     titles.set_hexpand(true);
     titles.set_valign(gtk::Align::Center);
@@ -435,6 +456,7 @@ fn block_card(st: &St, editor: &gtk::Box, id: &str, index: usize, count: usize, 
         .column_spacing(10)
         .row_spacing(10)
         .build();
+    grid.add_css_class("vn-block-body");
     let values = b.values();
     for (pi, p) in spec.params.iter().enumerate() {
         let row = param_row(p, values[pi], {
@@ -474,7 +496,9 @@ fn effect_picker(st: &St, editor: &gtk::Box, id: &str) -> gtk::Popover {
             b.add_css_class("flat");
             b.add_css_class("vn-effect-tile");
             let inner = gtk::Box::new(gtk::Orientation::Horizontal, 8);
-            inner.append(&icon(spec.icon, 28));
+            let (tl, _) = tile(spec.icon, 32, 20);
+            tl.add_css_class(&cat_class(group_color(spec.group)));
+            inner.append(&tl);
             let l = label(&t_dyn(spec.name), &[]);
             l.set_xalign(0.0);
             inner.append(&l);

@@ -12,19 +12,25 @@ use crate::dsp::chain::BlockValues;
 pub struct Category {
     pub id: &'static str,
     pub label: &'static str,
-    pub color: &'static str,
+    /// The gradient of the category, light to deep. The CSS classes `.cat-<id>` are made from it.
+    pub colors: (&'static str, &'static str),
 }
 
 pub const CATEGORIES: &[Category] = &[
-    Category { id: "characters", label: "Characters", color: "#ff8a5c" },
-    Category { id: "horror", label: "Horror", color: "#f0445a" },
-    Category { id: "scifi", label: "Sci-fi", color: "#22c3e6" },
-    Category { id: "places", label: "Places", color: "#3ccf8e" },
-    Category { id: "devices", label: "Devices", color: "#ffbf3c" },
-    Category { id: "music", label: "Music", color: "#f45cc4" },
-    Category { id: "funny", label: "Funny", color: "#a67cff" },
-    Category { id: "custom", label: "My voices", color: "#7c8cff" },
+    Category { id: "characters", label: "Characters", colors: ("#ffb25c", "#ff6b2c") },
+    Category { id: "horror", label: "Horror", colors: ("#ff5a5f", "#b5172f") },
+    Category { id: "scifi", label: "Sci-fi", colors: ("#34e4ea", "#0f9b8e") },
+    Category { id: "places", label: "Places", colors: ("#b6f05b", "#2e9d48") },
+    Category { id: "devices", label: "Devices", colors: ("#b2bdcc", "#52617a") },
+    Category { id: "music", label: "Music", colors: ("#ff85c0", "#e62e6b") },
+    Category { id: "funny", label: "Funny", colors: ("#ffd84d", "#f08c00") },
+    Category { id: "custom", label: "My voices", colors: ("#ffa24c", "#ff4a3d") },
 ];
+
+/// Colors for things that are no voices, like effects and sounds, picked by a number.
+pub fn palette(i: usize) -> &'static str {
+    CATEGORIES[i % (CATEGORIES.len() - 1)].id
+}
 
 pub fn category(id: &str) -> &'static Category {
     CATEGORIES.iter().find(|c| c.id == id).unwrap_or(&CATEGORIES[CATEGORIES.len() - 1])

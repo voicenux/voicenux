@@ -1,24 +1,52 @@
-The pictures in this folder are Fluent Emoji 3D by Microsoft
-(https://github.com/microsoft/fluentui-emoji), under the MIT License:
+The icons in this folder come from game-icons.net (https://game-icons.net) and are
+licensed under Creative Commons Attribution 3.0 (https://creativecommons.org/licenses/by/3.0/).
+Voicenux removed their black background and their fill color, nothing else.
 
-MIT License
+Authors:
 
-Copyright (c) Microsoft Corporation.
+Delapouite:
+  astronaut-helmet, baby-face, bat, black-knight-helm, bouncing-spring, candlestick-phone,
+  cape, cave-entrance, check-mark, chef-toque, church, clamp, clapperboard, clown, cowboy-boot,
+  cricket, cyborg-face, diving-helmet, drum, fairy, female, film-projector, forest, funnel,
+  gamepad, gate, goblin-head, handheld-fan, headphones, jester-hat, knocked-out-stars,
+  magic-hat, megaphone, microphone, mouse, musical-keyboard, musical-notes, ogre, party-popper,
+  piano-keys, pirate-captain, plane-pilot, plastic-duck, pocket-radio, potato, public-speaker,
+  robot-antennas, rock-golem, rocking-chair, santa-hat, saxophone, shambling-zombie, shower,
+  smoking-pipe, soccer-field, sparkles, speaker, spiral-lollipop, squirrel, sunglasses,
+  trumpet, two-coins, ufo, vampire-dracula, viking-head, walkie-talkie, wizard-face
 
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
+Lorc:
+  aerial-signal, alien-stare, angel-wings, ball-heart, balloons, beard, beer-stein,
+  bright-explosion, campfire, cat, cross-mark, crowned-skull, crystal-ball, daemon-skull,
+  echo-ripples, fedora, fox-head, frog, ghost, glowing-hands, guitar, heavy-lightning,
+  hunting-horn, imp-laugh, laser-blast, lightning-storm, lion, lips, lyre, magic-lamp, owl,
+  pine-tree, pumpkin-lantern, ringed-planet, ringing-bell, robot-golem, rocket,
+  shattered-glass, silence, snowman, star-swirl, static-waves, tornado, trophy, tune-pitch,
+  two-shadows, wave-crest, werewolf, whirlwind, wolf-head
 
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
+Skoll:
+  orbit, retro-controller, sound-waves, troll
 
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
+Badges:
+  crown, skull
+
+Carl Olsen:
+  flame, spider-face
+
+Caro Asercion:
+  drum-kit, rotary-phone
+
+Cathelineau:
+  witch-face
+
+DarkZaitzev:
+  ninja-head
+
+Faithtoken:
+  dragon-head
+
+Sbed:
+  pulse
+
+Sparker:
+  bear-face

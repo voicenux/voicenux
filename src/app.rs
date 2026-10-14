@@ -230,7 +230,7 @@ pub fn run() -> glib::ExitCode {
             glib::set_application_name("Voicenux");
             gtk::Window::set_default_icon_name(APP_ID);
             let provider = gtk::CssProvider::new();
-            provider.load_from_string(&crate::ui::delay_css());
+            provider.load_from_string(&crate::ui::generated_css());
             gtk::style_context_add_provider_for_display(
                 &gtk::gdk::Display::default().expect("a display"),
                 &provider,

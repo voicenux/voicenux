@@ -10,7 +10,7 @@ use crate::state::{Change, St};
 fn pill(icon: &str, text: &str, tip: &str) -> gtk::ToggleButton {
     let b = gtk::ToggleButton::new();
     b.set_child(Some(&adw::ButtonContent::builder().icon_name(icon).label(text).build()));
-    b.add_css_class("vn-pill");
+    b.add_css_class("vn-toggle");
     b.set_tooltip_text(Some(tip));
     b
 }
@@ -24,7 +24,7 @@ pub fn build(st: &St) -> gtk::Box {
     left.set_hexpand(true);
     left.set_halign(gtk::Align::Start);
     let mute = gtk::Button::from_icon_name("audio-input-microphone-symbolic");
-    mute.add_css_class("vn-mute");
+    mute.add_css_class("circular");
     mute.set_valign(gtk::Align::Center);
     mute.set_tooltip_text(Some(t("Mute microphone")));
     mute.connect_clicked({
@@ -48,7 +48,7 @@ pub fn build(st: &St) -> gtk::Box {
     mid.set_halign(gtk::Align::Center);
     let voice = pill("audio-input-microphone-symbolic", t("Voice changer"), t("Turn your voice changer on or off"));
     let hear = pill("audio-headphones-symbolic", t("Hear myself"), t("Hear your changed voice in your headphones"));
-    let bg = pill("weather-few-clouds-symbolic", t("Background"), t("Play the background sounds of a voice"));
+    let bg = pill("weather-overcast-symbolic", t("Background"), t("Play the background sounds of a voice"));
     mid.append(&voice);
     mid.append(&hear);
     mid.append(&bg);
@@ -92,10 +92,10 @@ pub fn build(st: &St) -> gtk::Box {
             hear.set_active(c.hear_myself);
             bg.set_active(c.background);
             if st.muted.get() {
-                mute.add_css_class("muted");
+                mute.add_css_class("destructive-action");
                 mute.set_icon_name("microphone-disabled-symbolic");
             } else {
-                mute.remove_css_class("muted");
+                mute.remove_css_class("destructive-action");
                 mute.set_icon_name("audio-input-microphone-symbolic");
             }
             let dev = st.active_input.borrow().clone();

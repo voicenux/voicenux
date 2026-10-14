@@ -362,8 +362,8 @@ pub fn about_dialog() -> adw::AboutDialog {
         .comments(t("Change your voice in real time, in any app. Made for Linux and PipeWire."))
         .build();
     d.add_credit_section(
-        Some(t("Pictures")),
-        &["Fluent Emoji by Microsoft (MIT) https://github.com/microsoft/fluentui-emoji"],
+        Some(t("Icons")),
+        &["game-icons.net: Lorc, Delapouite, Skoll, Sbed, Carl Olsen and others (CC BY 3.0) https://game-icons.net"],
     );
     d.add_credit_section(
         Some(t("Thanks to")),

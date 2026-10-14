@@ -8,7 +8,7 @@ use adw::prelude::*;
 use gtk::glib;
 
 use super::visuals::{Orb, live_bars};
-use super::{animate_in, cat_class, clear, icon, label};
+use super::{animate_in, cat_class, clear, icon_name, label, tile};
 use crate::dsp::blocks::{self, Kind};
 use crate::i18n::{t, t_dyn};
 use crate::state::{Change, St};
@@ -17,8 +17,10 @@ use crate::voice::{CATEGORIES, Voice, category};
 struct Card {
     child: gtk::FlowBoxChild,
     card: gtk::Box,
+    img: gtk::Image,
+    name: gtk::Label,
     star: gtk::Button,
-    live: gtk::Box,
+    live: gtk::DrawingArea,
 }
 
 pub struct VoicesPage {
@@ -322,33 +324,22 @@ pub fn build(st: &St, open_lab: OpenLab) -> VoicesPage {
     VoicesPage { widget, search }
 }
 
+/// Custom voices can change name and icon in Voicelab.
 fn refresh_card(c: &Card, v: &Voice) {
-    // Custom voices can change name and picture in Voicelab.
-    let mut child = c.card.first_child();
-    while let Some(w) = child {
-        if let Some(img) = w.downcast_ref::<gtk::Image>() {
-            img.set_paintable(Some(&super::texture(&v.icon)));
-        }
-        if let Some(l) = w.downcast_ref::<gtk::Label>()
-            && l.has_css_class("voice-name")
-        {
-            l.set_label(&t_dyn(&v.name));
-        }
-        child = w.next_sibling();
-    }
+    c.img.set_icon_name(Some(&icon_name(&v.icon)));
+    c.name.set_label(&t_dyn(&v.name));
 }
 
 fn card(st: &St, v: &Voice) -> Card {
-    let card = gtk::Box::new(gtk::Orientation::Vertical, 8);
-    card.add_css_class("voice-card");
+    let card = gtk::Box::new(gtk::Orientation::Vertical, 10);
+    card.add_css_class("vn-card");
     card.add_css_class(&cat_class(&v.category));
-    card.set_size_request(124, 146);
+    card.set_size_request(120, 132);
 
-    let img = icon(&v.icon, 72);
-    img.add_css_class("voice-icon");
-    img.set_margin_top(8);
-    card.append(&img);
-    let name = label(&t_dyn(&v.name), &["voice-name"]);
+    let (tl, img) = tile(&v.icon, 60, 34);
+    tl.set_margin_top(4);
+    card.append(&tl);
+    let name = label(&t_dyn(&v.name), &["vn-card-name"]);
     name.set_ellipsize(gtk::pango::EllipsizeMode::End);
     name.set_max_width_chars(14);
     card.append(&name);
@@ -367,29 +358,26 @@ fn card(st: &St, v: &Voice) -> Card {
         move |_| st.toggle_favorite(&id)
     });
 
-    let live = gtk::Box::new(gtk::Orientation::Horizontal, 0);
-    live.add_css_class("vn-badge");
-    live.append(&live_bars(st));
+    let live = live_bars(st);
     live.set_halign(gtk::Align::Start);
     live.set_valign(gtk::Align::Start);
-    live.set_margin_top(10);
-    live.set_margin_start(10);
+    live.set_margin_top(12);
+    live.set_margin_start(12);
     live.set_visible(false);
+    live.set_tooltip_text(Some(t("Your voice right now")));
 
     let overlay = gtk::Overlay::new();
     overlay.set_child(Some(&card));
     overlay.add_overlay(&star);
     overlay.add_overlay(&live);
-    // The overlay carries the category so the badge picks up its color.
-    overlay.add_css_class(&cat_class(&v.category));
 
     let child = gtk::FlowBoxChild::new();
     child.set_child(Some(&overlay));
     child.set_tooltip_text(Some(&t_dyn(&v.description)));
-    Card { child, card, star, live }
+    Card { child, card, img, name, star, live }
 }
 
-/// The selected voice: orb, name, and its main settings.
+/// The selected voice: the orb, name, and its main settings.
 #[derive(Clone)]
 struct Detail {
     widget: gtk::ScrolledWindow,
@@ -399,7 +387,7 @@ struct Detail {
     name: gtk::Label,
     about: gtk::Label,
     fav: gtk::Button,
-    params: gtk::Box,
+    params: gtk::ListBox,
     key_slot: gtk::Box,
     reset: gtk::Button,
     note: gtk::Label,
@@ -411,17 +399,18 @@ struct Detail {
 impl Detail {
     fn new(st: &St, open_lab: OpenLab) -> Self {
         let inner = gtk::Box::new(gtk::Orientation::Vertical, 6);
-        inner.set_margin_top(18);
+        inner.set_margin_top(12);
         inner.set_margin_bottom(24);
         inner.set_margin_start(22);
         inner.set_margin_end(22);
 
-        let orb = Rc::new(Orb::new(st, 224));
+        let orb = Rc::new(Orb::new(st, 228));
+        orb.widget.set_tooltip_text(Some(t("Your voice right now")));
         inner.append(&orb.widget);
 
         let cat = label("", &["vn-detail-cat"]);
         cat.set_margin_top(4);
-        let name = label("", &["vn-detail-name"]);
+        let name = label("", &["title-1"]);
         name.set_wrap(true);
         name.set_justify(gtk::Justification::Center);
         let about = label("", &["dim-label"]);
@@ -461,7 +450,10 @@ impl Detail {
         head.append(&reset);
         inner.append(&head);
 
-        let params = gtk::Box::new(gtk::Orientation::Vertical, 8);
+        let params = gtk::ListBox::new();
+        params.set_selection_mode(gtk::SelectionMode::None);
+        params.add_css_class("boxed-list");
+        params.add_css_class("vn-param-list");
         params.set_margin_top(4);
         inner.append(&params);
 
@@ -525,7 +517,7 @@ impl Detail {
             self.inner.remove_css_class(&cat_class(cat.id));
         }
         self.inner.add_css_class(&cat_class(&v.category));
-        self.orb.set_voice(&v.icon, c.color, animate);
+        self.orb.set_voice(&v.icon, &v.category, animate);
         self.cat.set_label(&t_dyn(c.label).to_uppercase());
         self.name.set_label(&t_dyn(&v.name));
         let about =
@@ -536,11 +528,9 @@ impl Detail {
         self.key_slot.append(&super::keys::button(&self.st, &format!("voice:{}", v.id), &t_dyn(&v.name)));
         self.toggles();
         if animate {
-            for w in [self.name.upcast_ref::<gtk::Widget>(), self.about.upcast_ref(), self.params.upcast_ref()] {
-                w.remove_css_class("vn-detail-pop");
-                let w = w.clone();
-                glib::idle_add_local_once(move || w.add_css_class("vn-detail-pop"));
-            }
+            self.inner.remove_css_class("vn-fade");
+            let inner = self.inner.clone();
+            glib::idle_add_local_once(move || inner.add_css_class("vn-fade"));
         }
     }
 
@@ -566,6 +556,7 @@ impl Detail {
             Some(v) if v.has_background() && !self.st.config.borrow().background => {
                 t("This voice has a background sound. Turn on Background below to hear it.")
             }
+            _ if !self.params.is_visible() => t("This voice has nothing to adjust."),
             _ => "",
         };
         self.note.set_label(note);
@@ -600,12 +591,12 @@ impl Detail {
                         reset.set_visible(st.is_tweaked(&id));
                     }
                 });
-                self.params.append(&row);
+                row.remove_css_class("vn-param");
+                let r = gtk::ListBoxRow::builder().activatable(false).child(&row).build();
+                self.params.append(&r);
             }
         }
-        if !any {
-            self.params.append(&label(t("This voice has nothing to adjust."), &["dim-label"]));
-        }
+        self.params.set_visible(any);
     }
 }
 

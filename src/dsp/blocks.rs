@@ -150,7 +150,7 @@ pub static BLOCKS: &[BlockSpec] = &[
         kind: "pitch",
         name: "Pitch",
         about: "Higher or lower voice. Formant changes the size of the throat.",
-        icon: "control-knobs",
+        icon: "tune-pitch",
         group: Group::Voice,
         params: &[
             p("semitones", "Pitch", -24.0, 24.0, 0.0, Unit::Semitones).main(),
@@ -163,7 +163,7 @@ pub static BLOCKS: &[BlockSpec] = &[
         kind: "harmony",
         name: "Harmony",
         about: "Extra voices on top of yours: choirs, demons and duets.",
-        icon: "angel",
+        icon: "musical-notes",
         group: Group::Voice,
         params: &[
             p("voice_a", "First voice", -24.0, 24.0, 12.0, Unit::Semitones).main(),
@@ -180,7 +180,7 @@ pub static BLOCKS: &[BlockSpec] = &[
         kind: "robot",
         name: "Robot",
         about: "Turns your voice into a flat, buzzing machine voice.",
-        icon: "robot",
+        icon: "robot-antennas",
         group: Group::Voice,
         params: &[p("pitch", "Robot pitch", 40.0, 400.0, 110.0, Unit::Hz).main().log(), pct("mix", "Mix", 1.0)],
         build: boxed!(spectral::Spectral::robot),
@@ -189,7 +189,7 @@ pub static BLOCKS: &[BlockSpec] = &[
         kind: "whisper",
         name: "Whisper",
         about: "Takes the tone out of your voice so only breath is left.",
-        icon: "shushing",
+        icon: "lips",
         group: Group::Voice,
         params: &[pct("mix", "Whisper", 1.0).main()],
         build: boxed!(spectral::Spectral::whisper),
@@ -214,7 +214,7 @@ pub static BLOCKS: &[BlockSpec] = &[
         kind: "vocoder",
         name: "Vocoder",
         about: "Your voice plays a synthesizer.",
-        icon: "keyboard",
+        icon: "musical-keyboard",
         group: Group::Voice,
         params: &[
             choice("carrier", "Synth plays", vocoder::CARRIERS, 0.0),
@@ -231,7 +231,7 @@ pub static BLOCKS: &[BlockSpec] = &[
         kind: "echo",
         name: "Echo",
         about: "Repeats what you say.",
-        icon: "mountain",
+        icon: "echo-ripples",
         group: Group::Space,
         params: &[
             p("time", "Echo time", 20.0, 2000.0, 350.0, Unit::Ms).main().log(),
@@ -259,7 +259,7 @@ pub static BLOCKS: &[BlockSpec] = &[
         kind: "chorus",
         name: "Chorus",
         about: "Makes one voice sound like a few.",
-        icon: "bunny-ears",
+        icon: "two-shadows",
         group: Group::Motion,
         params: &[
             p("rate", "Speed", 0.05, 5.0, 0.8, Unit::Hz).log(),
@@ -273,7 +273,7 @@ pub static BLOCKS: &[BlockSpec] = &[
         kind: "flanger",
         name: "Flanger",
         about: "A sweeping jet sound.",
-        icon: "rocket",
+        icon: "tornado",
         group: Group::Motion,
         params: &[
             p("rate", "Speed", 0.05, 5.0, 0.25, Unit::Hz).log(),
@@ -287,7 +287,7 @@ pub static BLOCKS: &[BlockSpec] = &[
         kind: "phaser",
         name: "Phaser",
         about: "A swirling, spacey sweep.",
-        icon: "cyclone",
+        icon: "star-swirl",
         group: Group::Motion,
         params: &[
             p("rate", "Speed", 0.05, 5.0, 0.4, Unit::Hz).log(),
@@ -301,7 +301,7 @@ pub static BLOCKS: &[BlockSpec] = &[
         kind: "vibrato",
         name: "Vibrato",
         about: "Makes the pitch wobble or shake.",
-        icon: "woozy",
+        icon: "wave-crest",
         group: Group::Motion,
         params: &[
             p("rate", "Wobble speed", 0.1, 15.0, 5.5, Unit::Hz).main().log(),
@@ -314,7 +314,7 @@ pub static BLOCKS: &[BlockSpec] = &[
         kind: "tremolo",
         name: "Tremolo",
         about: "Makes the volume pulse, like talking into a fan.",
-        icon: "high-voltage",
+        icon: "pulse",
         group: Group::Motion,
         params: &[
             p("rate", "Pulse speed", 0.1, 40.0, 6.0, Unit::Hz).main().log(),
@@ -327,7 +327,7 @@ pub static BLOCKS: &[BlockSpec] = &[
         kind: "ringmod",
         name: "Ring modulator",
         about: "A metal, alien sound.",
-        icon: "alien",
+        icon: "orbit",
         group: Group::Tone,
         params: &[
             p("freq", "Ring tone", 1.0, 2000.0, 60.0, Unit::Hz).main().log(),
@@ -340,7 +340,7 @@ pub static BLOCKS: &[BlockSpec] = &[
         kind: "distortion",
         name: "Distortion",
         about: "Crunch, grit and growl.",
-        icon: "fire",
+        icon: "heavy-lightning",
         group: Group::Tone,
         params: &[
             p("drive", "Grit", 0.0, 40.0, 12.0, Unit::Db).main(),
@@ -355,7 +355,7 @@ pub static BLOCKS: &[BlockSpec] = &[
         kind: "bitcrush",
         name: "Bit crusher",
         about: "Old video game and cheap digital sound.",
-        icon: "video-game",
+        icon: "gamepad",
         group: Group::Tone,
         params: &[
             p("bits", "Bits", 2.0, 16.0, 8.0, Unit::None).main().int(),
@@ -368,7 +368,7 @@ pub static BLOCKS: &[BlockSpec] = &[
         kind: "filter",
         name: "Filter",
         about: "Cuts or boosts some frequencies.",
-        icon: "control-knobs",
+        icon: "funnel",
         group: Group::Tone,
         params: &[
             choice("type", "Type", tone::FILTER_TYPES, 0.0),
@@ -382,7 +382,7 @@ pub static BLOCKS: &[BlockSpec] = &[
         kind: "band",
         name: "Band limit",
         about: "Only the middle of your voice gets through, like on a phone.",
-        icon: "telephone",
+        icon: "candlestick-phone",
         group: Group::Tone,
         params: &[
             p("low", "Low cut", 20.0, 2000.0, 300.0, Unit::Hz).log(),
@@ -395,7 +395,7 @@ pub static BLOCKS: &[BlockSpec] = &[
         kind: "compressor",
         name: "Compressor",
         about: "Evens out loud and quiet parts.",
-        icon: "level",
+        icon: "clamp",
         group: Group::Tone,
         params: &[
             p("threshold", "Threshold", -60.0, 0.0, -20.0, Unit::Db),
@@ -410,7 +410,7 @@ pub static BLOCKS: &[BlockSpec] = &[
         kind: "gate",
         name: "Noise gate",
         about: "Silences everything below a level.",
-        icon: "shushing",
+        icon: "gate",
         group: Group::Tone,
         params: &[
             p("threshold", "Threshold", -80.0, -10.0, -50.0, Unit::Db),
@@ -422,7 +422,7 @@ pub static BLOCKS: &[BlockSpec] = &[
         kind: "gain",
         name: "Volume",
         about: "Louder or quieter.",
-        icon: "loudspeaker",
+        icon: "speaker",
         group: Group::Tone,
         params: &[p("gain", "Volume", -24.0, 24.0, 0.0, Unit::Db)],
         build: boxed!(dynamics::Gain::new),
@@ -431,7 +431,7 @@ pub static BLOCKS: &[BlockSpec] = &[
         kind: "noise",
         name: "Noise",
         about: "Static, hiss, crackle or hum on your voice.",
-        icon: "radio",
+        icon: "static-waves",
         group: Group::Texture,
         params: &[
             choice("type", "Type", noise::NOISE_TYPES, 0.0),
@@ -444,7 +444,7 @@ pub static BLOCKS: &[BlockSpec] = &[
         kind: "ambience",
         name: "Background",
         about: "A sound behind your voice. Plays while Background is on.",
-        icon: "storm",
+        icon: "forest",
         group: Group::Texture,
         params: &[
             choice("type", "Sound", ambience::AMBIENCES, 0.0),
@@ -456,7 +456,7 @@ pub static BLOCKS: &[BlockSpec] = &[
         kind: "beeps",
         name: "Radio beeps",
         about: "A beep or squelch when you start or stop talking.",
-        icon: "antenna",
+        icon: "aerial-signal",
         group: Group::Texture,
         params: &[
             choice("type", "Sound", noise::BEEP_TYPES, 0.0),
@@ -470,7 +470,7 @@ pub static BLOCKS: &[BlockSpec] = &[
         kind: "stutter",
         name: "Glitch",
         about: "Repeats bits of what you say, like a bad connection.",
-        icon: "television",
+        icon: "shattered-glass",
         group: Group::Texture,
         params: &[
             p("chance", "Glitches", 0.0, 5.0, 0.8, Unit::PerSecond).main(),

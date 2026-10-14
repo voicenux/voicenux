@@ -5,12 +5,19 @@ use std::rc::Rc;
 use adw::prelude::*;
 
 use super::visuals::level_meter;
-use super::{icon, label, logo};
+use super::{label, logo, tile};
 use crate::i18n::t;
 use crate::state::St;
 
+fn big_tile(name: &str) -> gtk::Widget {
+    let (b, _) = tile(name, 112, 60);
+    b.add_css_class("cat-custom");
+    b.upcast()
+}
+
 fn page(pic: gtk::Widget, title: &str, text: &str) -> gtk::Box {
     let b = gtk::Box::new(gtk::Orientation::Vertical, 12);
+    b.add_css_class("vn-hero");
     b.set_valign(gtk::Align::Center);
     b.set_hexpand(true);
     b.set_margin_start(36);
@@ -42,7 +49,7 @@ pub fn show(st: &St, parent: &adw::ApplicationWindow) {
     ));
 
     let mic = page(
-        icon("studio-microphone", 96).upcast(),
+        big_tile("microphone"),
         t("Your microphone"),
         t("Say something. The bar should move. If not, pick another microphone."),
     );
@@ -74,7 +81,7 @@ pub fn show(st: &St, parent: &adw::ApplicationWindow) {
     carousel.append(&mic);
 
     let apps = page(
-        icon("headphone", 96).upcast(),
+        big_tile("headphones"),
         t("Use it in your apps"),
         t("Apps hear your new voice through the “Voicenux Microphone”. Make it the default, or pick it in each app."),
     );
@@ -89,7 +96,7 @@ pub fn show(st: &St, parent: &adw::ApplicationWindow) {
     carousel.append(&apps);
 
     let try_it = page(
-        icon("sparkles", 96).upcast(),
+        big_tile("sparkles"),
         t("Try a voice"),
         t(
             "Click any voice and turn on Hear myself to hear it. Wear headphones, or your speakers feed back into the microphone.",
@@ -102,7 +109,7 @@ pub fn show(st: &St, parent: &adw::ApplicationWindow) {
     let back = gtk::Button::with_label(t("Back"));
     back.add_css_class("pill");
     let next = gtk::Button::with_label(t("Next"));
-    next.add_css_class("vn-gradient-button");
+    next.add_css_class("vn-gradient");
     let bar = gtk::CenterBox::new();
     bar.set_start_widget(Some(&back));
     bar.set_center_widget(Some(&dots));
