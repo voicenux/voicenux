@@ -13,13 +13,11 @@ fn main() {
         .unwrap()
         .flatten()
         .map(|e| e.file_name().to_string_lossy().to_string())
-        .filter(|n| n.ends_with(".svg"))
+        .filter(|n| n.ends_with(".png"))
         .collect();
     icons.sort();
-    // As symbolic icons, so GTK colors them with the CSS color of the widget.
     for icon in icons {
-        let name = icon.trim_end_matches(".svg");
-        writeln!(xml, "    <file alias=\"icons/scalable/actions/vn-{name}-symbolic.svg\">icons/{icon}</file>").unwrap();
+        writeln!(xml, "    <file>icons/{icon}</file>").unwrap();
     }
     xml.push_str("  </gresource>\n</gresources>\n");
     let xml_path = format!("{out}/voicenux.gresource.xml");

@@ -158,7 +158,7 @@ impl Library {
         let sound = Sound {
             id: self.new_id(),
             name: name.trim().to_string(),
-            icon: "speaker".into(),
+            icon: "loudspeaker".into(),
             file: Some(target.file_name().unwrap().to_string_lossy().to_string()),
             builtin: None,
             volume: 1.0,

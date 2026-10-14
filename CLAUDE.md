@@ -40,15 +40,11 @@
   wrap it in `t()` (from `src/i18n.rs`), then add the German text to `po/de.po`. Names from data
   (voices, effects, sounds) go through `t_dyn()`. `make check` fails when a German text is missing.
   Use "du" in German.
-- Icons for voices, sounds and effects come from game-icons.net (CC BY 3.0, authors in
-  `data/icons/LICENSE`). Add new ones to `scripts/fetch-icons.sh` and run `make icons`, then add the
-  author to the LICENSE file. They load as symbolic icons (`vn-<name>-symbolic`); `tile()` puts them
-  in white on the gradient of a category. Never use emoji, never draw own icons, and no simple line
-  icon sets for voices: I found them too plain.
-- Look: playful and warm. The brand is a sunset gradient (amber to coral red), every category has
-  its own gradient in `CATEGORIES` (`src/voice.rs`, the CSS is made from it). Never use blue to
-  purple or pink to purple gradients. Lively animations are welcome (lift, wiggle, glow, the orb),
-  but keep them smooth and make drawings redraw only while something moves.
+- Pictures are Fluent Emoji 3D (MIT) in `data/icons`. Add new ones to `scripts/fetch-icons.sh` and
+  run `make icons`. Never draw own pictures for voices or sounds.
+- Look: colorful and Voicemod-like is wanted: the Fluent Emoji 3D pictures, the violet to pink
+  gradient, glow and lively animations. A flat libadwaita look and a game-icons look were tried
+  and dropped again. Do not redesign without being asked.
 - Background sounds and starter sounds are made in code (`src/dsp/ambience.rs`,
   `src/soundboard/synth.rs`). Do not add sample files.
 

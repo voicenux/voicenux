@@ -22,7 +22,7 @@
 </p>
 
 <p align="center">
-  <img width="720" src="res/voices.png" alt="Voicenux with the Baby voice selected: a grid of colorful voice cards, the voice in a glowing orb with its pitch settings on the right, and the switches for voice changer, hear myself and background at the bottom">
+  <img width="720" src="res/voices.png" alt="Voicenux with the Baby voice selected: a grid of voice cards, the voice with its pitch settings on the right, and the switches for voice changer, hear myself and background at the bottom">
 </p>
 
 ## Install
@@ -59,9 +59,9 @@ When you close the window, Voicenux keeps running in the tray, so your voice kee
 
 ### Soundboard
 
-<img width="720" src="res/soundboard.png" alt="The soundboard with colorful sound pads; Drum Roll and Applause are playing and show their progress as a ring">
+<img width="720" src="res/soundboard.png" alt="The soundboard with sound pads; Drum Roll and Applause are playing and show their progress as a ring">
 
-Sounds play into the Voicenux Microphone, and you hear them too. Add your own with **Add sounds**, or drop audio files on the page. MP3, OGG, FLAC and WAV work. The menu of a sound changes its name, icon, volume and shortcut, and what a press does: play from the start, play and stop, play on top or loop.
+Sounds play into the Voicenux Microphone, and you hear them too. Add your own with **Add sounds**, or drop audio files on the page. MP3, OGG, FLAC and WAV work. The menu of a sound changes its name, picture, volume and shortcut, and what a press does: play from the start, play and stop, play on top or loop.
 
 ### Voicelab
 
@@ -108,6 +108,6 @@ Many of them come with a background sound: rain, bubbles, a campfire, a stadium 
 
 ## Credits
 
-The icons come from [game-icons.net](https://game-icons.net) by Lorc, Delapouite, Skoll, Sbed, Carl Olsen and others, under [CC BY 3.0](https://creativecommons.org/licenses/by/3.0/). Who made which one is in [data/icons/LICENSE](data/icons/LICENSE). The reverb is Freeverb by Jezar at Dreampoint. Noise suppression is RNNoise by Xiph.Org, through [nnnoiseless](https://github.com/jneem/nnnoiseless). Audio files are read with [Symphonia](https://github.com/pdeljanov/Symphonia).
+The pictures are [Fluent Emoji](https://github.com/microsoft/fluentui-emoji) by Microsoft (MIT). The reverb is Freeverb by Jezar at Dreampoint. Noise suppression is RNNoise by Xiph.Org, through [nnnoiseless](https://github.com/jneem/nnnoiseless). Audio files are read with [Symphonia](https://github.com/pdeljanov/Symphonia).
 
 BSD-3-Clause.

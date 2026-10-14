@@ -12,20 +12,20 @@ pub struct Builtin {
 }
 
 pub static BUILTIN: &[Builtin] = &[
-    Builtin { id: "airhorn", name: "Air Horn", icon: "hunting-horn", render: airhorn },
+    Builtin { id: "airhorn", name: "Air Horn", icon: "postal-horn", render: airhorn },
     Builtin { id: "sad-trombone", name: "Sad Trombone", icon: "trumpet", render: sad_trombone },
-    Builtin { id: "rimshot", name: "Rimshot", icon: "drum", render: rimshot },
-    Builtin { id: "drumroll", name: "Drum Roll", icon: "drum-kit", render: drumroll },
-    Builtin { id: "applause", name: "Applause", icon: "glowing-hands", render: applause },
+    Builtin { id: "rimshot", name: "Rimshot", icon: "joy", render: rimshot },
+    Builtin { id: "drumroll", name: "Drum Roll", icon: "drum", render: drumroll },
+    Builtin { id: "applause", name: "Applause", icon: "clapping", render: applause },
     Builtin { id: "tada", name: "Ta-da!", icon: "party-popper", render: tada },
-    Builtin { id: "correct", name: "Correct", icon: "check-mark", render: correct },
+    Builtin { id: "correct", name: "Correct", icon: "bell", render: correct },
     Builtin { id: "wrong", name: "Wrong", icon: "cross-mark", render: wrong },
     Builtin { id: "crickets", name: "Crickets", icon: "cricket", render: crickets },
-    Builtin { id: "boing", name: "Boing", icon: "bouncing-spring", render: boing },
-    Builtin { id: "laser", name: "Laser", icon: "laser-blast", render: laser },
-    Builtin { id: "explosion", name: "Explosion", icon: "bright-explosion", render: explosion },
-    Builtin { id: "coin", name: "Coin", icon: "two-coins", render: coin },
-    Builtin { id: "whoosh", name: "Whoosh", icon: "whirlwind", render: whoosh },
+    Builtin { id: "boing", name: "Boing", icon: "basketball", render: boing },
+    Builtin { id: "laser", name: "Laser", icon: "high-voltage", render: laser },
+    Builtin { id: "explosion", name: "Explosion", icon: "bomb", render: explosion },
+    Builtin { id: "coin", name: "Coin", icon: "coin", render: coin },
+    Builtin { id: "whoosh", name: "Whoosh", icon: "dashing-away", render: whoosh },
 ];
 
 pub fn render(id: &str) -> Option<SoundData> {

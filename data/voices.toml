@@ -9,7 +9,7 @@
 [[voice]]
 id = "baby"
 name = "Baby"
-icon = "baby-face"
+icon = "baby"
 category = "characters"
 description = "Tiny, high and a little wobbly."
 blocks = [
@@ -21,7 +21,7 @@ blocks = [
 [[voice]]
 id = "kid"
 name = "Kid"
-icon = "spiral-lollipop"
+icon = "kid"
 category = "characters"
 description = "Sounds like a ten year old."
 blocks = [
@@ -31,7 +31,7 @@ blocks = [
 [[voice]]
 id = "girl"
 name = "Girl"
-icon = "female"
+icon = "woman"
 category = "characters"
 description = "Higher and brighter, without sounding like a cartoon."
 blocks = [
@@ -42,7 +42,7 @@ blocks = [
 [[voice]]
 id = "deep"
 name = "Deep Voice"
-icon = "beard"
+icon = "man-beard"
 category = "characters"
 description = "Lower and bigger."
 blocks = [
@@ -53,7 +53,7 @@ blocks = [
 [[voice]]
 id = "elderly"
 name = "Elderly"
-icon = "smoking-pipe"
+icon = "old-man"
 category = "characters"
 description = "A shaky, breathy old voice."
 blocks = [
@@ -67,7 +67,7 @@ blocks = [
 [[voice]]
 id = "granny"
 name = "Granny"
-icon = "rocking-chair"
+icon = "old-woman"
 category = "characters"
 description = "Warm, high and trembling."
 blocks = [
@@ -80,7 +80,7 @@ blocks = [
 [[voice]]
 id = "titan"
 name = "Titan"
-icon = "rock-golem"
+icon = "moai"
 category = "characters"
 description = "A voice as big as a mountain."
 blocks = [
@@ -106,7 +106,7 @@ blocks = [
 [[voice]]
 id = "santa"
 name = "Santa"
-icon = "santa-hat"
+icon = "santa"
 category = "characters"
 description = "Ho ho ho, next to a warm fire."
 blocks = [
@@ -119,7 +119,7 @@ blocks = [
 [[voice]]
 id = "pirate"
 name = "Pirate"
-icon = "pirate-captain"
+icon = "pirate-flag"
 category = "characters"
 description = "Rough voice, salty sea."
 blocks = [
@@ -131,7 +131,7 @@ blocks = [
 [[voice]]
 id = "wizard"
 name = "Wizard"
-icon = "wizard-face"
+icon = "mage"
 category = "characters"
 description = "Speaks from a tall stone tower."
 blocks = [
@@ -156,7 +156,7 @@ blocks = [
 [[voice]]
 id = "genie"
 name = "Genie"
-icon = "magic-lamp"
+icon = "genie"
 category = "characters"
 description = "Your wish is my command."
 blocks = [
@@ -169,7 +169,7 @@ blocks = [
 [[voice]]
 id = "hero"
 name = "Hero"
-icon = "cape"
+icon = "superhero"
 category = "characters"
 description = "Deep, firm and ready to save the day."
 blocks = [
@@ -182,7 +182,7 @@ blocks = [
 [[voice]]
 id = "announcer"
 name = "Announcer"
-icon = "public-speaker"
+icon = "studio-microphone"
 category = "characters"
 description = "Ladies and gentlemen, in a full stadium."
 blocks = [
@@ -196,7 +196,7 @@ blocks = [
 [[voice]]
 id = "trailer"
 name = "Movie Trailer"
-icon = "clapperboard"
+icon = "clapper-board"
 category = "characters"
 description = "In a world where everyone talks like this."
 blocks = [
@@ -209,7 +209,7 @@ blocks = [
 [[voice]]
 id = "noir"
 name = "Noir Detective"
-icon = "fedora"
+icon = "detective"
 category = "characters"
 description = "An old radio play on a rainy night."
 blocks = [
@@ -224,7 +224,7 @@ blocks = [
 [[voice]]
 id = "demon"
 name = "Demon"
-icon = "imp-laugh"
+icon = "horns"
 category = "horror"
 description = "Many voices at once, straight from below."
 blocks = [
@@ -249,7 +249,7 @@ blocks = [
 [[voice]]
 id = "zombie"
 name = "Zombie"
-icon = "shambling-zombie"
+icon = "zombie"
 category = "horror"
 description = "Brains..."
 blocks = [
@@ -277,7 +277,7 @@ blocks = [
 [[voice]]
 id = "vampire"
 name = "Vampire"
-icon = "vampire-dracula"
+icon = "vampire"
 category = "horror"
 description = "Smooth and dark, in a castle with a heartbeat."
 blocks = [
@@ -290,7 +290,7 @@ blocks = [
 [[voice]]
 id = "witch"
 name = "Witch"
-icon = "witch-face"
+icon = "witch"
 category = "horror"
 description = "Cackling over a bubbling pot."
 blocks = [
@@ -304,7 +304,7 @@ blocks = [
 [[voice]]
 id = "dragon"
 name = "Dragon"
-icon = "dragon-head"
+icon = "dragon"
 category = "horror"
 description = "Huge, hot and grumbling."
 blocks = [
@@ -317,7 +317,7 @@ blocks = [
 [[voice]]
 id = "goblin"
 name = "Goblin"
-icon = "goblin-head"
+icon = "goblin"
 category = "horror"
 description = "Small, mean and very excited."
 blocks = [
@@ -329,7 +329,7 @@ blocks = [
 [[voice]]
 id = "possessed"
 name = "Possessed"
-icon = "daemon-skull"
+icon = "skull"
 category = "horror"
 description = "Something else talks with you."
 blocks = [
@@ -342,7 +342,7 @@ blocks = [
 [[voice]]
 id = "darklord"
 name = "Dark Lord"
-icon = "black-knight-helm"
+icon = "supervillain"
 category = "horror"
 description = "Deep voice behind a mask."
 blocks = [
@@ -371,7 +371,7 @@ blocks = [
 [[voice]]
 id = "robot"
 name = "Robot"
-icon = "robot-golem"
+icon = "robot"
 category = "scifi"
 description = "Beep boop. Flat and metallic."
 blocks = [
@@ -385,7 +385,7 @@ blocks = [
 [[voice]]
 id = "alien"
 name = "Alien"
-icon = "alien-stare"
+icon = "alien"
 category = "scifi"
 description = "We come in peace. Probably."
 blocks = [
@@ -399,7 +399,7 @@ blocks = [
 [[voice]]
 id = "cyborg"
 name = "Cyborg"
-icon = "cyborg-face"
+icon = "mechanical-arm"
 category = "scifi"
 description = "Half human, half machine."
 blocks = [
@@ -412,7 +412,7 @@ blocks = [
 [[voice]]
 id = "invader"
 name = "Invader"
-icon = "ufo"
+icon = "alien-monster"
 category = "scifi"
 description = "Straight out of an arcade cabinet."
 blocks = [
@@ -424,7 +424,7 @@ blocks = [
 [[voice]]
 id = "astronaut"
 name = "Astronaut"
-icon = "astronaut-helmet"
+icon = "astronaut"
 category = "scifi"
 description = "Houston, we have a problem. With beeps."
 blocks = [
@@ -438,7 +438,7 @@ blocks = [
 [[voice]]
 id = "glitch"
 name = "Glitch"
-icon = "static-waves"
+icon = "television"
 category = "scifi"
 description = "A bad connection from the future."
 blocks = [
@@ -466,7 +466,7 @@ blocks = [
 [[voice]]
 id = "echo"
 name = "Echo"
-icon = "echo-ripples"
+icon = "mountain"
 category = "places"
 description = "Shout from a mountain top."
 blocks = [
@@ -476,7 +476,7 @@ blocks = [
 [[voice]]
 id = "cave"
 name = "Cave"
-icon = "cave-entrance"
+icon = "rock"
 category = "places"
 description = "Deep inside, where the water drips."
 blocks = [
@@ -510,7 +510,7 @@ blocks = [
 [[voice]]
 id = "stadium"
 name = "Stadium"
-icon = "soccer-field"
+icon = "stadium"
 category = "places"
 description = "Thousands of fans and a big echo."
 blocks = [
@@ -522,7 +522,7 @@ blocks = [
 [[voice]]
 id = "underwater"
 name = "Underwater"
-icon = "diving-helmet"
+icon = "diving-mask"
 category = "places"
 description = "Blub. Muffled, wobbly and full of bubbles."
 blocks = [
@@ -550,7 +550,7 @@ blocks = [
 [[voice]]
 id = "storm"
 name = "Storm"
-icon = "lightning-storm"
+icon = "storm"
 category = "places"
 description = "Out in the rain, with thunder."
 blocks = [
@@ -562,7 +562,7 @@ blocks = [
 [[voice]]
 id = "campfire"
 name = "Campfire"
-icon = "campfire"
+icon = "fire"
 category = "places"
 description = "Stories by the fire."
 blocks = [
@@ -574,7 +574,7 @@ blocks = [
 [[voice]]
 id = "forest"
 name = "Forest"
-icon = "pine-tree"
+icon = "owl"
 category = "places"
 description = "Birds, leaves and fresh air."
 blocks = [
@@ -587,7 +587,7 @@ blocks = [
 [[voice]]
 id = "radio"
 name = "Radio"
-icon = "pocket-radio"
+icon = "radio"
 category = "devices"
 description = "On air, through a small speaker."
 blocks = [
@@ -600,7 +600,7 @@ blocks = [
 [[voice]]
 id = "telephone"
 name = "Telephone"
-icon = "rotary-phone"
+icon = "telephone"
 category = "devices"
 description = "Hello? Can you hear me?"
 blocks = [
@@ -612,7 +612,7 @@ blocks = [
 [[voice]]
 id = "walkie"
 name = "Walkie-Talkie"
-icon = "walkie-talkie"
+icon = "antenna"
 category = "devices"
 description = "Over. Squelch included."
 blocks = [
@@ -638,7 +638,7 @@ blocks = [
 [[voice]]
 id = "pilot"
 name = "Pilot"
-icon = "plane-pilot"
+icon = "pilot"
 category = "devices"
 description = "This is your captain speaking."
 blocks = [
@@ -652,7 +652,7 @@ blocks = [
 [[voice]]
 id = "oldmovie"
 name = "1920s Film"
-icon = "film-projector"
+icon = "top-hat"
 category = "devices"
 description = "Crackly, thin and a little wobbly."
 blocks = [
@@ -679,7 +679,7 @@ blocks = [
 [[voice]]
 id = "8bit"
 name = "8-Bit"
-icon = "retro-controller"
+icon = "video-game"
 category = "devices"
 description = "Retro console sound."
 blocks = [
@@ -690,7 +690,7 @@ blocks = [
 [[voice]]
 id = "fan"
 name = "Fan"
-icon = "handheld-fan"
+icon = "cyclone"
 category = "devices"
 description = "Talking into a spinning fan."
 blocks = [
@@ -715,7 +715,7 @@ blocks = [
 [[voice]]
 id = "choir"
 name = "Angel Choir"
-icon = "angel-wings"
+icon = "angel"
 category = "music"
 description = "Heavenly harmonies in a big hall."
 blocks = [
@@ -727,7 +727,7 @@ blocks = [
 [[voice]]
 id = "chords"
 name = "Magic Chords"
-icon = "piano-keys"
+icon = "keyboard"
 category = "music"
 description = "Your voice plays changing chords."
 blocks = [
@@ -738,7 +738,7 @@ blocks = [
 [[voice]]
 id = "talkbox"
 name = "Talk Box"
-icon = "sound-waves"
+icon = "control-knobs"
 category = "music"
 description = "A synth that follows your voice."
 blocks = [
@@ -749,7 +749,7 @@ blocks = [
 [[voice]]
 id = "duet"
 name = "Duet"
-icon = "lyre"
+icon = "bunny-ears"
 category = "music"
 description = "Someone sings along, a third higher."
 blocks = [
@@ -763,7 +763,7 @@ blocks = [
 [[voice]]
 id = "chipmunk"
 name = "Chipmunk"
-icon = "squirrel"
+icon = "chipmunk"
 category = "funny"
 description = "Squeaky and fast talking."
 blocks = [
@@ -784,7 +784,7 @@ blocks = [
 [[voice]]
 id = "helium"
 name = "Helium"
-icon = "balloons"
+icon = "balloon"
 category = "funny"
 description = "One breath from a balloon."
 blocks = [
@@ -794,7 +794,7 @@ blocks = [
 [[voice]]
 id = "drunk"
 name = "Drunk"
-icon = "beer-stein"
+icon = "woozy"
 category = "funny"
 description = "Had a few too many."
 blocks = [
@@ -807,7 +807,7 @@ blocks = [
 [[voice]]
 id = "dizzy"
 name = "Dizzy"
-icon = "knocked-out-stars"
+icon = "spiral-eyes"
 category = "funny"
 description = "Everything is spinning."
 blocks = [
@@ -818,7 +818,7 @@ blocks = [
 [[voice]]
 id = "whisper"
 name = "Whisper"
-icon = "silence"
+icon = "shushing"
 category = "funny"
 description = "Psst. Only breath, no voice."
 blocks = [
@@ -852,7 +852,7 @@ blocks = [
 [[voice]]
 id = "duck"
 name = "Duck"
-icon = "plastic-duck"
+icon = "duck"
 category = "funny"
 description = "Quack quack."
 blocks = [

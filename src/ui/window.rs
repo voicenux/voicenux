@@ -214,7 +214,9 @@ pub fn build(app: &adw::Application, st: &St) -> Window {
 fn now_card(st: &St) -> gtk::Box {
     let card = gtk::Box::new(gtk::Orientation::Horizontal, 10);
     card.add_css_class("vn-now");
-    let (tl, img) = super::tile("microphone", 40, 22);
+    let img = gtk::Image::new();
+    img.set_pixel_size(40);
+    img.add_css_class("vn-now-icon");
     let text = gtk::Box::new(gtk::Orientation::Vertical, 2);
     text.set_valign(gtk::Align::Center);
     let small = label(t("Your voice"), &["caption", "dim-label"]);
@@ -224,7 +226,7 @@ fn now_card(st: &St) -> gtk::Box {
     name.set_ellipsize(gtk::pango::EllipsizeMode::End);
     text.append(&small);
     text.append(&name);
-    card.append(&tl);
+    card.append(&img);
     card.append(&text);
     let sync = {
         let st = st.clone();
@@ -232,7 +234,7 @@ fn now_card(st: &St) -> gtk::Box {
         move || {
             let v = st.current();
             let on = st.config.borrow().voice_on;
-            img.set_icon_name(Some(&super::icon_name(if on { &v.icon } else { "microphone" })));
+            img.set_paintable(Some(&super::texture(if on { &v.icon } else { "microphone" })));
             name.set_label(&if on { t_dyn(&v.name) } else { t("Your real voice").to_string() });
             for c in crate::voice::CATEGORIES {
                 card.remove_css_class(&super::cat_class(c.id));

@@ -8,7 +8,7 @@ use adw::prelude::*;
 use gtk::{gdk, gio, glib};
 
 use super::visuals::progress_ring;
-use super::{animate_in, cat_class, clear, icon_picker, label, tile};
+use super::{animate_in, clear, icon, icon_picker, label};
 use crate::i18n::{fill, t, t_dyn};
 use crate::soundboard::{PlayMode, Sound};
 use crate::state::{Change, St};
@@ -107,7 +107,7 @@ pub fn build(st: &St) -> adw::ToolbarView {
             order.borrow_mut().clear();
             let sounds = st.library.borrow().sound.clone();
             for (i, s) in sounds.iter().enumerate() {
-                let p = pad(&st, s, i);
+                let p = pad(&st, s);
                 grid.append(&p.child);
                 if animate {
                     animate_in(&p.child, i);
@@ -263,22 +263,22 @@ fn volume_button(st: &St) -> gtk::MenuButton {
     b
 }
 
-fn pad(st: &St, s: &Sound, index: usize) -> Pad {
-    let pad = gtk::Box::new(gtk::Orientation::Vertical, 10);
-    pad.add_css_class("vn-card");
-    // Every pad gets a color of its own, so the board looks like a board.
-    pad.add_css_class(&cat_class(crate::voice::palette(index)));
-    pad.set_size_request(128, 140);
+fn pad(st: &St, s: &Sound) -> Pad {
+    let pad = gtk::Box::new(gtk::Orientation::Vertical, 8);
+    pad.add_css_class("sound-pad");
+    pad.set_size_request(136, 140);
 
     let progress = Rc::new(Cell::new(0.0f32));
-    let ring = progress_ring(progress.clone(), 80);
-    let (tl, _) = tile(&s.icon, 62, 36);
+    let ring = progress_ring(progress.clone());
     let pic = gtk::Overlay::new();
     pic.set_child(Some(&ring));
-    pic.add_overlay(&tl);
+    let img = icon(&s.icon, 58);
+    img.set_halign(gtk::Align::Center);
+    img.set_valign(gtk::Align::Center);
+    pic.add_overlay(&img);
     pic.set_halign(gtk::Align::Center);
     pad.append(&pic);
-    let name = label(&t_dyn(&s.name), &["vn-card-name"]);
+    let name = label(&t_dyn(&s.name), &["vn-pad-name"]);
     name.set_ellipsize(gtk::pango::EllipsizeMode::End);
     name.set_max_width_chars(14);
     pad.append(&name);
@@ -302,7 +302,7 @@ fn pad(st: &St, s: &Sound, index: usize) -> Pad {
     Pad { child, pad, progress, ring }
 }
 
-/// Popover to rename a sound, change its icon, volume and how it plays.
+/// Popover to rename a sound, change its picture, volume and how it plays.
 fn editor(st: &St, s: &Sound) -> gtk::Popover {
     let sound = Rc::new(RefCell::new(s.clone()));
     let b = gtk::Box::new(gtk::Orientation::Vertical, 10);
@@ -323,7 +323,7 @@ fn editor(st: &St, s: &Sound) -> gtk::Popover {
         move || st.update_sound(sound.borrow().clone())
     };
     let save = Rc::new(save);
-    top.append(&icon_picker(&s.icon, 26, {
+    top.append(&icon_picker(&s.icon, 32, {
         let sound = sound.clone();
         let save = save.clone();
         move |name| {

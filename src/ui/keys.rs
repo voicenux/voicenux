@@ -74,7 +74,7 @@ fn record(st: &St, parent: &gtk::Button, id: &str, what: &str) {
     let clear = gtk::Button::with_label(t("Remove"));
     clear.add_css_class("pill");
     let save = gtk::Button::with_label(t("Save"));
-    save.add_css_class("vn-gradient");
+    save.add_css_class("vn-gradient-button");
     save.set_sensitive(false);
     buttons.append(&clear);
     buttons.append(&save);

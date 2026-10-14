@@ -10,54 +10,47 @@ pub mod voicelab;
 pub mod voices;
 pub mod window;
 
+use std::cell::RefCell;
+use std::collections::HashMap;
+
 use gtk::prelude::*;
 use gtk::{gdk, glib};
 
 pub const RESOURCE: &str = "/io/github/voicenux/Voicenux";
 
-/// An icon from `data/icons` (Phosphor, duotone). It takes the CSS color of the widget.
+thread_local! {
+    static TEXTURES: RefCell<HashMap<String, gdk::Texture>> = RefCell::new(HashMap::new());
+}
+
+/// A picture from `data/icons`, cached.
+pub fn texture(name: &str) -> gdk::Texture {
+    TEXTURES.with(|t| {
+        if let Some(tex) = t.borrow().get(name) {
+            return tex.clone();
+        }
+        let path = format!("{RESOURCE}/icons/{name}.png");
+        let tex = if gtk::gio::resources_get_info(&path, gtk::gio::ResourceLookupFlags::NONE).is_ok() {
+            gdk::Texture::from_resource(&path)
+        } else {
+            gdk::Texture::from_resource(&format!("{RESOURCE}/icons/sparkles.png"))
+        };
+        t.borrow_mut().insert(name.to_string(), tex.clone());
+        tex
+    })
+}
+
 pub fn icon(name: &str, size: i32) -> gtk::Image {
-    let img = gtk::Image::from_icon_name(&icon_name(name));
+    let img = gtk::Image::from_paintable(Some(&texture(name)));
     img.set_pixel_size(size);
     img
 }
 
-/// An icon on a rounded square tinted in the color of the category around it.
-pub fn tile(name: &str, size: i32, icon_size: i32) -> (gtk::Box, gtk::Image) {
-    let b = gtk::Box::new(gtk::Orientation::Vertical, 0);
-    b.add_css_class("vn-tile");
-    b.set_size_request(size, size);
-    b.set_halign(gtk::Align::Center);
-    b.set_valign(gtk::Align::Center);
-    let img = icon(name, icon_size);
-    img.set_vexpand(true);
-    img.set_halign(gtk::Align::Center);
-    img.set_valign(gtk::Align::Center);
-    b.append(&img);
-    // The icon fills the tile, but the tile must not make its parents stretch.
-    b.set_vexpand(false);
-    b.set_hexpand(false);
-    (b, img)
-}
-
-/// Icon names of `data/icons`. Unknown names (an old saved voice) get the sparkles.
-pub fn icon_name(name: &str) -> String {
-    let path = format!("{RESOURCE}/icons/scalable/actions/vn-{name}-symbolic.svg");
-    if gtk::gio::resources_get_info(&path, gtk::gio::ResourceLookupFlags::NONE).is_ok() {
-        format!("vn-{name}-symbolic")
-    } else {
-        "vn-sparkles-symbolic".to_string()
-    }
-}
-
-/// All icons there are, for the icon picker.
+/// All pictures there are, for the icon picker.
 pub fn all_icons() -> Vec<String> {
-    let mut names: Vec<String> = gtk::gio::resources_enumerate_children(
-        &format!("{RESOURCE}/icons/scalable/actions/"),
-        gtk::gio::ResourceLookupFlags::NONE,
-    )
-    .map(|l| l.iter().map(|s| s.trim_start_matches("vn-").trim_end_matches("-symbolic.svg").to_string()).collect())
-    .unwrap_or_default();
+    let mut names: Vec<String> =
+        gtk::gio::resources_enumerate_children(&format!("{RESOURCE}/icons/"), gtk::gio::ResourceLookupFlags::NONE)
+            .map(|l| l.iter().map(|s| s.trim_end_matches(".png").to_string()).collect())
+            .unwrap_or_default();
     names.sort();
     names
 }
@@ -71,6 +64,13 @@ pub fn logo(size: i32) -> gtk::Image {
 
 pub fn cat_class(category: &str) -> String {
     format!("cat-{category}")
+}
+
+/// "#ff8a5c" to (r, g, b) in 0..1.
+pub fn rgb(hex: &str) -> (f64, f64, f64) {
+    let h = hex.trim_start_matches('#');
+    let p = |i: usize| u8::from_str_radix(h.get(i..i + 2).unwrap_or("80"), 16).unwrap_or(128) as f64 / 255.0;
+    (p(0), p(2), p(4))
 }
 
 /// Peak level to a meter position, 0 at -60 dBFS and 1 at 0 dBFS.
@@ -104,7 +104,7 @@ pub fn clear(widget: &impl IsA<gtk::Widget>) {
     }
 }
 
-/// Plays the entrance animation on a widget, `delay` steps of 16 ms late.
+/// Plays the entrance animation on a widget, `delay` steps of 18 ms late.
 pub fn animate_in(widget: &impl IsA<gtk::Widget>, delay: usize) {
     let w = widget.as_ref().clone();
     w.remove_css_class("vn-entering");
@@ -118,39 +118,15 @@ pub fn animate_in(widget: &impl IsA<gtk::Widget>, delay: usize) {
 }
 
 /// CSS for the staggered entrance delays.
-/// CSS made from code: entrance delays and the gradient of every category.
-pub fn generated_css() -> String {
-    let mut css: String = (0..40).map(|i| format!(".vn-d{i} {{ animation-delay: {}ms; }}\n", i * 16)).collect();
-    for c in crate::voice::CATEGORIES {
-        let (a, b) = c.colors;
-        css.push_str(&format!(".cat-{} {{ --cat-a: {a}; --cat-b: {b}; }}\n", c.id));
-    }
-    css
+pub fn delay_css() -> String {
+    (0..40).map(|i| format!(".vn-d{i} {{ animation-delay: {}ms; }}\n", i * 18)).collect()
 }
 
-/// The gradient colors of a category, for drawing.
-pub fn cat_colors(category: &str) -> ((f64, f64, f64), (f64, f64, f64)) {
-    let (a, b) = crate::voice::category(category).colors;
-    (rgb(a), rgb(b))
-}
-
-/// "#ff8a5c" to (r, g, b) in 0..1.
-pub fn rgb(hex: &str) -> (f64, f64, f64) {
-    let h = hex.trim_start_matches('#');
-    let p = |i: usize| u8::from_str_radix(h.get(i..i + 2).unwrap_or("80"), 16).unwrap_or(128) as f64 / 255.0;
-    (p(0), p(2), p(4))
-}
-
-/// A button showing an icon. Clicking it opens a grid of all icons to choose from.
+/// A button showing a picture. Clicking it opens a grid of all pictures to choose from.
 pub fn icon_picker(current: &str, size: i32, on_pick: impl Fn(&str) + 'static) -> gtk::MenuButton {
     let button = gtk::MenuButton::new();
-    let shown = move |name: &str| {
-        let (b, _) = tile(name, size + size / 2, size);
-        b.add_css_class("cat-custom");
-        b
-    };
-    button.set_child(Some(&shown(current)));
-    button.set_tooltip_text(Some(crate::i18n::t("Change icon")));
+    button.set_child(Some(&icon(current, size)));
+    button.set_tooltip_text(Some(crate::i18n::t("Change picture")));
     let grid = gtk::FlowBox::builder()
         .selection_mode(gtk::SelectionMode::None)
         .min_children_per_line(6)
@@ -171,7 +147,7 @@ pub fn icon_picker(current: &str, size: i32, on_pick: impl Fn(&str) + 'static) -
         let popover = popover.clone();
         let button = button.clone();
         b.connect_clicked(move |_| {
-            button.set_child(Some(&shown(&name)));
+            button.set_child(Some(&icon(&name, size)));
             popover.popdown();
             on_pick(&name);
         });

@@ -80,8 +80,8 @@ msgstr "Mikrofon an"
 msgid "Voice changer for Linux"
 msgstr "Stimmverzerrer für Linux"
 
-msgid "Change icon"
-msgstr "Icon ändern"
+msgid "Change picture"
+msgstr "Bild ändern"
 
 msgid "Search voices"
 msgstr "Stimmen suchen"
@@ -437,8 +437,8 @@ msgstr "Über Voicenux"
 msgid "Change your voice in real time, in any app. Made for Linux and PipeWire."
 msgstr "Verändere deine Stimme in Echtzeit, in jeder App. Gemacht für Linux und PipeWire."
 
-msgid "Icons"
-msgstr "Icons"
+msgid "Pictures"
+msgstr "Bilder"
 
 msgid "Thanks to"
 msgstr "Danke an"
@@ -1459,6 +1459,3 @@ msgstr "Vorige Stimme"
 
 msgid "Needs a tray icon area. On GNOME, install the AppIndicator extension."
 msgstr "Braucht einen Bereich für Tray-Symbole. Installier unter GNOME die AppIndicator-Erweiterung."
-
-msgid "Your voice right now"
-msgstr "Deine Stimme gerade"
