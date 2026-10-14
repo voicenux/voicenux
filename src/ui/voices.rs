@@ -249,8 +249,10 @@ pub fn build(st: &St, open_lab: OpenLab) -> VoicesPage {
         let cards = cards.clone();
         move |_, child| {
             let id = cards.borrow().iter().find(|(_, c)| &c.child == child).map(|(id, _)| id.clone());
+            // A click on the voice that is on turns it off: your normal voice.
             if let Some(id) = id {
-                st.set_voice(&id);
+                let on = st.config.borrow().voice == id && st.config.borrow().voice_on;
+                if on { st.set_voice_on(false) } else { st.set_voice(&id) }
             }
         }
     });
