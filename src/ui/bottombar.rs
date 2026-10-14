@@ -15,14 +15,15 @@ fn pill(icon: &str, text: &str, tip: &str) -> gtk::ToggleButton {
     b
 }
 
-pub fn build(st: &St) -> gtk::Box {
-    let bar = gtk::Box::new(gtk::Orientation::Horizontal, 12);
+/// The bar, and its texts that can go in a narrow window: the microphone name and who listens.
+pub fn build(st: &St) -> (gtk::CenterBox, [gtk::Widget; 2]) {
+    // A center box keeps the switches in the exact middle, whatever the sides are wide.
+    let bar = gtk::CenterBox::new();
     bar.add_css_class("vn-bottombar");
 
     // Left: mute, level, device.
     let left = gtk::Box::new(gtk::Orientation::Horizontal, 10);
-    left.set_hexpand(true);
-    left.set_halign(gtk::Align::Start);
+    left.set_margin_end(12);
     let mute = gtk::Button::from_icon_name("audio-input-microphone-symbolic");
     mute.add_css_class("vn-mute");
     mute.set_valign(gtk::Align::Center);
@@ -37,7 +38,7 @@ pub fn build(st: &St) -> gtk::Box {
     let device = label("", &["dim-label", "vn-device"]);
     device.set_xalign(0.0);
     device.set_ellipsize(gtk::pango::EllipsizeMode::End);
-    device.set_max_width_chars(26);
+    device.set_max_width_chars(20);
     meter_box.append(&meter);
     meter_box.append(&device);
     left.append(&mute);
@@ -55,8 +56,7 @@ pub fn build(st: &St) -> gtk::Box {
 
     // Right: is anyone using us?
     let right = gtk::Box::new(gtk::Orientation::Horizontal, 8);
-    right.set_hexpand(true);
-    right.set_halign(gtk::Align::End);
+    right.set_margin_start(12);
     let live = gtk::MenuButton::new();
     live.add_css_class("flat");
     let live_box = gtk::Box::new(gtk::Orientation::Horizontal, 8);
@@ -65,24 +65,27 @@ pub fn build(st: &St) -> gtk::Box {
     dot.add_css_class("vn-live-dot");
     dot.set_valign(gtk::Align::Center);
     let live_label = gtk::Label::new(None);
+    live_label.set_ellipsize(gtk::pango::EllipsizeMode::End);
+    live_label.set_max_width_chars(22);
     live_box.append(&dot);
     live_box.append(&live_label);
     live.set_child(Some(&live_box));
     live.set_popover(Some(&help_popover()));
     right.append(&live);
 
-    bar.append(&left);
-    bar.append(&mid);
-    bar.append(&right);
+    bar.set_start_widget(Some(&left));
+    bar.set_center_widget(Some(&mid));
+    bar.set_end_widget(Some(&right));
 
     let sync = {
         let st = st.clone();
-        let (voice, hear, bg, mute, device, live_box, live_label) = (
+        let (voice, hear, bg, mute, device, live, live_box, live_label) = (
             voice.clone(),
             hear.clone(),
             bg.clone(),
             mute.clone(),
             device.clone(),
+            live.clone(),
             live_box.clone(),
             live_label.clone(),
         );
@@ -112,6 +115,8 @@ pub fn build(st: &St) -> gtk::Box {
                 live_box.add_css_class("on");
                 live_label.set_label(&fill(t("Live in {}"), &[&users.join(", ")]));
             }
+            // For narrow windows, where only the dot is left.
+            live.set_tooltip_text(Some(&live_label.label()));
         }
     };
     sync();
@@ -146,7 +151,7 @@ pub fn build(st: &St) -> gtk::Box {
             sync();
         }
     });
-    bar
+    (bar, [device.upcast(), live_label.upcast()])
 }
 
 fn help_popover() -> gtk::Popover {

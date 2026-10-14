@@ -139,6 +139,9 @@ pub fn build(app: &adw::Application, st: &St) -> Window {
     content.append(&banner);
     stack.set_vexpand(true);
     content.append(&stack);
+    // Under the pages, not the sidebar: so its switches line up with the titles and pages above.
+    let (bar, bar_texts) = bottombar::build(st);
+    content.append(&bar);
 
     let split = adw::OverlaySplitView::new();
     split.set_sidebar(Some(&side_view));
@@ -147,16 +150,19 @@ pub fn build(app: &adw::Application, st: &St) -> Window {
     split.set_max_sidebar_width(220.0);
     split.set_vexpand(true);
 
-    let root = gtk::Box::new(gtk::Orientation::Vertical, 0);
-    root.append(&split);
-    root.append(&bottombar::build(st));
-
     // Room for things that float above the pages, like the autoscroll mark.
     let layer = gtk::Overlay::new();
-    layer.set_child(Some(&root));
+    layer.set_child(Some(&split));
     let toast = adw::ToastOverlay::new();
     toast.set_child(Some(&layer));
     window.set_content(Some(&toast));
+
+    // In a narrow window the bottom bar drops its texts, so the switches still fit in the middle.
+    let narrow = adw::Breakpoint::new(adw::BreakpointCondition::parse("max-width: 1060sp").expect("a condition"));
+    for w in &bar_texts {
+        narrow.add_setter(w, "visible", Some(&false.to_value()));
+    }
+    window.add_breakpoint(narrow);
 
     let win = Window { window: window.clone(), toast, stack, nav, lab: lab.clone(), st: st.clone() };
     let _ = win_cell.set(win.clone());
