@@ -7,7 +7,7 @@ use std::rc::Rc;
 use adw::prelude::*;
 use gtk::glib;
 
-use super::visuals::{Orb, live_bars};
+use super::visuals::Orb;
 use super::{animate_in, cat_class, clear, icon, label};
 use crate::dsp::blocks::{self, Kind};
 use crate::i18n::{t, t_dyn};
@@ -18,7 +18,6 @@ struct Card {
     child: gtk::FlowBoxChild,
     card: gtk::Box,
     star: gtk::Button,
-    live: gtk::Box,
 }
 
 pub struct VoicesPage {
@@ -210,7 +209,6 @@ pub fn build(st: &St, open_lab: OpenLab) -> VoicesPage {
                 } else {
                     c.card.remove_css_class("off");
                 }
-                c.live.set_visible(active && on);
                 let fav = st.is_favorite(id);
                 c.star.set_icon_name(if fav { "starred-symbolic" } else { "non-starred-symbolic" });
                 if fav {
@@ -367,26 +365,14 @@ fn card(st: &St, v: &Voice) -> Card {
         move |_| st.toggle_favorite(&id)
     });
 
-    let live = gtk::Box::new(gtk::Orientation::Horizontal, 0);
-    live.add_css_class("vn-badge");
-    live.append(&live_bars(st));
-    live.set_halign(gtk::Align::Start);
-    live.set_valign(gtk::Align::Start);
-    live.set_margin_top(10);
-    live.set_margin_start(10);
-    live.set_visible(false);
-
     let overlay = gtk::Overlay::new();
     overlay.set_child(Some(&card));
     overlay.add_overlay(&star);
-    overlay.add_overlay(&live);
-    // The overlay carries the category so the badge picks up its color.
-    overlay.add_css_class(&cat_class(&v.category));
 
     let child = gtk::FlowBoxChild::new();
     child.set_child(Some(&overlay));
     child.set_tooltip_text(Some(&t_dyn(&v.description)));
-    Card { child, card, star, live }
+    Card { child, card, star }
 }
 
 /// The selected voice: orb, name, and its main settings.
