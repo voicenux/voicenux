@@ -285,8 +285,7 @@ fn pad(st: &St, s: &Sound) -> Pad {
     name.set_max_width_chars(14);
     pad.append(&name);
 
-    let menu = gtk::MenuButton::new();
-    menu.set_icon_name("view-more-symbolic");
+    let menu = gtk::Button::from_icon_name("view-more-symbolic");
     menu.add_css_class("flat");
     menu.add_css_class("vn-pad-menu");
     menu.set_halign(gtk::Align::End);
@@ -294,7 +293,6 @@ fn pad(st: &St, s: &Sound) -> Pad {
     menu.set_margin_top(6);
     menu.set_margin_end(6);
     menu.set_tooltip_text(Some(t("Edit sound")));
-    menu.set_popover(Some(&editor(st, s)));
 
     let overlay = gtk::Overlay::new();
     overlay.add_css_class("vn-lift");
@@ -302,7 +300,49 @@ fn pad(st: &St, s: &Sound) -> Pad {
     overlay.add_overlay(&menu);
     let child = gtk::FlowBoxChild::new();
     child.set_child(Some(&overlay));
+
+    // The editor hangs on the grid cell, which never lifts or squishes, so it stays still.
+    let editor = editor(st, s);
+    editor.set_parent(&child);
+    stop_clicks(&editor);
+    child.connect_destroy({
+        let editor = editor.clone();
+        move |_| editor.unparent()
+    });
+    menu.connect_clicked({
+        let (editor, child) = (editor.clone(), child.clone());
+        move |b| {
+            if let Some(r) = b.compute_bounds(&child) {
+                let (x, y, w, h) = (r.x() as i32, r.y() as i32, r.width() as i32, r.height() as i32);
+                editor.set_pointing_to(Some(&gdk::Rectangle::new(x, y, w, h)));
+            }
+            editor.popup();
+        }
+    });
+    let right_click = gtk::GestureClick::new();
+    right_click.set_button(gdk::BUTTON_SECONDARY);
+    right_click.connect_pressed(move |g, _, x, y| {
+        g.set_state(gtk::EventSequenceState::Claimed);
+        editor.set_pointing_to(Some(&gdk::Rectangle::new(x as i32, y as i32, 1, 1)));
+        editor.popup();
+    });
+    child.add_controller(right_click);
     Pad { child, pad, progress, ring }
+}
+
+/// Clicks in a popover travel on to the widget it hangs on. Here that is a pad, which would
+/// squish or play, so they stop at the popover.
+fn stop_clicks(popover: &gtk::Popover) {
+    let c = gtk::EventControllerLegacy::new();
+    c.connect_event(|_, e| {
+        use gdk::EventType::*;
+        if matches!(e.event_type(), ButtonPress | ButtonRelease | TouchBegin | TouchUpdate | TouchEnd) {
+            glib::Propagation::Stop
+        } else {
+            glib::Propagation::Proceed
+        }
+    });
+    popover.add_controller(c);
 }
 
 /// Popover to rename a sound, change its picture, volume and how it plays.
