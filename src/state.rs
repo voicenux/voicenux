@@ -598,7 +598,8 @@ impl State {
 
     /// How far the preview has played, from 0 to 1. None when it does not play.
     pub fn preview_progress(&self) -> Option<f32> {
-        self.engine.meters.playing().into_iter().find(|(id, _)| *id == PREVIEW).map(|(_, p)| p)
+        // Right after a restart, the old one still fades out: the new one is the one further back.
+        self.engine.meters.playing().into_iter().filter(|(id, _)| *id == PREVIEW).map(|(_, p)| p).reduce(f32::min)
     }
 
     /// All of a sound, without its cut, for the trim editor.

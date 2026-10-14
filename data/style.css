@@ -559,6 +559,32 @@ editablelabel.vn-value-field text {
   animation: vn-pop-in 320ms ease-out;
 }
 
+/* Trim editor */
+.vn-trim-wave:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--accent-bg-color) 70%, transparent);
+  outline-offset: 2px;
+  border-radius: 12px;
+}
+
+.vn-trim-bubble {
+  padding: 2px 8px;
+  border-radius: 99px;
+  background-color: var(--accent-bg-color);
+  color: #ffffff;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.vn-key {
+  min-width: 14px;
+  padding: 1px 6px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  background-color: var(--vn-soft);
+  box-shadow: inset 0 0 0 1px var(--vn-line), inset 0 -2px 0 var(--vn-line);
+}
+
 /* Menus pop open with a little bounce. Two names, because only a new name starts it again. */
 popover.vn-bounce-a > contents {
   animation: vn-menu-a 420ms ease-out;

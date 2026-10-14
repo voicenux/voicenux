@@ -65,7 +65,7 @@ Sounds play into the Voicenux Microphone, and you hear them too. Add your own wi
 
 <img width="720" src="res/trim.png" alt="Trim sound for Drum Roll: the waveform with a blue frame and a handle on each side, from 0.80 s to 5.20 s, and a playhead while it plays">
 
-**Trim sound** in the menu cuts the start and end, like a video clip. Drag the handles over the waveform, or type the times. **Listen** plays the cut sound in your headphones only, and Space does too.
+**Trim sound** in the menu cuts the start and end, like a video clip. Drag the handles over the waveform, or type the times. **Listen** plays the cut sound in your headphones only, from the white playhead: drag it, or click into the cut. Space listens or pauses, ← and → move the playhead, I and O set the start and end at the playhead.
 
 **Find sounds** searches [MyInstants](https://www.myinstants.com). ▶ plays a sound in your headphones only, + adds it to your soundboard. Only the words you search for are sent, and only when you search.
 

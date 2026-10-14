@@ -1532,11 +1532,23 @@ msgstr "Anfang"
 msgid "End"
 msgstr "Ende"
 
-msgid "Stop"
-msgstr "Stopp"
+msgid "Pause"
+msgstr "Pause"
 
 msgid "Use all of it"
 msgstr "Ganzen Sound nehmen"
 
-msgid "Drag the handles to cut the start and the end. Listening plays in your headphones only."
-msgstr "Zieh die Griffe, um Anfang und Ende abzuschneiden. Anhören spielt nur in deinen Kopfhörern."
+msgid "Listening plays in your headphones only."
+msgstr "Anhören spielt nur in deinen Kopfhörern."
+
+msgid "Waveform"
+msgstr "Wellenform"
+
+msgid "Space"
+msgstr "Leertaste"
+
+msgid "Move the playhead"
+msgstr "Abspielkopf bewegen"
+
+msgid "Set start and end"
+msgstr "Anfang und Ende setzen"
