@@ -167,9 +167,6 @@ msgstr "Die Audio-Engine wurde angehalten: {}. Läuft PipeWire?"
 msgid "Your voice"
 msgstr "Deine Stimme"
 
-msgid "Your real voice"
-msgstr "Deine echte Stimme"
-
 msgid "Soundboard"
 msgstr "Soundboard"
 

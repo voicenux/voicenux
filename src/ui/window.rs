@@ -213,8 +213,8 @@ pub fn build(app: &adw::Application, st: &St) -> Window {
     win
 }
 
-/// The current voice, small, at the bottom of the sidebar.
-fn now_card(st: &St) -> gtk::Box {
+/// The current voice, small, at the bottom of the sidebar. Gone while the voice changer is off.
+fn now_card(st: &St) -> gtk::Revealer {
     let card = gtk::Box::new(gtk::Orientation::Horizontal, 10);
     card.add_css_class("vn-now");
     let img = gtk::Image::new();
@@ -231,14 +231,20 @@ fn now_card(st: &St) -> gtk::Box {
     text.append(&name);
     card.append(&img);
     card.append(&text);
+    let reveal = gtk::Revealer::builder()
+        .transition_type(gtk::RevealerTransitionType::SlideUp)
+        .transition_duration(260)
+        .child(&card)
+        .build();
     let sync = {
         let st = st.clone();
         let card = card.clone();
+        let reveal = reveal.clone();
         move || {
             let v = st.current();
-            let on = st.config.borrow().voice_on;
-            img.set_paintable(Some(&super::texture(if on { &v.icon } else { "microphone" })));
-            name.set_label(&if on { t_dyn(&v.name) } else { t("Your real voice").to_string() });
+            reveal.set_reveal_child(st.config.borrow().voice_on);
+            img.set_paintable(Some(&super::texture(&v.icon)));
+            name.set_label(&t_dyn(&v.name));
             for c in crate::voice::CATEGORIES {
                 card.remove_css_class(&super::cat_class(c.id));
             }
@@ -251,5 +257,5 @@ fn now_card(st: &St) -> gtk::Box {
             sync();
         }
     });
-    card
+    reveal
 }
