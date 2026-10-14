@@ -14,6 +14,9 @@ use crate::config::Config;
 use crate::soundboard::{self, Library, PlayMode, SoundData};
 use crate::voice::{self, BlockDef, Voice};
 
+/// The realtime id of a preview. Pads count up from 1, so they never get it.
+const PREVIEW: u32 = u32::MAX;
+
 #[derive(Clone, Debug, PartialEq)]
 pub enum Change {
     /// Another voice was picked.
@@ -575,11 +578,32 @@ impl State {
             volume: sound.volume,
             looped: sound.mode == PlayMode::Loop,
             restart: sound.mode != PlayMode::Overlap,
+            preview: false,
         });
     }
 
     pub fn stop_sounds(&self) {
         self.engine.rt(RtCmd::StopAll);
+    }
+
+    /// Plays a sound found online in the headphones only, to listen before adding it.
+    pub fn preview(&self, data: Arc<SoundData>) {
+        self.engine.rt(RtCmd::Play { id: PREVIEW, data, volume: 1.0, looped: false, restart: true, preview: true });
+    }
+
+    pub fn stop_preview(&self) {
+        self.engine.rt(RtCmd::Stop(PREVIEW));
+    }
+
+    /// Adds a sound found online.
+    pub fn add_found(&self, name: &str, ext: &str, data: &[u8], icon: &str) -> anyhow::Result<()> {
+        {
+            let mut lib = self.library.borrow_mut();
+            lib.add_bytes(name, ext, data, icon)?;
+            lib.save();
+        }
+        self.notify(Change::Sounds);
+        Ok(())
     }
 
     pub fn update_sound(&self, sound: soundboard::Sound) {

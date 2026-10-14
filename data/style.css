@@ -571,6 +571,35 @@ popover.vn-bounce-b > contents {
   100% { opacity: 1; transform: scale(1); }
 }
 
+/* Finding sounds online */
+.vn-find-list {
+  background: none;
+  margin: 0 6px;
+}
+
+.vn-find-list > row {
+  border-radius: 12px;
+  transition: background-color 160ms ease;
+}
+
+.vn-find-list > row:hover {
+  background-color: var(--vn-soft);
+}
+
+.vn-find-row {
+  padding: 6px 4px;
+}
+
+.vn-find-title {
+  font-weight: 700;
+}
+
+button.vn-added {
+  background-image: none;
+  background-color: #2fbf7a;
+  color: #ffffff;
+}
+
 .vn-drop {
   border-radius: 24px;
   border: 2px dashed color-mix(in srgb, var(--accent-bg-color) 60%, transparent);

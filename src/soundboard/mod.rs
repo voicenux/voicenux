@@ -1,5 +1,6 @@
 //! Soundboard: the list of sounds, loading audio files and the built-in sounds.
 
+pub mod online;
 pub mod starter;
 
 use std::path::{Path, PathBuf};
@@ -144,21 +145,39 @@ impl Library {
         decode(path)?;
         let dir = dir();
         std::fs::create_dir_all(&dir)?;
-        let file_name = path.file_name().ok_or_else(|| anyhow::anyhow!("no file name"))?;
-        let mut target = dir.join(file_name);
-        let mut n = 2;
-        while target.exists() {
-            let stem = path.file_stem().unwrap_or_default().to_string_lossy();
-            let ext = path.extension().map(|e| format!(".{}", e.to_string_lossy())).unwrap_or_default();
-            target = dir.join(format!("{stem}-{n}{ext}"));
-            n += 1;
-        }
+        path.file_name().ok_or_else(|| anyhow::anyhow!("no file name"))?;
+        let stem = path.file_stem().unwrap_or_default().to_string_lossy();
+        let ext = path.extension().map(|e| format!(".{}", e.to_string_lossy())).unwrap_or_default();
+        let target = free_path(&dir, &stem, &ext);
         std::fs::copy(path, &target)?;
         let name = path.file_stem().unwrap_or_default().to_string_lossy().replace(['_', '-'], " ");
         let sound = Sound {
             id: self.new_id(),
             name: name.trim().to_string(),
             icon: "loudspeaker".into(),
+            file: Some(target.file_name().unwrap().to_string_lossy().to_string()),
+            builtin: None,
+            volume: 1.0,
+            mode: PlayMode::Restart,
+        };
+        self.sound.push(sound.clone());
+        Ok(sound)
+    }
+
+    /// Adds a sound from audio in memory, like a download. The file gets a safe name made from
+    /// `name`.
+    pub fn add_bytes(&mut self, name: &str, ext: &str, data: &[u8], icon: &str) -> anyhow::Result<Sound> {
+        decode_bytes(data.to_vec(), ext)?;
+        let dir = dir();
+        std::fs::create_dir_all(&dir)?;
+        let stem: String = name.chars().map(|c| if c.is_alphanumeric() { c.to_ascii_lowercase() } else { '-' }).collect();
+        let stem = stem.trim_matches('-');
+        let target = free_path(&dir, if stem.is_empty() { "sound" } else { stem }, &format!(".{ext}"));
+        std::fs::write(&target, data)?;
+        let sound = Sound {
+            id: self.new_id(),
+            name: name.to_string(),
+            icon: icon.to_string(),
             file: Some(target.file_name().unwrap().to_string_lossy().to_string()),
             builtin: None,
             volume: 1.0,
@@ -176,6 +195,17 @@ impl Library {
             }
         }
     }
+}
+
+/// `dir/stem.ext`, or with a number added when that file is there already.
+fn free_path(dir: &Path, stem: &str, ext: &str) -> PathBuf {
+    let mut target = dir.join(format!("{stem}{ext}"));
+    let mut n = 2;
+    while target.exists() {
+        target = dir.join(format!("{stem}-{n}{ext}"));
+        n += 1;
+    }
+    target
 }
 
 /// Loads the audio of a sound.

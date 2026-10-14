@@ -55,7 +55,9 @@
   shadows. Shadows that reach out of a moving tile left broken bits on NVIDIA at 130 % scale.
 - Background sounds are made in code (`src/dsp/ambience.rs`). Starter sounds are CC0 recordings
   from Freesound in `data/sounds`: add them to `scripts/fetch-sounds.py`, run `make sounds` and
-  credit them in `data/sounds/LICENSE`. Only CC0, never clips from meme sites.
+  credit them in `data/sounds/LICENSE`. Only CC0, never clips from meme sites. **Find sounds**
+  (`src/soundboard/online.rs`) is different: it searches MyInstants, as I asked. It reads the
+  search page, since MyInstants has no API.
 
 ## Tests
 

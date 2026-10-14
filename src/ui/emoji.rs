@@ -45,6 +45,23 @@ fn find(id: &str) -> Option<&'static Emoji> {
     BY_ID.get_or_init(|| index().iter().map(|e| (e.id, e)).collect()).get(id).copied()
 }
 
+/// A picture that fits a sound name, like the dog for "LBS FX Dog Small Alert Bark". Best is a
+/// picture named just like a word ("dog", "dog face"), then one with the word in its name, then
+/// one with it as a keyword. Later words first: in English they are mostly the thing itself.
+pub fn guess(name: &str) -> Option<&'static str> {
+    let folded = fold(name);
+    let words: Vec<&str> = folded.split(|c: char| !c.is_alphanumeric()).filter(|w| w.chars().count() >= 3).rev().collect();
+    let named = |e: &Emoji, w: &str| e.id == w || e.id.strip_suffix("-face") == Some(w);
+    let in_name = |e: &Emoji, w: &str| e.id.split('-').any(|x| x == w);
+    let keyword = |e: &Emoji, w: &str| e.words.split(' ').any(|x| x == w);
+    for test in [&named as &dyn Fn(&Emoji, &str) -> bool, &in_name, &keyword] {
+        if let Some(e) = words.iter().find_map(|w| index().iter().find(|e| test(e, w))) {
+            return Some(e.id);
+        }
+    }
+    None
+}
+
 /// A button showing a picture. Clicking it opens a grid of all pictures to choose from.
 pub fn icon_picker(current: &str, size: i32, on_pick: impl Fn(&str) + 'static) -> gtk::MenuButton {
     let button = gtk::MenuButton::new();
@@ -200,4 +217,12 @@ mod tests {
         assert!(search("xyzzy").is_empty());
     }
 
+    #[test]
+    fn guesses_a_picture_for_a_sound() {
+        for name in ["Dog barking", "LBS FX DOG Small Alert Bark001"] {
+            let dog = guess(name).expect("a dog");
+            assert!(dog.split('-').any(|w| w == "dog"), "{name}: {dog}");
+        }
+        assert_eq!(guess("xyzzy 01"), None);
+    }
 }

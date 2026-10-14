@@ -63,6 +63,8 @@ When you close the window, Voicenux keeps running in the tray, so your voice kee
 
 Sounds play into the Voicenux Microphone, and you hear them too. Add your own with **Add sounds**, or drop audio files on the page. MP3, OGG, FLAC and WAV work. The menu of a sound changes its name, picture, volume and shortcut, and what a press does: play from the start, play and stop, play on top or loop.
 
+**Find sounds** searches [MyInstants](https://www.myinstants.com). ▶ plays a sound in your headphones only, + adds it to your soundboard. Only the words you search for are sent, and only when you search.
+
 ### Voicelab
 
 <img width="720" src="res/voicelab.png" alt="Voicelab with a custom voice called Space Pirate: a pitch effect and a ring modulator, each with its settings">

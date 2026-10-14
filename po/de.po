@@ -1483,3 +1483,42 @@ msgstr "Lass deine Mikrofon-Effekte aus EasyEffects, etwa die Rauschunterdrücku
 
 msgid "Not in use: EasyEffects works on another microphone."
 msgstr "Nicht aktiv: EasyEffects bearbeitet ein anderes Mikrofon."
+
+msgid "Find sounds"
+msgstr "Sounds finden"
+
+msgid "Listen"
+msgstr "Anhören"
+
+msgid "Add to soundboard"
+msgstr "Zum Soundboard hinzufügen"
+
+msgid "Added"
+msgstr "Hinzugefügt"
+
+msgid "Could not reach the sound search. Are you online?"
+msgstr "Die Sound-Suche ist nicht erreichbar. Bist du online?"
+
+msgid "Too many searches. Wait a minute and try again."
+msgstr "Zu viele Suchen. Warte eine Minute und versuch es dann noch mal."
+
+msgid "Search sounds"
+msgstr "Sounds suchen"
+
+msgid "Search sounds on MyInstants, listen, and add one with a click."
+msgstr "Such Sounds auf MyInstants, hör rein und füg einen mit einem Klick hinzu."
+
+msgid "Sounds from MyInstants"
+msgstr "Sounds von MyInstants"
+
+msgid "No sounds found. Try other words."
+msgstr "Keine Sounds gefunden. Versuch es mit anderen Wörtern."
+
+msgid "Searching MyInstants…"
+msgstr "Suche auf MyInstants …"
+
+msgid "{} is on your soundboard now"
+msgstr "{} ist jetzt auf deinem Soundboard"
+
+msgid "That did not work. Try again."
+msgstr "Das hat nicht geklappt. Versuch es noch mal."

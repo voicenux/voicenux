@@ -27,6 +27,9 @@ pub fn build(st: &St) -> adw::ToolbarView {
     add.set_child(Some(&adw::ButtonContent::builder().icon_name("list-add-symbolic").label(t("Add sounds")).build()));
     add.add_css_class("suggested-action");
     header.pack_start(&add);
+    let find = gtk::ToggleButton::new();
+    find.set_child(Some(&adw::ButtonContent::builder().icon_name("system-search-symbolic").label(t("Find sounds")).build()));
+    header.pack_start(&find);
     let stop = gtk::Button::new();
     stop.set_child(Some(
         &adw::ButtonContent::builder().icon_name("media-playback-stop-symbolic").label(t("Stop all")).build(),
@@ -86,12 +89,36 @@ pub fn build(st: &St) -> adw::ToolbarView {
     hint.set_margin_end(20);
 
     let body = gtk::Box::new(gtk::Orientation::Vertical, 0);
+    body.set_hexpand(true);
     body.append(&stack);
     body.append(&hint);
 
+    // Finding sounds online slides in on the right, so new sounds show up in the grid beside it.
+    let (finder, search) = super::find_sounds::panel(st);
+    let reveal = gtk::Revealer::builder()
+        .transition_type(gtk::RevealerTransitionType::SlideLeft)
+        .transition_duration(260)
+        .child(&finder)
+        .build();
+    find.connect_toggled({
+        let st = st.clone();
+        let reveal = reveal.clone();
+        move |b| {
+            reveal.set_reveal_child(b.is_active());
+            if b.is_active() {
+                search.grab_focus();
+            } else {
+                st.stop_preview();
+            }
+        }
+    });
+    let content = gtk::Box::new(gtk::Orientation::Horizontal, 0);
+    content.append(&body);
+    content.append(&reveal);
+
     let view = adw::ToolbarView::new();
     view.add_top_bar(&header);
-    view.set_content(Some(&body));
+    view.set_content(Some(&content));
 
     let pads: Rc<RefCell<HashMap<String, Pad>>> = Rc::default();
     let order: Rc<RefCell<Vec<String>>> = Rc::default();

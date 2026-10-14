@@ -2,6 +2,7 @@
 
 pub mod bottombar;
 mod emoji;
+mod find_sounds;
 pub mod keys;
 pub mod onboarding;
 mod scroll;

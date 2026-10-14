@@ -27,6 +27,7 @@ rustfft = "6.4.1"
 serde = { version = "1.0.229", features = ["derive"] }
 symphonia = { version = "0.6.1", default-features = false, features = ["mp3", "ogg", "vorbis", "flac", "wav", "pcm", "aac", "isomp4", "adpcm"] }
 toml = "1.1.8"
+ureq = { version = "3.4.2", features = ["json"] }
 
 [profile.release]
 lto = "thin"

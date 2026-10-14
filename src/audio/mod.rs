@@ -73,7 +73,8 @@ pub enum RtCmd {
     SoundVolume(f32),
     Denoise(bool),
     Gate(Option<f32>),
-    Play { id: u32, data: Arc<SoundData>, volume: f32, looped: bool, restart: bool },
+    /// A preview goes to the headphones only, never into the Voicenux Microphone.
+    Play { id: u32, data: Arc<SoundData>, volume: f32, looped: bool, restart: bool, preview: bool },
     Stop(u32),
     StopAll,
     SoundVolumeOf { id: u32, volume: f32 },
