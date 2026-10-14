@@ -1,6 +1,6 @@
 //! Soundboard: the list of sounds, loading audio files and the built-in sounds.
 
-pub mod synth;
+pub mod starter;
 
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
@@ -56,7 +56,7 @@ pub struct Sound {
     /// File in the soundboard folder, for imported sounds.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub file: Option<String>,
-    /// Name of a built-in sound from [`synth`].
+    /// Name of a built-in sound from [`starter`].
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub builtin: Option<String>,
     #[serde(default = "full")]
@@ -97,7 +97,7 @@ impl Library {
 
     pub fn starter() -> Self {
         Self {
-            sound: synth::BUILTIN
+            sound: starter::BUILTIN
                 .iter()
                 .map(|b| Sound {
                     id: b.id.to_string(),
@@ -181,7 +181,7 @@ impl Library {
 /// Loads the audio of a sound.
 pub fn load(sound: &Sound) -> anyhow::Result<Arc<SoundData>> {
     if let Some(b) = &sound.builtin {
-        return synth::render(b).map(Arc::new).ok_or_else(|| anyhow::anyhow!("unknown sound {b}"));
+        return starter::load(b).map(Arc::new).ok_or_else(|| anyhow::anyhow!("unknown sound {b}"));
     }
     let file = sound.file.as_ref().ok_or_else(|| anyhow::anyhow!("sound has no file"))?;
     decode(&dir().join(file)).map(Arc::new)
@@ -189,16 +189,25 @@ pub fn load(sound: &Sound) -> anyhow::Result<Arc<SoundData>> {
 
 /// Decodes any file Symphonia understands into stereo at 48 kHz.
 pub fn decode(path: &Path) -> anyhow::Result<SoundData> {
+    let file = std::fs::File::open(path)?;
+    decode_source(Box::new(file), path.extension().and_then(|e| e.to_str()))
+}
+
+/// The same for audio that is in memory already, like the starter sounds.
+pub fn decode_bytes(data: Vec<u8>, ext: &str) -> anyhow::Result<SoundData> {
+    decode_source(Box::new(std::io::Cursor::new(data)), Some(ext))
+}
+
+fn decode_source(source: Box<dyn symphonia::core::io::MediaSource>, ext: Option<&str>) -> anyhow::Result<SoundData> {
     use symphonia::core::codecs::audio::AudioDecoderOptions;
     use symphonia::core::formats::probe::Hint;
     use symphonia::core::formats::{FormatOptions, TrackType};
     use symphonia::core::io::MediaSourceStream;
     use symphonia::core::meta::MetadataOptions;
 
-    let file = std::fs::File::open(path)?;
-    let mss = MediaSourceStream::new(Box::new(file), Default::default());
+    let mss = MediaSourceStream::new(source, Default::default());
     let mut hint = Hint::new();
-    if let Some(ext) = path.extension().and_then(|e| e.to_str()) {
+    if let Some(ext) = ext {
         hint.with_extension(ext);
     }
     let mut format =

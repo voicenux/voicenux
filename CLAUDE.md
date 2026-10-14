@@ -51,8 +51,9 @@
   shadow can overshoot to a negative blur and GTK crashes.
 - Rings and glows of tiles that move (voice cards, sound pads) stay inside the tile: use `inset`
   shadows. Shadows that reach out of a moving tile left broken bits on NVIDIA at 130 % scale.
-- Background sounds and starter sounds are made in code (`src/dsp/ambience.rs`,
-  `src/soundboard/synth.rs`). Do not add sample files.
+- Background sounds are made in code (`src/dsp/ambience.rs`). Starter sounds are CC0 recordings
+  from Freesound in `data/sounds`: add them to `scripts/fetch-sounds.py`, run `make sounds` and
+  credit them in `data/sounds/LICENSE`. Only CC0, never clips from meme sites.
 
 ## Tests
 

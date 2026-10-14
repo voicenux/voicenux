@@ -218,7 +218,7 @@ mod tests {
         for g in crate::dsp::blocks::Group::ALL {
             check(g.label());
         }
-        for s in crate::soundboard::synth::BUILTIN {
+        for s in crate::soundboard::starter::BUILTIN {
             check(s.name);
         }
         for m in crate::soundboard::PlayMode::ALL {

@@ -102,7 +102,7 @@ Desktops without global shortcuts can run commands instead:
 | Music | Auto-Tune, Angel Choir, Magic Chords, Talk Box, Duet |
 | Funny | Chipmunk, Mouse, Helium, Drunk, Dizzy, Whisper, Kitty, Frog, Duck |
 
-Many of them come with a background sound: rain, bubbles, a campfire, a stadium crowd, wind, a heartbeat and more. All background sounds and the starter soundboard are made in code, so there are no sample files.
+Many of them come with a background sound: rain, bubbles, a campfire, a stadium crowd, wind, a heartbeat and more. All background sounds are made in code. The starter soundboard uses CC0 recordings from Freesound.
 
 </details>
 
