@@ -23,7 +23,7 @@ thread_local! {
 
 #[derive(Clone)]
 pub struct Lab {
-    pub widget: adw::ToolbarView,
+    pub widget: gtk::Box,
     open: Rc<dyn Fn(&str)>,
 }
 
@@ -34,12 +34,17 @@ impl Lab {
 }
 
 pub fn build(st: &St) -> Lab {
+    // The list and the right side each have their own header, so the title sits centered above
+    // the editor and the empty page.
     let header = adw::HeaderBar::new();
     header.set_title_widget(Some(&adw::WindowTitle::new(t("Voicelab"), t("Build your own voices"))));
+    let list_header = adw::HeaderBar::new();
+    list_header.set_show_end_title_buttons(false);
+    list_header.set_title_widget(Some(&gtk::Box::new(gtk::Orientation::Horizontal, 0)));
     let new = gtk::Button::new();
     new.set_child(Some(&adw::ButtonContent::builder().icon_name("list-add-symbolic").label(t("New voice")).build()));
     new.add_css_class("suggested-action");
-    header.pack_start(&new);
+    list_header.pack_start(&new);
 
     let list = gtk::ListBox::new();
     list.add_css_class("navigation-sidebar");
@@ -86,25 +91,57 @@ pub fn build(st: &St) -> Lab {
     right.add_named(&empty, Some("empty"));
     right.add_named(&editor_scroll, Some("editor"));
 
-    let body = gtk::Box::new(gtk::Orientation::Horizontal, 0);
-    body.append(&left);
-    body.append(&right);
+    let left_view = adw::ToolbarView::new();
+    left_view.add_top_bar(&list_header);
+    left_view.set_content(Some(&left));
+    let right_view = adw::ToolbarView::new();
+    right_view.add_top_bar(&header);
+    right_view.set_content(Some(&right));
+    right_view.set_hexpand(true);
 
-    let widget = adw::ToolbarView::new();
-    widget.add_top_bar(&header);
-    widget.set_content(Some(&body));
+    let widget = gtk::Box::new(gtk::Orientation::Horizontal, 0);
+    widget.append(&left_view);
+    widget.append(&right_view);
 
     let current: Rc<RefCell<Option<String>>> = Rc::default();
+
+    // Opening a voice here does not switch to it, so Voicelab never changes your voice in a call
+    // by itself. This button does, when the open voice is not the one in use.
+    let use_voice = gtk::Button::with_label(t("Use voice"));
+    use_voice.add_css_class("suggested-action");
+    header.pack_start(&use_voice);
+    let sync_use = Rc::new({
+        let st = st.clone();
+        let current = current.clone();
+        let use_voice = use_voice.clone();
+        move || {
+            let c = st.config.borrow();
+            let open = current.borrow();
+            use_voice.set_visible(open.as_ref().is_some_and(|id| c.voice != *id || !c.voice_on));
+        }
+    });
+    use_voice.connect_clicked({
+        let st = st.clone();
+        let current = current.clone();
+        move |_| {
+            let id = current.borrow().clone();
+            if let Some(id) = id {
+                st.set_voice(&id);
+            }
+        }
+    });
 
     let show_editor: Rc<dyn Fn(&str)> = Rc::new({
         let st = st.clone();
         let editor = editor.clone();
         let right = right.clone();
         let current = current.clone();
+        let sync_use = sync_use.clone();
         move |id: &str| {
             *current.borrow_mut() = Some(id.to_string());
             right.set_visible_child_name("editor");
             fill_editor(&st, &editor, id);
+            sync_use();
         }
     });
 
@@ -113,6 +150,9 @@ pub fn build(st: &St) -> Lab {
         let list = list.clone();
         let current = current.clone();
         let right = right.clone();
+        let left_view = left_view.clone();
+        let show_editor = show_editor.clone();
+        let sync_use = sync_use.clone();
         Rc::new(move || {
             clear(&list);
             let mine: Vec<Voice> = st.voices.borrow().iter().filter(|v| !v.builtin).cloned().collect();
@@ -131,10 +171,30 @@ pub fn build(st: &St) -> Lab {
                     list.select_row(Some(&r));
                 }
             }
+            // Without voices of your own, the empty page gets the whole width.
+            left_view.set_visible(!mine.is_empty());
             let has_current = current.borrow().as_ref().is_some_and(|c| mine.iter().any(|v| &v.id == c));
-            if !has_current {
-                *current.borrow_mut() = None;
-                right.set_visible_child_name("empty");
+            if has_current {
+                return;
+            }
+            // Open a voice rather than an empty page: the one in use, or else the first.
+            let voice = st.config.borrow().voice.clone();
+            match mine.iter().find(|v| v.id == voice).or(mine.first()) {
+                Some(v) => {
+                    let mut row = list.first_child();
+                    while let Some(r) = row {
+                        if r.widget_name() == v.id.as_str() {
+                            list.select_row(r.downcast_ref::<gtk::ListBoxRow>());
+                        }
+                        row = r.next_sibling();
+                    }
+                    show_editor(&v.id);
+                }
+                None => {
+                    *current.borrow_mut() = None;
+                    right.set_visible_child_name("empty");
+                    sync_use();
+                }
             }
         })
     };
@@ -172,6 +232,7 @@ pub fn build(st: &St) -> Lab {
         let list = list.clone();
         move |c| match c {
             Change::Voices => rebuild_list(),
+            Change::Voice | Change::Toggles => sync_use(),
             Change::VoiceEdited(id) => {
                 // Name or picture may have changed: refresh the row only.
                 if let Some(v) = st.voices.borrow().iter().find(|v| &v.id == id) {
