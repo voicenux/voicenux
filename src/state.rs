@@ -1,0 +1,630 @@
+//! What the app knows and does, apart from how it looks. Widgets call into this and
+//! subscribe to changes.
+
+use std::cell::{Cell, RefCell};
+use std::collections::HashMap;
+use std::rc::Rc;
+use std::sync::Arc;
+
+use gtk::glib;
+
+use crate::audio::{Ctl, Device, Engine, Event, RtCmd};
+use crate::config::Config;
+use crate::soundboard::{self, Library, PlayMode, SoundData};
+use crate::voice::{self, BlockDef, Voice};
+
+#[derive(Clone, Debug, PartialEq)]
+pub enum Change {
+    /// Another voice was picked.
+    Voice,
+    /// Settings of a voice changed (tweaks, Voicelab edits).
+    VoiceEdited(String),
+    /// The list of voices changed (custom voice added or removed).
+    Voices,
+    Favorites,
+    /// Voice changer, hear myself, background or mute.
+    Toggles,
+    Devices,
+    Users,
+    Sounds,
+    Settings,
+    /// The engine is up, or failed with a message.
+    Engine(Option<String>),
+    /// Something changed without a click, worth a short note (shortcut, tray, command line).
+    Notice(String),
+}
+
+/// Smoothed meter positions (0..1) for the widgets, updated once per frame.
+#[derive(Clone, Copy, Debug, Default)]
+pub struct Levels {
+    pub input: f32,
+    pub output: f32,
+    pub sounds: f32,
+    /// Seconds, from the frame clock.
+    pub time: f64,
+}
+
+pub struct State {
+    pub keys: crate::shortcuts::Handle,
+    pub levels: Cell<Levels>,
+    pub config: RefCell<Config>,
+    pub voices: RefCell<Vec<Voice>>,
+    pub library: RefCell<Library>,
+    pub engine: Engine,
+    pub inputs: RefCell<Vec<Device>>,
+    pub outputs: RefCell<Vec<Device>>,
+    pub active_input: RefCell<Option<Device>>,
+    pub active_output: RefCell<Option<Device>>,
+    pub users: RefCell<Vec<String>>,
+    pub muted: Cell<bool>,
+    pub ready: Cell<bool>,
+    pub error: RefCell<Option<String>>,
+    listeners: RefCell<Vec<Listener>>,
+    sounds: RefCell<HashMap<String, Arc<SoundData>>>,
+    sound_ids: RefCell<HashMap<String, u32>>,
+    save_source: RefCell<Option<glib::SourceId>>,
+}
+
+pub type St = Rc<State>;
+type Listener = Rc<dyn Fn(&Change)>;
+
+impl State {
+    pub fn new() -> St {
+        let config = Config::load();
+        let (tx, rx) = async_channel::unbounded();
+        let engine = Engine::start(tx, config.low_latency);
+        let mut voices = voice::builtin();
+        voices.extend(voice::load_custom(&voice::custom_dir()));
+        let st = Rc::new(State {
+            keys: Rc::default(),
+            levels: Cell::default(),
+            config: RefCell::new(config),
+            voices: RefCell::new(voices),
+            library: RefCell::new(Library::load()),
+            engine,
+            inputs: RefCell::default(),
+            outputs: RefCell::default(),
+            active_input: RefCell::default(),
+            active_output: RefCell::default(),
+            users: RefCell::default(),
+            muted: Cell::new(false),
+            ready: Cell::new(false),
+            error: RefCell::default(),
+            listeners: RefCell::default(),
+            sounds: RefCell::default(),
+            sound_ids: RefCell::default(),
+            save_source: RefCell::default(),
+        });
+        st.push_all();
+        let weak = Rc::downgrade(&st);
+        glib::spawn_future_local(async move {
+            while let Ok(ev) = rx.recv().await {
+                let Some(st) = weak.upgrade() else { break };
+                st.on_event(ev);
+            }
+        });
+        st
+    }
+
+    /// Sends every setting to the engine, at start.
+    fn push_all(&self) {
+        let c = self.config.borrow().clone();
+        if !self.voices.borrow().iter().any(|v| v.id == c.voice) {
+            self.config.borrow_mut().voice = "baby".into();
+        }
+        self.send_voice();
+        let e = &self.engine;
+        e.send(Ctl::Input(c.input.clone()));
+        e.send(Ctl::Output(c.output.clone()));
+        e.rt(RtCmd::VoiceOn(c.voice_on));
+        e.rt(RtCmd::HearMyself(c.hear_myself));
+        e.rt(RtCmd::Background(c.background));
+        e.rt(RtCmd::HearSounds(c.hear_sounds));
+        e.rt(RtCmd::InputGain(c.input_gain_db));
+        e.rt(RtCmd::MicVolume(c.mic_volume_db));
+        e.rt(RtCmd::MonitorVolume(c.monitor_volume));
+        e.rt(RtCmd::SoundVolume(c.sound_volume));
+        e.rt(RtCmd::Denoise(c.noise_suppression));
+        e.rt(RtCmd::Gate(c.gate.then_some(c.gate_db)));
+    }
+
+    fn on_event(self: &Rc<Self>, ev: Event) {
+        match ev {
+            Event::Ready => {
+                self.ready.set(true);
+                *self.error.borrow_mut() = None;
+                if self.config.borrow().default_mic {
+                    let prev = self.config.borrow().previous_default.clone();
+                    self.engine.send(Ctl::DefaultMic { on: true, previous: prev });
+                }
+                self.notify(Change::Engine(None));
+            }
+            Event::Failed(msg) => {
+                *self.error.borrow_mut() = Some(msg.clone());
+                self.notify(Change::Engine(Some(msg)));
+            }
+            Event::Devices { inputs, outputs } => {
+                *self.inputs.borrow_mut() = inputs;
+                *self.outputs.borrow_mut() = outputs;
+                self.notify(Change::Devices);
+            }
+            Event::Active { input, output } => {
+                *self.active_input.borrow_mut() = input;
+                *self.active_output.borrow_mut() = output;
+                self.notify(Change::Devices);
+            }
+            Event::Users(users) => {
+                *self.users.borrow_mut() = users;
+                self.notify(Change::Users);
+            }
+            Event::DefaultMic { previous, .. } => {
+                if previous.is_some() {
+                    self.config.borrow_mut().previous_default = previous;
+                    self.save_later();
+                }
+            }
+        }
+    }
+
+    /// Reads the meters of the engine. The window calls this once per frame.
+    pub fn poll_levels(&self, now_us: i64) {
+        let m = &self.engine.meters;
+        let mut l = self.levels.get();
+        let now = now_us as f64 / 1e6;
+        let dt = (now - l.time).clamp(0.0, 0.1) as f32;
+        l.time = now;
+        let fall = (-dt / 0.22).exp();
+        for (v, peak) in
+            [(&mut l.input, m.input.take()), (&mut l.output, m.output.take()), (&mut l.sounds, m.sounds.take())]
+        {
+            let target = crate::ui::meter(peak);
+            *v = if target > *v { target } else { target + (*v - target) * fall };
+        }
+        self.levels.set(l);
+    }
+
+    pub fn subscribe(&self, f: impl Fn(&Change) + 'static) {
+        self.listeners.borrow_mut().push(Rc::new(f));
+    }
+
+    pub fn notify(&self, change: Change) {
+        // Copy the list, a listener may subscribe while we go through it.
+        let list: Vec<_> = self.listeners.borrow().clone();
+        for l in list {
+            l(&change);
+        }
+    }
+
+    /// Saves the settings a moment later, so dragging a slider does not write on every step.
+    pub fn save_later(self: &Rc<Self>) {
+        if self.save_source.borrow().is_some() {
+            return;
+        }
+        let weak = Rc::downgrade(self);
+        let id = glib::timeout_add_local_once(std::time::Duration::from_millis(600), move || {
+            if let Some(st) = weak.upgrade() {
+                st.save_source.borrow_mut().take();
+                st.config.borrow().save();
+            }
+        });
+        *self.save_source.borrow_mut() = Some(id);
+    }
+
+    pub fn save_now(&self) {
+        if let Some(id) = self.save_source.borrow_mut().take() {
+            id.remove();
+        }
+        self.config.borrow().save();
+    }
+
+    // Voices
+
+    /// A voice with the user's changes applied.
+    pub fn voice(&self, id: &str) -> Option<Voice> {
+        let mut v = self.voices.borrow().iter().find(|v| v.id == id)?.clone();
+        if let Some(blocks) = self.config.borrow().tweaks.get(id)
+            && blocks.len() == v.blocks.len()
+            && blocks.iter().zip(&v.blocks).all(|(a, b)| a.kind == b.kind)
+        {
+            v.blocks = blocks.clone();
+        }
+        Some(v)
+    }
+
+    pub fn current(&self) -> Voice {
+        let id = self.config.borrow().voice.clone();
+        self.voice(&id).or_else(|| self.voices.borrow().first().cloned()).expect("there are always voices")
+    }
+
+    pub fn is_tweaked(&self, id: &str) -> bool {
+        self.config.borrow().tweaks.contains_key(id)
+    }
+
+    fn send_voice(&self) {
+        let v = self.current();
+        self.engine.send(Ctl::Voice(v.block_values()));
+    }
+
+    pub fn set_voice(self: &Rc<Self>, id: &str) {
+        if self.config.borrow().voice == id && self.ready.get() {
+            if !self.config.borrow().voice_on {
+                self.set_voice_on(true);
+            }
+            return;
+        }
+        if self.voice(id).is_none() {
+            return;
+        }
+        self.config.borrow_mut().voice = id.to_string();
+        self.send_voice();
+        if !self.config.borrow().voice_on {
+            self.set_voice_on(true);
+        }
+        self.save_later();
+        self.notify(Change::Voice);
+    }
+
+    /// Picks a voice from favorites (or all voices if there are none), not the current one.
+    pub fn random_voice(self: &Rc<Self>) {
+        let current = self.config.borrow().voice.clone();
+        let favs = self.config.borrow().favorites.clone();
+        let pool: Vec<String> =
+            if favs.len() >= 2 { favs } else { self.voices.borrow().iter().map(|v| v.id.clone()).collect() };
+        let pool: Vec<&String> = pool.iter().filter(|id| **id != current).collect();
+        if pool.is_empty() {
+            return;
+        }
+        let pick = glib::random_int_range(0, pool.len() as i32) as usize;
+        let id = pool[pick].clone();
+        self.set_voice(&id);
+    }
+
+    /// Next or previous voice in the list (favorites first if there are any).
+    pub fn step_voice(self: &Rc<Self>, forward: bool) {
+        let favs = self.config.borrow().favorites.clone();
+        let list: Vec<String> =
+            if favs.is_empty() { self.voices.borrow().iter().map(|v| v.id.clone()).collect() } else { favs };
+        let current = self.config.borrow().voice.clone();
+        let pos = list.iter().position(|id| *id == current).unwrap_or(0) as i64;
+        let len = list.len() as i64;
+        let next = (pos + if forward { 1 } else { -1 }).rem_euclid(len) as usize;
+        let id = list[next].clone();
+        self.set_voice(&id);
+    }
+
+    /// Changes one setting of a voice. Built-in voices remember it as a tweak.
+    pub fn set_param(self: &Rc<Self>, id: &str, block: usize, key: &str, value: f32) {
+        let Some(mut v) = self.voice(id) else { return };
+        let Some(b) = v.blocks.get_mut(block) else { return };
+        b.set(key, value);
+        let spec = crate::dsp::blocks::find(&b.kind);
+        let index = spec.and_then(|s| s.param_index(key));
+        self.store_blocks(&v);
+        if id == self.config.borrow().voice
+            && let Some(index) = index
+        {
+            let value = spec.unwrap().params[index].clamp(value);
+            self.engine.rt(RtCmd::Param { block: block as u16, index: index as u16, value });
+        }
+        self.notify(Change::VoiceEdited(id.to_string()));
+    }
+
+    fn store_blocks(self: &Rc<Self>, v: &Voice) {
+        let builtin = self.voices.borrow().iter().find(|x| x.id == v.id).map(|x| x.builtin).unwrap_or(false);
+        if builtin {
+            let original = self.voices.borrow().iter().find(|x| x.id == v.id).unwrap().blocks.clone();
+            let mut c = self.config.borrow_mut();
+            if original == v.blocks {
+                c.tweaks.remove(&v.id);
+            } else {
+                c.tweaks.insert(v.id.clone(), v.blocks.clone());
+            }
+            drop(c);
+            self.save_later();
+        } else {
+            if let Some(x) = self.voices.borrow_mut().iter_mut().find(|x| x.id == v.id) {
+                x.blocks = v.blocks.clone();
+            }
+            if let Err(e) = voice::save_custom(&voice::custom_dir(), v) {
+                log::error!("could not save voice {}: {e}", v.id);
+            }
+        }
+    }
+
+    pub fn reset_voice(self: &Rc<Self>, id: &str) {
+        self.config.borrow_mut().tweaks.remove(id);
+        self.save_later();
+        if id == self.config.borrow().voice {
+            self.send_voice();
+        }
+        self.notify(Change::VoiceEdited(id.to_string()));
+    }
+
+    /// Saves a voice from Voicelab: new or changed blocks, name, icon.
+    pub fn save_custom(self: &Rc<Self>, v: Voice) {
+        if let Err(e) = voice::save_custom(&voice::custom_dir(), &v) {
+            log::error!("could not save voice {}: {e}", v.id);
+        }
+        let mut list = self.voices.borrow_mut();
+        let added = match list.iter_mut().find(|x| x.id == v.id) {
+            Some(x) => {
+                *x = v.clone();
+                false
+            }
+            None => {
+                list.push(v.clone());
+                true
+            }
+        };
+        drop(list);
+        if v.id == self.config.borrow().voice {
+            self.send_voice();
+        }
+        self.notify(if added { Change::Voices } else { Change::VoiceEdited(v.id.clone()) });
+    }
+
+    pub fn delete_custom(self: &Rc<Self>, id: &str) {
+        voice::delete_custom(&voice::custom_dir(), id);
+        self.voices.borrow_mut().retain(|v| v.id != id);
+        self.config.borrow_mut().favorites.retain(|f| f != id);
+        if self.config.borrow().voice == id {
+            self.config.borrow_mut().voice = "baby".into();
+            self.send_voice();
+            self.notify(Change::Voice);
+        }
+        self.save_later();
+        self.notify(Change::Voices);
+    }
+
+    /// A copy of any voice as a new custom voice.
+    pub fn duplicate(self: &Rc<Self>, id: &str) -> Option<Voice> {
+        let src = self.voice(id)?;
+        let taken: Vec<String> = self.voices.borrow().iter().map(|v| v.id.clone()).collect();
+        let taken: Vec<&str> = taken.iter().map(String::as_str).collect();
+        let name = if src.builtin {
+            crate::i18n::fill(crate::i18n::t("My {}"), &[&crate::i18n::t_dyn(&src.name)])
+        } else {
+            crate::i18n::fill(crate::i18n::t("{} copy"), &[&src.name])
+        };
+        let v = Voice {
+            id: voice::new_id(&name, &taken),
+            name,
+            icon: src.icon.clone(),
+            category: "custom".into(),
+            description: String::new(),
+            blocks: src.blocks.clone(),
+            builtin: false,
+        };
+        self.save_custom(v.clone());
+        Some(v)
+    }
+
+    pub fn new_custom(self: &Rc<Self>) -> Voice {
+        let taken: Vec<String> = self.voices.borrow().iter().map(|v| v.id.clone()).collect();
+        let taken: Vec<&str> = taken.iter().map(String::as_str).collect();
+        let name = crate::i18n::t("New voice").to_string();
+        let v = Voice {
+            id: voice::new_id(&name, &taken),
+            name,
+            icon: "sparkles".into(),
+            category: "custom".into(),
+            description: String::new(),
+            blocks: vec![BlockDef::new("pitch")],
+            builtin: false,
+        };
+        self.save_custom(v.clone());
+        v
+    }
+
+    pub fn is_favorite(&self, id: &str) -> bool {
+        self.config.borrow().favorites.iter().any(|f| f == id)
+    }
+
+    pub fn toggle_favorite(self: &Rc<Self>, id: &str) {
+        {
+            let mut c = self.config.borrow_mut();
+            if let Some(pos) = c.favorites.iter().position(|f| f == id) {
+                c.favorites.remove(pos);
+            } else {
+                c.favorites.push(id.to_string());
+            }
+        }
+        self.save_later();
+        self.notify(Change::Favorites);
+    }
+
+    // Toggles
+
+    pub fn set_voice_on(self: &Rc<Self>, on: bool) {
+        self.config.borrow_mut().voice_on = on;
+        self.engine.rt(RtCmd::VoiceOn(on));
+        self.save_later();
+        self.notify(Change::Toggles);
+    }
+
+    pub fn set_hear_myself(self: &Rc<Self>, on: bool) {
+        self.config.borrow_mut().hear_myself = on;
+        self.engine.rt(RtCmd::HearMyself(on));
+        self.save_later();
+        self.notify(Change::Toggles);
+    }
+
+    pub fn set_background(self: &Rc<Self>, on: bool) {
+        self.config.borrow_mut().background = on;
+        self.engine.rt(RtCmd::Background(on));
+        self.save_later();
+        self.notify(Change::Toggles);
+    }
+
+    pub fn set_muted(&self, on: bool) {
+        self.muted.set(on);
+        self.engine.rt(RtCmd::Mute(on));
+        self.notify(Change::Toggles);
+    }
+
+    // Settings
+
+    pub fn update(self: &Rc<Self>, f: impl FnOnce(&mut Config)) {
+        let before = self.config.borrow().clone();
+        f(&mut self.config.borrow_mut());
+        let c = self.config.borrow().clone();
+        let e = &self.engine;
+        if c.input != before.input {
+            e.send(Ctl::Input(c.input.clone()));
+        }
+        if c.output != before.output {
+            e.send(Ctl::Output(c.output.clone()));
+        }
+        if c.input_gain_db != before.input_gain_db {
+            e.rt(RtCmd::InputGain(c.input_gain_db));
+        }
+        if c.mic_volume_db != before.mic_volume_db {
+            e.rt(RtCmd::MicVolume(c.mic_volume_db));
+        }
+        if c.monitor_volume != before.monitor_volume {
+            e.rt(RtCmd::MonitorVolume(c.monitor_volume));
+        }
+        if c.sound_volume != before.sound_volume {
+            e.rt(RtCmd::SoundVolume(c.sound_volume));
+        }
+        if c.hear_sounds != before.hear_sounds {
+            e.rt(RtCmd::HearSounds(c.hear_sounds));
+        }
+        if c.noise_suppression != before.noise_suppression {
+            e.rt(RtCmd::Denoise(c.noise_suppression));
+        }
+        if c.gate != before.gate || c.gate_db != before.gate_db {
+            e.rt(RtCmd::Gate(c.gate.then_some(c.gate_db)));
+        }
+        if c.low_latency != before.low_latency {
+            e.send(Ctl::LowLatency(c.low_latency));
+        }
+        if c.default_mic != before.default_mic {
+            e.send(Ctl::DefaultMic { on: c.default_mic, previous: c.previous_default.clone() });
+        }
+        self.save_later();
+        self.notify(Change::Settings);
+    }
+
+    // Soundboard
+
+    fn sound_rt_id(&self, id: &str) -> u32 {
+        let mut ids = self.sound_ids.borrow_mut();
+        let next = ids.len() as u32 + 1;
+        *ids.entry(id.to_string()).or_insert(next)
+    }
+
+    pub fn sound_id_of(&self, rt: u32) -> Option<String> {
+        self.sound_ids.borrow().iter().find(|(_, v)| **v == rt).map(|(k, _)| k.clone())
+    }
+
+    fn sound_data(&self, id: &str) -> Option<Arc<SoundData>> {
+        if let Some(d) = self.sounds.borrow().get(id) {
+            return Some(d.clone());
+        }
+        let sound = self.library.borrow().find(id)?.clone();
+        match soundboard::load(&sound) {
+            Ok(d) => {
+                self.sounds.borrow_mut().insert(id.to_string(), d.clone());
+                Some(d)
+            }
+            Err(e) => {
+                log::warn!("could not load sound {id}: {e}");
+                self.notify(Change::Notice(crate::i18n::fill(crate::i18n::t("Could not play {}"), &[&sound.name])));
+                None
+            }
+        }
+    }
+
+    pub fn is_playing(&self, id: &str) -> bool {
+        let rt = self.sound_ids.borrow().get(id).copied();
+        rt.is_some_and(|rt| self.engine.meters.playing().iter().any(|(p, _)| *p == rt))
+    }
+
+    pub fn play_sound(&self, id: &str) {
+        let Some(sound) = self.library.borrow().find(id).cloned() else { return };
+        let rt = self.sound_rt_id(id);
+        let playing = self.is_playing(id);
+        if playing && matches!(sound.mode, PlayMode::Toggle | PlayMode::Loop) {
+            self.engine.rt(RtCmd::Stop(rt));
+            return;
+        }
+        let Some(data) = self.sound_data(id) else { return };
+        self.engine.rt(RtCmd::Play {
+            id: rt,
+            data,
+            volume: sound.volume,
+            looped: sound.mode == PlayMode::Loop,
+            restart: sound.mode != PlayMode::Overlap,
+        });
+    }
+
+    pub fn stop_sounds(&self) {
+        self.engine.rt(RtCmd::StopAll);
+    }
+
+    pub fn update_sound(&self, sound: soundboard::Sound) {
+        let rt = self.sound_rt_id(&sound.id);
+        self.engine.rt(RtCmd::SoundVolumeOf { id: rt, volume: sound.volume });
+        {
+            let mut lib = self.library.borrow_mut();
+            if let Some(s) = lib.sound.iter_mut().find(|s| s.id == sound.id) {
+                *s = sound;
+            }
+            lib.save();
+        }
+        self.notify(Change::Sounds);
+    }
+
+    /// Volume of one sound, live and without redrawing the soundboard.
+    pub fn set_sound_volume(&self, id: &str, volume: f32) {
+        let rt = self.sound_rt_id(id);
+        self.engine.rt(RtCmd::SoundVolumeOf { id: rt, volume });
+        let mut lib = self.library.borrow_mut();
+        if let Some(s) = lib.sound.iter_mut().find(|s| s.id == id) {
+            s.volume = volume;
+        }
+        lib.save();
+    }
+
+    pub fn import_sounds(&self, paths: &[std::path::PathBuf]) -> Vec<String> {
+        let mut errors = Vec::new();
+        {
+            let mut lib = self.library.borrow_mut();
+            for p in paths {
+                if let Err(e) = lib.import(p) {
+                    log::warn!("could not import {}: {e}", p.display());
+                    errors.push(p.file_name().unwrap_or_default().to_string_lossy().to_string());
+                }
+            }
+            lib.save();
+        }
+        self.notify(Change::Sounds);
+        errors
+    }
+
+    pub fn remove_sound(&self, id: &str) {
+        let rt = self.sound_rt_id(id);
+        self.engine.rt(RtCmd::Stop(rt));
+        self.sounds.borrow_mut().remove(id);
+        {
+            let mut lib = self.library.borrow_mut();
+            lib.remove(id);
+            lib.save();
+        }
+        self.notify(Change::Sounds);
+    }
+
+    pub fn restore_starter_sounds(&self) {
+        {
+            let mut lib = self.library.borrow_mut();
+            for s in Library::starter().sound {
+                if lib.find(&s.id).is_none() {
+                    lib.sound.push(s);
+                }
+            }
+            lib.save();
+        }
+        self.notify(Change::Sounds);
+    }
+}

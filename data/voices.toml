@@ -1,0 +1,862 @@
+# The voices that come with Voicenux.
+#
+# Every voice is a row of effect blocks. Effects and their settings are listed in
+# src/dsp/blocks.rs. Settings left out use the default. Choices are written by
+# name, for example `type = "High shelf"`.
+
+# Characters
+
+[[voice]]
+id = "baby"
+name = "Baby"
+icon = "baby"
+category = "characters"
+description = "Tiny, high and a little wobbly."
+blocks = [
+  { effect = "pitch", semitones = 8, formant = 6 },
+  { effect = "vibrato", rate = 7, depth = 25, random = 0.3 },
+  { effect = "band", low = 180, high = 9000 },
+]
+
+[[voice]]
+id = "kid"
+name = "Kid"
+icon = "kid"
+category = "characters"
+description = "Sounds like a ten year old."
+blocks = [
+  { effect = "pitch", semitones = 5, formant = 4 },
+]
+
+[[voice]]
+id = "girl"
+name = "Girl"
+icon = "woman"
+category = "characters"
+description = "Higher and brighter, without sounding like a cartoon."
+blocks = [
+  { effect = "pitch", semitones = 5, formant = 3 },
+  { effect = "filter", type = "High shelf", freq = 4000, gain = 3 },
+]
+
+[[voice]]
+id = "deep"
+name = "Deep Voice"
+icon = "man-beard"
+category = "characters"
+description = "Lower and bigger."
+blocks = [
+  { effect = "pitch", semitones = -5, formant = -3 },
+  { effect = "compressor", threshold = -24, ratio = 3, makeup = 4 },
+]
+
+[[voice]]
+id = "elderly"
+name = "Elderly"
+icon = "old-man"
+category = "characters"
+description = "A shaky, breathy old voice."
+blocks = [
+  { effect = "pitch", semitones = 1, formant = -1 },
+  { effect = "vibrato", rate = 5.5, depth = 45, random = 0.6 },
+  { effect = "distortion", drive = 6, mix = 0.3 },
+  { effect = "band", low = 150, high = 6500 },
+  { effect = "noise", type = "Pink", level = -42, follow = 1 },
+]
+
+[[voice]]
+id = "granny"
+name = "Granny"
+icon = "old-woman"
+category = "characters"
+description = "Warm, high and trembling."
+blocks = [
+  { effect = "pitch", semitones = 3, formant = 2 },
+  { effect = "vibrato", rate = 6, depth = 50, random = 0.5 },
+  { effect = "band", low = 200, high = 7000 },
+  { effect = "noise", type = "Pink", level = -44, follow = 1 },
+]
+
+[[voice]]
+id = "titan"
+name = "Titan"
+icon = "moai"
+category = "characters"
+description = "A voice as big as a mountain."
+blocks = [
+  { effect = "pitch", semitones = -10, formant = -6 },
+  { effect = "distortion", drive = 8, mix = 0.3 },
+  { effect = "compressor", threshold = -26, ratio = 4, makeup = 5 },
+  { effect = "reverb", size = 0.8, mix = 0.25 },
+]
+
+[[voice]]
+id = "troll"
+name = "Troll"
+icon = "troll"
+category = "characters"
+description = "Slow, low and grumpy, from under the bridge."
+blocks = [
+  { effect = "pitch", semitones = -7, formant = -4 },
+  { effect = "filter", type = "Low pass", freq = 3200 },
+  { effect = "distortion", drive = 6, mix = 0.25 },
+  { effect = "reverb", size = 0.5, mix = 0.15 },
+]
+
+[[voice]]
+id = "santa"
+name = "Santa"
+icon = "santa"
+category = "characters"
+description = "Ho ho ho, next to a warm fire."
+blocks = [
+  { effect = "pitch", semitones = -3, formant = -2 },
+  { effect = "filter", type = "Low shelf", freq = 200, gain = 3 },
+  { effect = "reverb", size = 0.4, mix = 0.15 },
+  { effect = "ambience", type = "Campfire", level = -20 },
+]
+
+[[voice]]
+id = "pirate"
+name = "Pirate"
+icon = "pirate-flag"
+category = "characters"
+description = "Rough voice, salty sea."
+blocks = [
+  { effect = "pitch", semitones = -2, formant = -1 },
+  { effect = "distortion", drive = 10, mix = 0.35, tone = 4000 },
+  { effect = "ambience", type = "Ocean", level = -18 },
+]
+
+[[voice]]
+id = "wizard"
+name = "Wizard"
+icon = "mage"
+category = "characters"
+description = "Speaks from a tall stone tower."
+blocks = [
+  { effect = "pitch", semitones = -3, formant = -2 },
+  { effect = "echo", time = 280, feedback = 0.2, mix = 0.15 },
+  { effect = "reverb", size = 0.85, mix = 0.35, predelay = 40 },
+]
+
+[[voice]]
+id = "fairy"
+name = "Fairy"
+icon = "fairy"
+category = "characters"
+description = "Small, sparkly and in the woods."
+blocks = [
+  { effect = "pitch", semitones = 9, formant = 6 },
+  { effect = "chorus", mix = 0.4 },
+  { effect = "reverb", size = 0.6, mix = 0.3 },
+  { effect = "ambience", type = "Birds", level = -14 },
+]
+
+[[voice]]
+id = "genie"
+name = "Genie"
+icon = "genie"
+category = "characters"
+description = "Your wish is my command."
+blocks = [
+  { effect = "pitch", semitones = -2, formant = 1 },
+  { effect = "harmony", voice_a = 12, level = 0.25 },
+  { effect = "chorus", mix = 0.3 },
+  { effect = "reverb", size = 0.8, mix = 0.35 },
+]
+
+[[voice]]
+id = "hero"
+name = "Hero"
+icon = "superhero"
+category = "characters"
+description = "Deep, firm and ready to save the day."
+blocks = [
+  { effect = "pitch", semitones = -3, formant = -1 },
+  { effect = "compressor", threshold = -26, ratio = 4, makeup = 5 },
+  { effect = "echo", time = 120, feedback = 0.1, mix = 0.15 },
+  { effect = "reverb", size = 0.3, mix = 0.1 },
+]
+
+[[voice]]
+id = "announcer"
+name = "Announcer"
+icon = "studio-microphone"
+category = "characters"
+description = "Ladies and gentlemen, in a full stadium."
+blocks = [
+  { effect = "pitch", semitones = -2, formant = -1 },
+  { effect = "compressor", threshold = -26, ratio = 4, makeup = 6 },
+  { effect = "echo", time = 220, feedback = 0.25, mix = 0.18 },
+  { effect = "reverb", size = 0.9, mix = 0.25, predelay = 60 },
+  { effect = "ambience", type = "Crowd", level = -20 },
+]
+
+[[voice]]
+id = "trailer"
+name = "Movie Trailer"
+icon = "clapper-board"
+category = "characters"
+description = "In a world where everyone talks like this."
+blocks = [
+  { effect = "pitch", semitones = -5, formant = -4 },
+  { effect = "filter", type = "Low shelf", freq = 150, gain = 4 },
+  { effect = "compressor", threshold = -28, ratio = 6, makeup = 7 },
+  { effect = "reverb", size = 0.7, mix = 0.2 },
+]
+
+[[voice]]
+id = "noir"
+name = "Noir Detective"
+icon = "detective"
+category = "characters"
+description = "An old radio play on a rainy night."
+blocks = [
+  { effect = "band", low = 250, high = 4500, boost = 3 },
+  { effect = "noise", type = "Crackle", level = -36 },
+  { effect = "reverb", size = 0.3, mix = 0.1 },
+  { effect = "ambience", type = "Rain", level = -16 },
+]
+
+# Horror
+
+[[voice]]
+id = "demon"
+name = "Demon"
+icon = "horns"
+category = "horror"
+description = "Many voices at once, straight from below."
+blocks = [
+  { effect = "harmony", voice_a = -12, voice_b = -7, level = 0.8, dry = 0.35, follow = 0.6 },
+  { effect = "distortion", drive = 14, mix = 0.5, tone = 3500 },
+  { effect = "reverb", size = 0.8, damping = 0.6, mix = 0.3 },
+  { effect = "ambience", type = "Campfire", level = -20 },
+]
+
+[[voice]]
+id = "monster"
+name = "Monster"
+icon = "ogre"
+category = "horror"
+description = "Big, growly and hungry."
+blocks = [
+  { effect = "pitch", semitones = -8, formant = -5 },
+  { effect = "distortion", drive = 12, mix = 0.5 },
+  { effect = "filter", type = "Low shelf", freq = 180, gain = 4 },
+]
+
+[[voice]]
+id = "zombie"
+name = "Zombie"
+icon = "zombie"
+category = "horror"
+description = "Brains..."
+blocks = [
+  { effect = "pitch", semitones = -4, formant = -3 },
+  { effect = "distortion", drive = 18, type = "Fuzz", mix = 0.6, tone = 2500 },
+  { effect = "vibrato", rate = 3, depth = 40, random = 0.8 },
+  { effect = "reverb", size = 0.5, mix = 0.2 },
+  { effect = "ambience", type = "Wind", level = -24 },
+]
+
+[[voice]]
+id = "ghost"
+name = "Ghost"
+icon = "ghost"
+category = "horror"
+description = "A breathy voice that echoes through empty halls."
+blocks = [
+  { effect = "pitch", semitones = 3, formant = 2 },
+  { effect = "whisper", mix = 0.55 },
+  { effect = "echo", time = 450, feedback = 0.45, mix = 0.35 },
+  { effect = "reverb", size = 0.95, mix = 0.5 },
+  { effect = "ambience", type = "Wind", level = -18 },
+]
+
+[[voice]]
+id = "vampire"
+name = "Vampire"
+icon = "vampire"
+category = "horror"
+description = "Smooth and dark, in a castle with a heartbeat."
+blocks = [
+  { effect = "pitch", semitones = -3, formant = -2 },
+  { effect = "chorus", mix = 0.25 },
+  { effect = "reverb", size = 0.9, damping = 0.3, mix = 0.4, predelay = 30 },
+  { effect = "ambience", type = "Heartbeat", level = -16 },
+]
+
+[[voice]]
+id = "witch"
+name = "Witch"
+icon = "witch"
+category = "horror"
+description = "Cackling over a bubbling pot."
+blocks = [
+  { effect = "pitch", semitones = 4, formant = 3 },
+  { effect = "vibrato", rate = 6.5, depth = 60, random = 0.4 },
+  { effect = "distortion", drive = 6, mix = 0.25 },
+  { effect = "reverb", size = 0.5, mix = 0.2 },
+  { effect = "ambience", type = "Bubbles", level = -20 },
+]
+
+[[voice]]
+id = "dragon"
+name = "Dragon"
+icon = "dragon"
+category = "horror"
+description = "Huge, hot and grumbling."
+blocks = [
+  { effect = "pitch", semitones = -12, formant = -8 },
+  { effect = "distortion", drive = 16, type = "Fuzz", mix = 0.55 },
+  { effect = "reverb", size = 0.85, mix = 0.35 },
+  { effect = "ambience", type = "Campfire", level = -14 },
+]
+
+[[voice]]
+id = "goblin"
+name = "Goblin"
+icon = "goblin"
+category = "horror"
+description = "Small, mean and very excited."
+blocks = [
+  { effect = "pitch", semitones = 6, formant = 4 },
+  { effect = "distortion", drive = 10, type = "Hard", mix = 0.35, tone = 5000 },
+  { effect = "vibrato", rate = 9, depth = 20, random = 0.5 },
+]
+
+[[voice]]
+id = "possessed"
+name = "Possessed"
+icon = "skull"
+category = "horror"
+description = "Something else talks with you."
+blocks = [
+  { effect = "harmony", voice_a = -12, voice_b = 7, level = 0.75, dry = 0.5, detune = 15 },
+  { effect = "distortion", drive = 10, mix = 0.3 },
+  { effect = "reverb", size = 0.9, mix = 0.35 },
+  { effect = "ambience", type = "Heartbeat", level = -18 },
+]
+
+[[voice]]
+id = "darklord"
+name = "Dark Lord"
+icon = "supervillain"
+category = "horror"
+description = "Deep voice behind a mask."
+blocks = [
+  { effect = "pitch", semitones = -4, formant = -3 },
+  { effect = "filter", type = "Peak", freq = 900, q = 2, gain = 6 },
+  { effect = "distortion", drive = 6, mix = 0.2 },
+  { effect = "compressor", threshold = -24, ratio = 4, makeup = 4 },
+  { effect = "reverb", size = 0.4, mix = 0.15 },
+]
+
+[[voice]]
+id = "clown"
+name = "Creepy Clown"
+icon = "clown"
+category = "horror"
+description = "Wants to play. Forever."
+blocks = [
+  { effect = "pitch", semitones = 5, formant = 2 },
+  { effect = "vibrato", rate = 4, depth = 80, random = 0.3 },
+  { effect = "harmony", voice_a = -12, level = 0.35, detune = 20 },
+  { effect = "reverb", size = 0.7, mix = 0.3 },
+]
+
+# Sci-fi
+
+[[voice]]
+id = "robot"
+name = "Robot"
+icon = "robot"
+category = "scifi"
+description = "Beep boop. Flat and metallic."
+blocks = [
+  { effect = "robot", pitch = 110 },
+  { effect = "ringmod", freq = 35, mix = 0.3 },
+  { effect = "filter", type = "Peak", freq = 1500, q = 1, gain = 3 },
+  { effect = "compressor", threshold = -24, ratio = 3, makeup = 3 },
+  { effect = "ambience", type = "Computer", level = -18 },
+]
+
+[[voice]]
+id = "alien"
+name = "Alien"
+icon = "alien"
+category = "scifi"
+description = "We come in peace. Probably."
+blocks = [
+  { effect = "pitch", semitones = 5, formant = 6 },
+  { effect = "ringmod", freq = 420, wobble = 0.3, mix = 0.35 },
+  { effect = "flanger", mix = 0.35 },
+  { effect = "reverb", size = 0.5, mix = 0.2 },
+  { effect = "ambience", type = "Space", level = -18 },
+]
+
+[[voice]]
+id = "cyborg"
+name = "Cyborg"
+icon = "mechanical-arm"
+category = "scifi"
+description = "Half human, half machine."
+blocks = [
+  { effect = "pitch", semitones = -2, formant = -1 },
+  { effect = "vocoder", carrier = "Follow voice", mix = 0.5, clarity = 0.2 },
+  { effect = "bitcrush", bits = 10, rate = 16000, mix = 0.4 },
+  { effect = "reverb", size = 0.3, mix = 0.12 },
+]
+
+[[voice]]
+id = "invader"
+name = "Invader"
+icon = "alien-monster"
+category = "scifi"
+description = "Straight out of an arcade cabinet."
+blocks = [
+  { effect = "pitch", semitones = 3, formant = 3 },
+  { effect = "robot", pitch = 220, mix = 0.6 },
+  { effect = "bitcrush", bits = 5, rate = 6000 },
+]
+
+[[voice]]
+id = "astronaut"
+name = "Astronaut"
+icon = "astronaut"
+category = "scifi"
+description = "Houston, we have a problem. With beeps."
+blocks = [
+  { effect = "band", low = 400, high = 3200, boost = 4 },
+  { effect = "distortion", drive = 8, mix = 0.3 },
+  { effect = "noise", type = "Hiss", level = -40, follow = 0.7 },
+  { effect = "beeps", type = "Space (Quindar)", level = -14 },
+  { effect = "ambience", type = "Space", level = -24 },
+]
+
+[[voice]]
+id = "glitch"
+name = "Glitch"
+icon = "television"
+category = "scifi"
+description = "A bad connection from the future."
+blocks = [
+  { effect = "stutter", chance = 1.5, length = 70, repeats = 3 },
+  { effect = "bitcrush", bits = 8, rate = 12000, mix = 0.4 },
+  { effect = "robot", pitch = 140, mix = 0.2 },
+]
+
+[[voice]]
+id = "hologram"
+name = "Hologram"
+icon = "crystal-ball"
+category = "scifi"
+description = "A flickering message from far away."
+blocks = [
+  { effect = "pitch", semitones = 2, formant = 1 },
+  { effect = "chorus", depth = 5, mix = 0.5 },
+  { effect = "flanger", rate = 0.15, mix = 0.35 },
+  { effect = "tremolo", rate = 14, depth = 0.25 },
+  { effect = "reverb", size = 0.6, mix = 0.25 },
+]
+
+# Places
+
+[[voice]]
+id = "echo"
+name = "Echo"
+icon = "mountain"
+category = "places"
+description = "Shout from a mountain top."
+blocks = [
+  { effect = "echo", time = 380, feedback = 0.45, mix = 0.45 },
+]
+
+[[voice]]
+id = "cave"
+name = "Cave"
+icon = "rock"
+category = "places"
+description = "Deep inside, where the water drips."
+blocks = [
+  { effect = "ambience", type = "Cave drips", level = -14 },
+  { effect = "echo", time = 260, feedback = 0.35, mix = 0.3, tone = 3000 },
+  { effect = "reverb", size = 0.9, damping = 0.5, mix = 0.4 },
+]
+
+[[voice]]
+id = "cathedral"
+name = "Cathedral"
+icon = "church"
+category = "places"
+description = "A huge stone hall."
+blocks = [
+  { effect = "reverb", size = 0.98, damping = 0.3, mix = 0.55, predelay = 50 },
+]
+
+[[voice]]
+id = "shower"
+name = "Shower"
+icon = "shower"
+category = "places"
+description = "Everyone sings better in here."
+blocks = [
+  { effect = "filter", type = "High shelf", freq = 4000, gain = 3 },
+  { effect = "reverb", size = 0.35, damping = 0.1, mix = 0.35 },
+  { effect = "ambience", type = "Rain", level = -18 },
+]
+
+[[voice]]
+id = "stadium"
+name = "Stadium"
+icon = "stadium"
+category = "places"
+description = "Thousands of fans and a big echo."
+blocks = [
+  { effect = "echo", time = 600, feedback = 0.3, mix = 0.3, tone = 3000 },
+  { effect = "reverb", size = 0.9, mix = 0.35 },
+  { effect = "ambience", type = "Crowd", level = -12 },
+]
+
+[[voice]]
+id = "underwater"
+name = "Underwater"
+icon = "diving-mask"
+category = "places"
+description = "Blub. Muffled, wobbly and full of bubbles."
+blocks = [
+  { effect = "filter", type = "Low pass", freq = 550, q = 1.2 },
+  { effect = "vibrato", rate = 1.2, depth = 40, random = 0.4 },
+  { effect = "chorus", mix = 0.4 },
+  { effect = "gain", gain = 4 },
+  { effect = "reverb", size = 0.3, mix = 0.15 },
+  { effect = "ambience", type = "Bubbles", level = -10 },
+]
+
+[[voice]]
+id = "space"
+name = "Deep Space"
+icon = "ringed-planet"
+category = "places"
+description = "Floating far away from everything."
+blocks = [
+  { effect = "flanger", rate = 0.1, mix = 0.2 },
+  { effect = "echo", time = 700, feedback = 0.5, mix = 0.3 },
+  { effect = "reverb", size = 1.0, damping = 0.2, mix = 0.6, predelay = 80 },
+  { effect = "ambience", type = "Space", level = -12 },
+]
+
+[[voice]]
+id = "storm"
+name = "Storm"
+icon = "storm"
+category = "places"
+description = "Out in the rain, with thunder."
+blocks = [
+  { effect = "band", low = 150, high = 8000 },
+  { effect = "reverb", size = 0.3, mix = 0.1 },
+  { effect = "ambience", type = "Storm", level = -12 },
+]
+
+[[voice]]
+id = "campfire"
+name = "Campfire"
+icon = "fire"
+category = "places"
+description = "Stories by the fire."
+blocks = [
+  { effect = "filter", type = "Low shelf", freq = 250, gain = 2 },
+  { effect = "reverb", size = 0.2, mix = 0.1 },
+  { effect = "ambience", type = "Campfire", level = -12 },
+]
+
+[[voice]]
+id = "forest"
+name = "Forest"
+icon = "owl"
+category = "places"
+description = "Birds, leaves and fresh air."
+blocks = [
+  { effect = "reverb", size = 0.4, damping = 0.7, mix = 0.12 },
+  { effect = "ambience", type = "Birds", level = -12 },
+]
+
+# Devices
+
+[[voice]]
+id = "radio"
+name = "Radio"
+icon = "radio"
+category = "devices"
+description = "On air, through a small speaker."
+blocks = [
+  { effect = "band", low = 450, high = 3800, boost = 5 },
+  { effect = "distortion", drive = 12, mix = 0.4, tone = 4000 },
+  { effect = "compressor", threshold = -24, ratio = 4, makeup = 4 },
+  { effect = "ambience", type = "Radio static", level = -22 },
+]
+
+[[voice]]
+id = "telephone"
+name = "Telephone"
+icon = "telephone"
+category = "devices"
+description = "Hello? Can you hear me?"
+blocks = [
+  { effect = "band", low = 300, high = 3400, boost = 3 },
+  { effect = "bitcrush", bits = 12, rate = 8000, mix = 0.5 },
+  { effect = "distortion", drive = 6, mix = 0.25 },
+]
+
+[[voice]]
+id = "walkie"
+name = "Walkie-Talkie"
+icon = "antenna"
+category = "devices"
+description = "Over. Squelch included."
+blocks = [
+  { effect = "band", low = 500, high = 3000, boost = 6 },
+  { effect = "distortion", drive = 16, type = "Hard", mix = 0.45, tone = 3500 },
+  { effect = "noise", type = "White", level = -34, follow = 1 },
+  { effect = "beeps", type = "Walkie-talkie", level = -12 },
+]
+
+[[voice]]
+id = "megaphone"
+name = "Megaphone"
+icon = "megaphone"
+category = "devices"
+description = "Attention please!"
+blocks = [
+  { effect = "band", low = 600, high = 4000, boost = 8 },
+  { effect = "distortion", drive = 14, mix = 0.5, tone = 4500 },
+  { effect = "compressor", threshold = -22, ratio = 5, makeup = 4 },
+  { effect = "echo", time = 140, feedback = 0.15, mix = 0.12 },
+]
+
+[[voice]]
+id = "pilot"
+name = "Pilot"
+icon = "pilot"
+category = "devices"
+description = "This is your captain speaking."
+blocks = [
+  { effect = "band", low = 350, high = 3500, boost = 5 },
+  { effect = "distortion", drive = 8, mix = 0.25 },
+  { effect = "compressor", threshold = -24, ratio = 4, makeup = 4 },
+  { effect = "beeps", type = "Roger beep", level = -16, start = false },
+  { effect = "ambience", type = "Engine", level = -18 },
+]
+
+[[voice]]
+id = "oldmovie"
+name = "1920s Film"
+icon = "top-hat"
+category = "devices"
+description = "Crackly, thin and a little wobbly."
+blocks = [
+  { effect = "band", low = 350, high = 4500, boost = 2 },
+  { effect = "vibrato", rate = 0.7, depth = 12, random = 0.5 },
+  { effect = "distortion", drive = 5, mix = 0.2 },
+  { effect = "compressor", threshold = -24, ratio = 3, makeup = 3 },
+  { effect = "noise", type = "Crackle", level = -30 },
+]
+
+[[voice]]
+id = "potato"
+name = "Potato Mic"
+icon = "potato"
+category = "devices"
+description = "The worst microphone in voice chat."
+blocks = [
+  { effect = "band", low = 400, high = 2600 },
+  { effect = "bitcrush", bits = 5, rate = 6000, mix = 0.7 },
+  { effect = "distortion", drive = 24, type = "Hard", mix = 0.6 },
+  { effect = "gain", gain = -4 },
+]
+
+[[voice]]
+id = "8bit"
+name = "8-Bit"
+icon = "video-game"
+category = "devices"
+description = "Retro console sound."
+blocks = [
+  { effect = "pitch", semitones = 3, formant = 3 },
+  { effect = "bitcrush", bits = 4, rate = 5000 },
+]
+
+[[voice]]
+id = "fan"
+name = "Fan"
+icon = "cyclone"
+category = "devices"
+description = "Talking into a spinning fan."
+blocks = [
+  { effect = "tremolo", rate = 18, depth = 0.75 },
+  { effect = "vibrato", rate = 18, depth = 12 },
+]
+
+# Music
+
+[[voice]]
+id = "autotune"
+name = "Auto-Tune"
+icon = "microphone"
+category = "music"
+description = "Every note perfectly in tune. Sing!"
+blocks = [
+  { effect = "autotune", scale = "Chromatic", speed = 1 },
+  { effect = "compressor", threshold = -24, ratio = 3, makeup = 3 },
+  { effect = "reverb", size = 0.4, mix = 0.12 },
+]
+
+[[voice]]
+id = "choir"
+name = "Angel Choir"
+icon = "angel"
+category = "music"
+description = "Heavenly harmonies in a big hall."
+blocks = [
+  { effect = "harmony", voice_a = 4, voice_b = 7, voice_c = 12, level = 0.7, dry = 0.8, detune = 8 },
+  { effect = "chorus", mix = 0.3 },
+  { effect = "reverb", size = 0.95, mix = 0.5, predelay = 40 },
+]
+
+[[voice]]
+id = "chords"
+name = "Magic Chords"
+icon = "keyboard"
+category = "music"
+description = "Your voice plays changing chords."
+blocks = [
+  { effect = "vocoder", carrier = "Chord", note = 48, chord = "Major", progression = "Pop", chord_time = 2, clarity = 0.2 },
+  { effect = "reverb", size = 0.6, mix = 0.25 },
+]
+
+[[voice]]
+id = "talkbox"
+name = "Talk Box"
+icon = "control-knobs"
+category = "music"
+description = "A synth that follows your voice."
+blocks = [
+  { effect = "vocoder", carrier = "Follow voice", clarity = 0.2 },
+  { effect = "chorus", mix = 0.25 },
+]
+
+[[voice]]
+id = "duet"
+name = "Duet"
+icon = "bunny-ears"
+category = "music"
+description = "Someone sings along, a third higher."
+blocks = [
+  { effect = "harmony", voice_a = 4, level = 0.65 },
+  { effect = "chorus", mix = 0.25 },
+  { effect = "reverb", size = 0.5, mix = 0.15 },
+]
+
+# Funny
+
+[[voice]]
+id = "chipmunk"
+name = "Chipmunk"
+icon = "chipmunk"
+category = "funny"
+description = "Squeaky and fast talking."
+blocks = [
+  { effect = "pitch", semitones = 12, formant = 12 },
+]
+
+[[voice]]
+id = "mouse"
+name = "Mouse"
+icon = "mouse"
+category = "funny"
+description = "Even tinier than a chipmunk."
+blocks = [
+  { effect = "pitch", semitones = 15, formant = 12 },
+  { effect = "band", low = 400, high = 12000 },
+]
+
+[[voice]]
+id = "helium"
+name = "Helium"
+icon = "balloon"
+category = "funny"
+description = "One breath from a balloon."
+blocks = [
+  { effect = "pitch", semitones = 2, formant = 9 },
+]
+
+[[voice]]
+id = "drunk"
+name = "Drunk"
+icon = "woozy"
+category = "funny"
+description = "Had a few too many."
+blocks = [
+  { effect = "pitch", semitones = -1, formant = -1 },
+  { effect = "vibrato", rate = 0.6, depth = 70, random = 0.7 },
+  { effect = "chorus", rate = 0.2, mix = 0.3 },
+  { effect = "echo", time = 180, feedback = 0.15, mix = 0.15 },
+]
+
+[[voice]]
+id = "dizzy"
+name = "Dizzy"
+icon = "spiral-eyes"
+category = "funny"
+description = "Everything is spinning."
+blocks = [
+  { effect = "vibrato", rate = 2.5, depth = 120, random = 0.2 },
+  { effect = "phaser", rate = 0.6, mix = 0.5 },
+]
+
+[[voice]]
+id = "whisper"
+name = "Whisper"
+icon = "shushing"
+category = "funny"
+description = "Psst. Only breath, no voice."
+blocks = [
+  { effect = "whisper" },
+  { effect = "reverb", size = 0.2, mix = 0.08 },
+]
+
+[[voice]]
+id = "kitty"
+name = "Kitty"
+icon = "cat"
+category = "funny"
+description = "Meow."
+blocks = [
+  { effect = "pitch", semitones = 9, formant = 7 },
+  { effect = "vibrato", rate = 6, depth = 30 },
+]
+
+[[voice]]
+id = "frog"
+name = "Frog"
+icon = "frog"
+category = "funny"
+description = "Croaky and bumpy."
+blocks = [
+  { effect = "pitch", semitones = -5, formant = 2 },
+  { effect = "tremolo", rate = 25, depth = 0.5 },
+  { effect = "distortion", drive = 18, type = "Fuzz", mix = 0.5 },
+]
+
+[[voice]]
+id = "duck"
+name = "Duck"
+icon = "duck"
+category = "funny"
+description = "Quack quack."
+blocks = [
+  { effect = "pitch", semitones = 4, formant = 8 },
+  { effect = "band", low = 900, high = 3500, boost = 10 },
+  { effect = "distortion", drive = 10, mix = 0.4 },
+]

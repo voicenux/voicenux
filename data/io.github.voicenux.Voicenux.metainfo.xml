@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="desktop-application">
+  <id>io.github.voicenux.Voicenux</id>
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>BSD-3-Clause</project_license>
+  <name>Voicenux</name>
+  <summary>Change your voice in real time, in any app</summary>
+  <summary xml:lang="de">Verändere deine Stimme in Echtzeit, in jeder App</summary>
+  <developer id="io.github.voicenux">
+    <name>Felitendo</name>
+  </developer>
+  <description>
+    <p>Voicenux is a voice changer and soundboard for Linux. It adds a “Voicenux Microphone” that Discord, OBS, games and every other app can use.</p>
+    <ul>
+      <li>68 voices: baby, elderly, robot, demon, underwater, radio, auto-tune and many more</li>
+      <li>Background sounds like rain, bubbles, a crowd or a campfire</li>
+      <li>A soundboard with your own sounds and a starter pack</li>
+      <li>Voicelab: build your own voices from 25 effects</li>
+      <li>Hear yourself, noise suppression, global shortcuts and a tray icon</li>
+    </ul>
+    <p xml:lang="de">Voicenux ist ein Stimmverzerrer und Soundboard für Linux. Es fügt ein „Voicenux Microphone“ hinzu, das Discord, OBS, Spiele und jede andere App nutzen können.</p>
+  </description>
+  <launchable type="desktop-id">io.github.voicenux.Voicenux.desktop</launchable>
+  <provides>
+    <binary>voicenux</binary>
+  </provides>
+  <url type="homepage">https://github.com/voicenux/voicenux</url>
+  <url type="bugtracker">https://github.com/voicenux/voicenux/issues</url>
+  <url type="vcs-browser">https://github.com/voicenux/voicenux</url>
+  <screenshots>
+    <screenshot type="default">
+      <caption>Pick a voice</caption>
+      <image>https://raw.githubusercontent.com/voicenux/voicenux/main/res/voices.png</image>
+    </screenshot>
+    <screenshot>
+      <caption>Soundboard</caption>
+      <image>https://raw.githubusercontent.com/voicenux/voicenux/main/res/soundboard.png</image>
+    </screenshot>
+    <screenshot>
+      <caption>Build your own voices in Voicelab</caption>
+      <image>https://raw.githubusercontent.com/voicenux/voicenux/main/res/voicelab.png</image>
+    </screenshot>
+  </screenshots>
+  <categories>
+    <category>AudioVideo</category>
+    <category>Audio</category>
+  </categories>
+  <keywords>
+    <keyword>voice changer</keyword>
+    <keyword>soundboard</keyword>
+    <keyword>voicemod</keyword>
+    <keyword>pipewire</keyword>
+  </keywords>
+  <requires>
+    <display_length compare="ge">960</display_length>
+  </requires>
+  <supports>
+    <control>pointing</control>
+    <control>keyboard</control>
+  </supports>
+  <content_rating type="oars-1.1"/>
+  <releases>
+    <release version="0.1.0" date="2026-10-14">
+      <description>
+        <p>First release.</p>
+      </description>
+    </release>
+  </releases>
+</component>

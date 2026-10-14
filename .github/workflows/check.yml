@@ -1,0 +1,31 @@
+name: Check
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    container: archlinux:latest
+    steps:
+      - name: Install build dependencies
+        run: pacman -Syu --noconfirm --needed base-devel rust clang git gtk4 libadwaita pipewire appstream desktop-file-utils
+      - uses: actions/checkout@v4
+      - uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            target
+          key: cargo-${{ hashFiles('Cargo.lock') }}
+      - name: Format
+        run: cargo fmt --check
+      - name: Clippy
+        run: cargo clippy --release --locked --all-targets -- -D warnings
+      - name: Tests
+        run: cargo test --release --locked
+      - name: Desktop file and metainfo
+        run: |
+          desktop-file-validate data/io.github.voicenux.Voicenux.desktop
+          appstreamcli validate --no-net data/io.github.voicenux.Voicenux.metainfo.xml

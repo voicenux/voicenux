@@ -1,0 +1,3 @@
+/target
+/res/*.tmp.png
+__pycache__/

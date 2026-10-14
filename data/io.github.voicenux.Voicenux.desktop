@@ -1,0 +1,31 @@
+[Desktop Entry]
+Name=Voicenux
+GenericName=Voice Changer
+GenericName[de]=Stimmverzerrer
+Comment=Change your voice in real time, in any app
+Comment[de]=Verändere deine Stimme in Echtzeit, in jeder App
+Exec=voicenux
+Icon=io.github.voicenux.Voicenux
+Terminal=false
+Type=Application
+Categories=AudioVideo;Audio;Mixer;
+Keywords=voice;changer;voicemod;soundboard;microphone;pitch;robot;discord;
+Keywords[de]=Stimme;Stimmverzerrer;Voicemod;Soundboard;Mikrofon;Tonhöhe;Roboter;Discord;
+StartupNotify=true
+StartupWMClass=io.github.voicenux.Voicenux
+SingleMainWindow=true
+Actions=toggle;random;soundboard;
+
+[Desktop Action toggle]
+Name=Voice changer on or off
+Name[de]=Stimmverzerrer an oder aus
+Exec=voicenux toggle
+
+[Desktop Action random]
+Name=Random voice
+Name[de]=Zufällige Stimme
+Exec=voicenux random
+
+[Desktop Action soundboard]
+Name=Soundboard
+Exec=voicenux open soundboard
