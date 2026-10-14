@@ -247,6 +247,10 @@ pub fn run() -> glib::ExitCode {
             );
             gtk::IconTheme::for_display(&gtk::gdk::Display::default().unwrap())
                 .add_resource_path(&format!("{}/hicolor", crate::ui::RESOURCE));
+            // The sidebar shows the logo already, so the window icon in the title buttons goes.
+            let settings = gtk::Settings::default().expect("a display");
+            drop_window_icon(&settings);
+            settings.connect_gtk_decoration_layout_notify(drop_window_icon);
 
             let st = State::new();
             apply_appearance(&st);
@@ -349,6 +353,19 @@ pub fn apply_appearance(st: &St) {
         _ => adw::ColorScheme::Default,
     };
     adw::StyleManager::default().set_color_scheme(scheme);
+}
+
+/// Removes "icon" from the title button layout, like "icon:minimize,close" from KDE.
+fn drop_window_icon(s: &gtk::Settings) {
+    let Some(layout) = s.gtk_decoration_layout() else { return };
+    let clean = layout
+        .split(':')
+        .map(|side| side.split(',').filter(|b| b.trim() != "icon").collect::<Vec<_>>().join(","))
+        .collect::<Vec<_>>()
+        .join(":");
+    if clean != layout.as_str() {
+        s.set_gtk_decoration_layout(Some(&clean));
+    }
 }
 
 /// Writes or removes the autostart entry.
