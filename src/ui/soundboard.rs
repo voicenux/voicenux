@@ -8,7 +8,7 @@ use adw::prelude::*;
 use gtk::{gdk, gio, glib};
 
 use super::visuals::progress_ring;
-use super::{animate_in, clear, icon, icon_picker, label, smooth_scroll};
+use super::{animate_in, bounce, clear, icon, icon_picker, label, smooth_scroll};
 use crate::i18n::{fill, t, t_dyn};
 use crate::soundboard::{PlayMode, Sound};
 use crate::state::{Change, St};
@@ -259,6 +259,7 @@ fn volume_button(st: &St) -> gtk::MenuButton {
     bx.append(&scale);
     bx.append(&row);
     let p = gtk::Popover::new();
+    bounce(&p);
     p.set_child(Some(&bx));
     b.set_popover(Some(&p));
     b
@@ -431,6 +432,7 @@ fn editor(st: &St, s: &Sound) -> gtk::Popover {
     b.append(&remove);
 
     let p = gtk::Popover::new();
+    bounce(&p);
     p.set_child(Some(&b));
     p.connect_closed({
         let sound = sound.clone();

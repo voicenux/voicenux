@@ -6,7 +6,7 @@ use std::rc::Rc;
 use adw::prelude::*;
 
 use super::voices::param_row;
-use super::{clear, icon, icon_picker, label, smooth_scroll};
+use super::{bounce, clear, icon, icon_picker, label, smooth_scroll};
 use crate::dsp::blocks::{self, BLOCKS, Group};
 use crate::i18n::{fill, t, t_dyn};
 use crate::state::{Change, St};
@@ -453,6 +453,7 @@ fn block_card(st: &St, editor: &gtk::Box, id: &str, index: usize, count: usize, 
 
 fn effect_picker(st: &St, editor: &gtk::Box, id: &str) -> gtk::Popover {
     let popover = gtk::Popover::new();
+    bounce(&popover);
     let col = gtk::Box::new(gtk::Orientation::Vertical, 6);
     col.set_margin_top(10);
     col.set_margin_bottom(10);

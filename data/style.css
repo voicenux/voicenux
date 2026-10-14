@@ -488,6 +488,29 @@ flowboxchild:hover .vn-pad-menu {
   animation: vn-pop-in 320ms ease-out;
 }
 
+/* Menus pop open with a little bounce. Two names, because only a new name starts it again. */
+popover.vn-bounce-a > contents {
+  animation: vn-menu-a 420ms ease-out;
+}
+
+popover.vn-bounce-b > contents {
+  animation: vn-menu-b 420ms ease-out;
+}
+
+@keyframes vn-menu-a {
+  0% { opacity: 0; transform: scale(0.82); }
+  55% { opacity: 1; transform: scale(1.03); }
+  80% { opacity: 1; transform: scale(0.99); }
+  100% { opacity: 1; transform: scale(1); }
+}
+
+@keyframes vn-menu-b {
+  0% { opacity: 0; transform: scale(0.82); }
+  55% { opacity: 1; transform: scale(1.03); }
+  80% { opacity: 1; transform: scale(0.99); }
+  100% { opacity: 1; transform: scale(1); }
+}
+
 .vn-drop {
   border-radius: 24px;
   border: 2px dashed color-mix(in srgb, var(--accent-bg-color) 60%, transparent);

@@ -120,6 +120,18 @@ pub fn animate_in(widget: &impl IsA<gtk::Widget>, delay: usize) {
     });
 }
 
+/// Makes a popover open with a little bounce. It has no arrow, so nothing stays behind.
+pub fn bounce(p: &gtk::Popover) {
+    p.set_has_arrow(false);
+    // A new animation name starts the animation again, the same name would not.
+    let flip = std::cell::Cell::new(false);
+    p.connect_map(move |p| {
+        let a = !flip.replace(!flip.get());
+        p.remove_css_class(if a { "vn-bounce-b" } else { "vn-bounce-a" });
+        p.add_css_class(if a { "vn-bounce-a" } else { "vn-bounce-b" });
+    });
+}
+
 /// CSS for the staggered entrance delays.
 pub fn delay_css() -> String {
     (0..40).map(|i| format!(".vn-d{i} {{ animation-delay: {}ms; }}\n", i * 18)).collect()
@@ -140,6 +152,7 @@ pub fn icon_picker(current: &str, size: i32, on_pick: impl Fn(&str) + 'static) -
         .build();
     grid.add_css_class("vn-icon-grid");
     let popover = gtk::Popover::new();
+    bounce(&popover);
     let on_pick = std::rc::Rc::new(on_pick);
     for name in all_icons() {
         let b = gtk::Button::new();
