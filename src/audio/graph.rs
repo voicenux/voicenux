@@ -122,6 +122,11 @@ struct Graph {
     default_source: Option<String>,
     default_sink: Option<String>,
     configured_source: Option<String>,
+    /// The microphone to use for "System default" while the default is our own mic.
+    fallback_input: Option<String>,
+    /// Default mic switch waiting for the metadata object, and the mic to go back to.
+    want_default: Option<bool>,
+    default_previous: Option<String>,
     want_input: Option<String>,
     want_output: Option<String>,
     dirty: bool,
@@ -183,6 +188,7 @@ impl Graph {
         by_name(&self.want_input)
             .or_else(|| by_name(&self.default_source))
             // The default is our own mic (or gone): use the one that was default before.
+            .or_else(|| by_name(&self.fallback_input))
             .or_else(|| by_name(&self.configured_source))
             .or_else(|| sources.iter().find(|(_, s)| !s.class.contains("Virtual")).map(|(id, _)| *id))
             .or_else(|| sources.first().map(|(id, _)| *id))
@@ -341,6 +347,27 @@ impl Graph {
         }
     }
 
+    /// Makes our mic the default (or gives the default back) once the metadata is there.
+    fn apply_default(&mut self, events: &async_channel::Sender<Event>) {
+        let Some(md) = &self.metadata else { return };
+        let Some(on) = self.want_default.take() else { return };
+        let key = "default.configured.audio.source";
+        if on {
+            let before = self.configured_source.clone().filter(|s| s != MIC_NODE);
+            if before.is_some() {
+                self.fallback_input = before.clone();
+            }
+            md.set_property(0, key, Some("Spa:String:JSON"), Some(&format!("{{ \"name\": \"{MIC_NODE}\" }}")));
+            let _ = events.try_send(Event::DefaultMic { previous: before });
+        } else {
+            match &self.default_previous {
+                Some(p) => md.set_property(0, key, Some("Spa:String:JSON"), Some(&format!("{{ \"name\": \"{p}\" }}"))),
+                None => md.set_property(0, key, None, None),
+            }
+        }
+        self.dirty = true;
+    }
+
     fn add(&mut self, obj: &pw::registry::GlobalObject<&pw::spa::utils::dict::DictRef>) {
         let Some(props) = obj.props else { return };
         let get = |k: &str| props.get(k).unwrap_or("").to_string();
@@ -438,6 +465,7 @@ fn run(
         .add_listener_local()
         .global({
             let graph = graph.clone();
+            let events = events.clone();
             let registry = registry.downgrade();
             move |obj| {
                 if obj.type_ == ObjectType::Metadata
@@ -467,6 +495,7 @@ fn run(
                     let mut g = graph.borrow_mut();
                     g.metadata = Some(md);
                     g.metadata_listener = Some(listener);
+                    g.apply_default(&events);
                     return;
                 }
                 graph.borrow_mut().add(obj);
@@ -561,21 +590,13 @@ fn run(
                 g.dirty = true;
             }
             Ctl::DefaultMic { on, previous } => {
-                let g = graph.borrow();
-                let Some(md) = &g.metadata else { return };
-                let key = "default.configured.audio.source";
-                if on {
-                    let before = g.configured_source.clone().filter(|s| s != MIC_NODE);
-                    md.set_property(0, key, Some("Spa:String:JSON"), Some(&format!("{{ \"name\": \"{MIC_NODE}\" }}")));
-                    let _ = events.try_send(Event::DefaultMic { previous: before });
-                } else {
-                    match previous {
-                        Some(p) => {
-                            md.set_property(0, key, Some("Spa:String:JSON"), Some(&format!("{{ \"name\": \"{p}\" }}")))
-                        }
-                        None => md.set_property(0, key, None, None),
-                    }
+                let mut g = graph.borrow_mut();
+                g.want_default = Some(on);
+                if on && previous.is_some() && g.fallback_input.is_none() {
+                    g.fallback_input = previous.clone();
                 }
+                g.default_previous = previous;
+                g.apply_default(&events);
             }
             Ctl::Quit => {
                 if let Some(m) = mainloop.upgrade() {
