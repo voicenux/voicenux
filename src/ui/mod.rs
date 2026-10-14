@@ -187,3 +187,16 @@ pub fn icon_picker(current: &str, size: i32, on_pick: impl Fn(&str) + 'static) -
     button.set_popover(Some(&popover));
     button
 }
+
+/// Renders a widget (the window) into a PNG file.
+pub fn snapshot(widget: &gtk::Widget, path: &str) -> anyhow::Result<()> {
+    let (w, h) = (widget.width(), widget.height());
+    let paintable = gtk::WidgetPaintable::new(Some(widget));
+    let snap = gtk::Snapshot::new();
+    paintable.snapshot(&snap, w as f64, h as f64);
+    let node = snap.to_node().ok_or_else(|| anyhow::anyhow!("nothing to render"))?;
+    let renderer = widget.native().and_then(|n| n.renderer()).ok_or_else(|| anyhow::anyhow!("no renderer"))?;
+    let bounds = gtk::graphene::Rect::new(0.0, 0.0, w as f32, h as f32);
+    renderer.render_texture(&node, Some(&bounds)).save_to_png(path)?;
+    Ok(())
+}

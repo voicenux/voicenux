@@ -166,6 +166,15 @@ impl Ctx {
                     w.show_page(page);
                 }
             }
+            // For README screenshots: renders the window into a PNG. Not in the help on purpose.
+            Some("--snapshot") => {
+                let Some(path) = arg(1) else { return 2 };
+                let Some(w) = self.window.borrow().clone() else { return 1 };
+                if let Err(e) = crate::ui::snapshot(w.window.upcast_ref(), path) {
+                    cmd.printerr_literal(&format!("{e}\n"));
+                    return 1;
+                }
+            }
             Some("on") => st.set_voice_on(true),
             Some("off") => st.set_voice_on(false),
             Some("toggle") => self.run("voice-toggle"),
