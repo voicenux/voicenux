@@ -19,6 +19,7 @@ pub struct Window {
     voice_search: gtk::SearchEntry,
     sound_search: gtk::SearchEntry,
     add_sounds: gtk::Button,
+    pub find_online: Rc<dyn Fn(&str)>,
     st: St,
 }
 
@@ -271,6 +272,7 @@ pub fn build(app: &adw::Application, st: &St) -> Window {
         voice_search: voices_page.search.clone(),
         sound_search: sounds_page.search.clone(),
         add_sounds: sounds_page.add.clone(),
+        find_online: sounds_page.find_online.clone(),
         st: st.clone(),
     };
     let keys = gtk::EventControllerKey::new();

@@ -175,6 +175,22 @@ impl Ctx {
                     return 1;
                 }
             }
+            // Also for screenshots: opens a dialog, "keys", "about" or "trim:SOUND", or searches
+            // MyInstants with "find:WORDS".
+            Some("--dialog") => {
+                self.show();
+                let Some(w) = self.window.borrow().clone() else { return 1 };
+                match arg(1) {
+                    Some("keys") => crate::ui::help::show(&w.window),
+                    Some("about") => crate::ui::settings::about_dialog().present(Some(&w.window)),
+                    Some(other) if other.starts_with("trim:") => crate::ui::trim::open(st, &other[5..], &w.window),
+                    Some(other) if other.starts_with("find:") => {
+                        w.show_page("soundboard");
+                        (w.find_online)(&other[5..]);
+                    }
+                    _ => return 2,
+                }
+            }
             Some("on") => st.set_voice_on(true),
             Some("off") => st.set_voice_on(false),
             Some("toggle") => self.run("voice-toggle"),

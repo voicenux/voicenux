@@ -29,6 +29,8 @@ pub struct SoundboardPage {
     pub add: gtk::Button,
     /// Header buttons that drop their text in a narrow window.
     pub shrink: Vec<adw::ButtonContent>,
+    /// Opens the MyInstants search with some words.
+    pub find_online: Rc<dyn Fn(&str)>,
 }
 
 pub fn build(st: &St) -> SoundboardPage {
@@ -379,7 +381,14 @@ pub fn build(st: &St) -> SoundboardPage {
             _ => {}
         }
     });
-    SoundboardPage { widget: view, search, add, shrink: vec![add_content, find_content, stop_content] }
+    let find_online: Rc<dyn Fn(&str)> = Rc::new({
+        let (find, online) = (find.clone(), online.clone());
+        move |text: &str| {
+            find.set_active(true);
+            online.set_text(text);
+        }
+    });
+    SoundboardPage { widget: view, search, add, shrink: vec![add_content, find_content, stop_content], find_online }
 }
 
 /// More: sort the sounds, or bring back the starter sounds.

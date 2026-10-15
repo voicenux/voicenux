@@ -8,7 +8,7 @@ pub mod keys;
 pub mod onboarding;
 pub mod popup;
 mod scroll;
-mod trim;
+pub mod trim;
 pub mod settings;
 pub mod soundboard;
 pub mod visuals;
