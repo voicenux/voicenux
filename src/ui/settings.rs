@@ -4,7 +4,7 @@ use std::rc::Rc;
 
 use adw::prelude::*;
 
-use super::{label, smooth_scroll};
+use super::{icon, label, smooth_scroll};
 use crate::audio::Device;
 use crate::audio::easyeffects::Use as EasyEffects;
 use crate::i18n::{fill, t, t_dyn};
@@ -142,18 +142,65 @@ fn easyeffects_row(st: &St) -> adw::SwitchRow {
     row
 }
 
+/// A section of the settings: a 3D picture, a title and its rows in a card.
+struct Group {
+    widget: gtk::Box,
+    head: gtk::Box,
+    list: gtk::ListBox,
+}
+
+impl Group {
+    fn new(pic: &str, title: &str, description: &str) -> Self {
+        let head = gtk::Box::new(gtk::Orientation::Horizontal, 14);
+        head.add_css_class("vn-settings-head");
+        let img = icon(pic, 40);
+        img.set_valign(gtk::Align::Center);
+        head.append(&img);
+        let texts = gtk::Box::new(gtk::Orientation::Vertical, 2);
+        texts.set_valign(gtk::Align::Center);
+        texts.set_hexpand(true);
+        let t = label(title, &["vn-settings-title"]);
+        t.set_xalign(0.0);
+        texts.append(&t);
+        if !description.is_empty() {
+            let d = label(description, &["dim-label"]);
+            d.set_xalign(0.0);
+            d.set_wrap(true);
+            texts.append(&d);
+        }
+        head.append(&texts);
+        let list = gtk::ListBox::new();
+        list.set_selection_mode(gtk::SelectionMode::None);
+        list.add_css_class("boxed-list");
+        list.add_css_class("vn-settings-list");
+        let widget = gtk::Box::new(gtk::Orientation::Vertical, 12);
+        widget.append(&head);
+        widget.append(&list);
+        Self { widget, head, list }
+    }
+
+    fn add(&self, row: &impl IsA<gtk::Widget>) {
+        self.list.append(row);
+    }
+
+    fn set_header_suffix(&self, w: &impl IsA<gtk::Widget>) {
+        w.set_valign(gtk::Align::Center);
+        self.head.append(w);
+    }
+}
+
 pub fn build(st: &St, window: &adw::ApplicationWindow) -> adw::ToolbarView {
     let header = adw::HeaderBar::new();
     header.set_title_widget(Some(&adw::WindowTitle::new(t("Settings"), "")));
-    let page = adw::PreferencesPage::new();
-    smooth_scroll(&page);
+    let page = gtk::Box::new(gtk::Orientation::Vertical, 30);
+    page.set_margin_top(18);
+    page.set_margin_bottom(36);
+    page.set_margin_start(24);
+    page.set_margin_end(24);
     let c = st.config.borrow().clone();
 
     // Microphone.
-    let mic = adw::PreferencesGroup::builder()
-        .title(t("Microphone"))
-        .description(t("The real microphone you talk into."))
-        .build();
+    let mic = Group::new("studio-microphone", t("Microphone"), t("The real microphone you talk into."));
     mic.add(&device_row(st, t("Microphone"), true));
     mic.add(&scale_row(
         t("Microphone volume"),
@@ -199,13 +246,14 @@ pub fn build(st: &St, window: &adw::ApplicationWindow) -> adw::ToolbarView {
     mic.add(&gate);
     mic.add(&gate_level);
     mic.add(&easyeffects_row(st));
-    page.add(&mic);
+    page.append(&mic.widget);
 
     // Virtual microphone.
-    let virt = adw::PreferencesGroup::builder()
-        .title(t("Voicenux Microphone"))
-        .description(t("Apps hear your new voice through this microphone. Pick it in Discord, OBS or your game."))
-        .build();
+    let virt = Group::new(
+        "microphone",
+        t("Voicenux Microphone"),
+        t("Apps hear your new voice through this microphone. Pick it in Discord, OBS or your game."),
+    );
     let default = adw::SwitchRow::builder()
         .title(t("Use as default microphone"))
         .subtitle(t("The easiest way: every app that uses the default microphone gets your new voice."))
@@ -232,13 +280,10 @@ pub fn build(st: &St, window: &adw::ApplicationWindow) -> adw::ToolbarView {
     };
     sync_users();
     virt.add(&users);
-    page.add(&virt);
+    page.append(&virt.widget);
 
     // Hear myself.
-    let hear = adw::PreferencesGroup::builder()
-        .title(t("Hear myself"))
-        .description(t("Where you hear your own changed voice and the soundboard."))
-        .build();
+    let hear = Group::new("headphone", t("Hear myself"), t("Where you hear your own changed voice and the soundboard."));
     hear.add(&device_row(st, t("Headphones"), false));
     hear.add(&scale_row(
         t("Volume"),
@@ -252,17 +297,18 @@ pub fn build(st: &St, window: &adw::ApplicationWindow) -> adw::ToolbarView {
             move |v| st.update(|c| c.monitor_volume = v as f32)
         },
     ));
-    page.add(&hear);
+    page.append(&hear.widget);
 
     // Shortcuts.
-    let keys = adw::PreferencesGroup::builder()
-        .title(t("Shortcuts"))
-        .description(t("Work everywhere, even in games. Your desktop asks once to confirm the keys."))
-        .build();
+    let keys = Group::new(
+        "keyboard-2",
+        t("Shortcuts"),
+        t("Work everywhere, even in games. Your desktop asks once to confirm the keys."),
+    );
     let setup = gtk::Button::with_label(t("Set up shortcuts"));
     setup.add_css_class("suggested-action");
     setup.set_valign(gtk::Align::Center);
-    keys.set_header_suffix(Some(&setup));
+    keys.set_header_suffix(&setup);
     setup.connect_clicked({
         let st = st.clone();
         move |_| shortcuts::configure(&st, &st.keys)
@@ -311,10 +357,10 @@ pub fn build(st: &St, window: &adw::ApplicationWindow) -> adw::ToolbarView {
         }
     };
     sync_keys();
-    page.add(&keys);
+    page.append(&keys.widget);
 
     // Performance.
-    let perf = adw::PreferencesGroup::builder().title(t("Performance")).build();
+    let perf = Group::new("high-voltage", t("Performance"), "");
     let low = adw::SwitchRow::builder()
         .title(t("Low latency"))
         .subtitle(t("Less delay between talking and hearing yourself. Pitch effects sound a little rougher."))
@@ -325,10 +371,10 @@ pub fn build(st: &St, window: &adw::ApplicationWindow) -> adw::ToolbarView {
         move |r| st.update(|c| c.low_latency = r.is_active())
     });
     perf.add(&low);
-    page.add(&perf);
+    page.append(&perf.widget);
 
     // App.
-    let app = adw::PreferencesGroup::builder().title(t("App")).build();
+    let app = Group::new("gear", t("App"), "");
     let autostart = adw::SwitchRow::builder()
         .title(t("Start with the computer"))
         .subtitle(t("Starts in the background, without a window."))
@@ -359,14 +405,28 @@ pub fn build(st: &St, window: &adw::ApplicationWindow) -> adw::ToolbarView {
         move |r| st.update(|c| c.close_to_tray = r.is_active())
     });
     app.add(&tray);
-    let look = adw::ComboRow::builder().title(t("Appearance")).build();
-    let looks = ["system", "light", "dark"];
-    look.set_model(Some(&gtk::StringList::new(&[t("Follow system"), t("Light"), t("Dark")])));
-    look.set_selected(looks.iter().position(|l| *l == c.appearance).unwrap_or(0) as u32);
-    look.connect_selected_notify({
+    // Appearance as buttons side by side, all choices in sight.
+    let look = adw::ActionRow::builder().title(t("Appearance")).build();
+    let looks = adw::ToggleGroup::new();
+    looks.add_css_class("vn-segmented");
+    looks.set_valign(gtk::Align::Center);
+    for (name, icon, text) in [
+        ("system", "emblem-system-symbolic", t("System")),
+        ("light", "weather-clear-symbolic", t("Light")),
+        ("dark", "weather-clear-night-symbolic", t("Dark")),
+    ] {
+        looks.add(adw::Toggle::builder().name(name).icon_name(icon).label(text).tooltip(text).build());
+    }
+    looks.set_active_name(Some(&c.appearance));
+    looks.connect_active_name_notify({
         let st = st.clone();
-        move |r| st.update(|c| c.appearance = looks[r.selected() as usize].to_string())
+        move |g| {
+            if let Some(name) = g.active_name() {
+                st.update(|c| c.appearance = name.to_string());
+            }
+        }
     });
+    look.add_suffix(&looks);
     app.add(&look);
     let welcome = adw::ActionRow::builder().title(t("Show the welcome again")).activatable(true).build();
     welcome.add_suffix(&gtk::Image::from_icon_name("go-next-symbolic"));
@@ -383,7 +443,7 @@ pub fn build(st: &St, window: &adw::ApplicationWindow) -> adw::ToolbarView {
         move |_| about_dialog().present(Some(&window))
     });
     app.add(&about);
-    page.add(&app);
+    page.append(&app.widget);
 
     st.subscribe(move |c| match c {
         Change::Users => sync_users(),
@@ -392,30 +452,80 @@ pub fn build(st: &St, window: &adw::ApplicationWindow) -> adw::ToolbarView {
     });
 
     super::popup::menus_in(&page);
+    let clamp = adw::Clamp::builder().maximum_size(760).tightening_threshold(560).child(&page).build();
+    let scroll = gtk::ScrolledWindow::builder().hscrollbar_policy(gtk::PolicyType::Never).child(&clamp).build();
+    smooth_scroll(&scroll);
     let view = adw::ToolbarView::new();
     view.add_top_bar(&header);
-    view.set_content(Some(&page));
+    view.set_content(Some(&scroll));
     view
 }
 
-pub fn about_dialog() -> adw::AboutDialog {
-    let d = adw::AboutDialog::builder()
-        .application_name("Voicenux")
-        .application_icon(crate::app::APP_ID)
-        .developer_name("Felitendo")
-        .version(env!("CARGO_PKG_VERSION"))
-        .website("https://github.com/voicenux/voicenux")
-        .issue_url("https://github.com/voicenux/voicenux/issues")
-        .license_type(gtk::License::Bsd3)
-        .comments(t("Change your voice in real time, in any app. Made for Linux and PipeWire."))
-        .build();
-    d.add_credit_section(
-        Some(t("Pictures")),
-        &["Fluent Emoji by Microsoft (MIT) https://github.com/microsoft/fluentui-emoji"],
-    );
-    d.add_credit_section(
-        Some(t("Thanks to")),
-        &["Freeverb by Jezar at Dreampoint", "RNNoise by Xiph.Org", "Symphonia", "gtk-rs"],
-    );
-    d
+/// About Voicenux: the logo, the version, links and who to thank.
+pub fn about_dialog() -> adw::Dialog {
+    let body = gtk::Box::new(gtk::Orientation::Vertical, 10);
+    body.set_margin_top(4);
+    body.set_margin_bottom(26);
+    body.set_margin_start(28);
+    body.set_margin_end(28);
+    let logo = super::logo(104);
+    logo.add_css_class("vn-about-logo");
+    body.append(&logo);
+    body.append(&label("Voicenux", &["vn-hero-title"]));
+    let version = label(env!("CARGO_PKG_VERSION"), &["vn-version", "numeric"]);
+    version.set_halign(gtk::Align::Center);
+    body.append(&version);
+    let about = label(t("Change your voice in real time, in any app. Made for Linux and PipeWire."), &["dim-label"]);
+    about.set_wrap(true);
+    about.set_justify(gtk::Justification::Center);
+    about.set_max_width_chars(40);
+    about.set_margin_top(4);
+    body.append(&about);
+    body.append(&label(&fill(t("Made by {}"), &["Felitendo"]), &["caption", "dim-label"]));
+
+    let links = gtk::Box::new(gtk::Orientation::Horizontal, 10);
+    links.set_halign(gtk::Align::Center);
+    links.set_margin_top(10);
+    for (pic, text, url) in [
+        ("globe-with-meridians", t("Website"), "https://github.com/voicenux/voicenux"),
+        ("lady-beetle", t("Report a bug"), "https://github.com/voicenux/voicenux/issues"),
+        ("hot-beverage", t("Buy me a coffee"), "https://ko-fi.com/felitendo"),
+    ] {
+        let row = gtk::Box::new(gtk::Orientation::Horizontal, 8);
+        row.append(&icon(pic, 20));
+        row.append(&label(text, &[]));
+        let b = gtk::Button::builder().child(&row).css_classes(["pill"]).tooltip_text(url).build();
+        b.connect_clicked(move |b| {
+            let window = b.root().and_downcast::<gtk::Window>();
+            gtk::UriLauncher::new(url).launch(window.as_ref(), None::<&gtk::gio::Cancellable>, |_| {});
+        });
+        links.append(&b);
+    }
+    body.append(&links);
+
+    let credits = gtk::Box::new(gtk::Orientation::Vertical, 6);
+    credits.add_css_class("vn-keys-card");
+    credits.set_margin_top(14);
+    for (title, names) in [
+        (t("Pictures"), vec!["Fluent Emoji by Microsoft (MIT)"]),
+        (t("Thanks to"), vec!["Freeverb by Jezar at Dreampoint", "RNNoise by Xiph.Org", "Symphonia", "gtk-rs"]),
+    ] {
+        let head = label(title, &["heading"]);
+        head.set_xalign(0.0);
+        credits.append(&head);
+        let list = label(&names.join(" · "), &["dim-label"]);
+        list.set_xalign(0.0);
+        list.set_wrap(true);
+        credits.append(&list);
+    }
+    let license = label(&fill(t("Free software under the {} license."), &["BSD-3-Clause"]), &["caption", "dim-label"]);
+    license.set_xalign(0.0);
+    license.set_margin_top(4);
+    credits.append(&license);
+    body.append(&credits);
+
+    let view = adw::ToolbarView::new();
+    view.add_top_bar(&adw::HeaderBar::builder().show_title(false).build());
+    view.set_content(Some(&body));
+    adw::Dialog::builder().content_width(520).child(&view).build()
 }

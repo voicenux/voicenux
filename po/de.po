@@ -1679,6 +1679,9 @@ msgstr "Tasten in der App"
 msgid "Ctrl+F searches, Ctrl+T turns the voice changer on or off, and more."
 msgstr "Strg+F sucht, Strg+T schaltet den Stimmverzerrer an oder aus, und mehr."
 
+msgid "System"
+msgstr "System"
+
 msgid "Removed {}"
 msgstr "{} entfernt"
 
@@ -1702,3 +1705,18 @@ msgstr "Vergrößern oder verkleinern, auch mit Strg und Mausrad"
 
 msgid "Show all of the sound"
 msgstr "Ganzen Sound zeigen"
+
+msgid "Made by {}"
+msgstr "Von {}"
+
+msgid "Website"
+msgstr "Webseite"
+
+msgid "Report a bug"
+msgstr "Fehler melden"
+
+msgid "Buy me a coffee"
+msgstr "Spendier mir einen Kaffee"
+
+msgid "Free software under the {} license."
+msgstr "Freie Software unter der Lizenz {}."

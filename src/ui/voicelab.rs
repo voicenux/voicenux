@@ -83,7 +83,7 @@ pub fn build(st: &St) -> Lab {
     smooth_scroll(&editor_scroll);
 
     let empty = adw::StatusPage::builder()
-        .icon_name("applications-science-symbolic")
+        .paintable(&super::load_picture("alembic"))
         .title(t("Make a voice of your own"))
         .description(t("Stack effects like pitch, echo or robot and tune every setting. Start from scratch, or press Customize on any voice."))
         .build();

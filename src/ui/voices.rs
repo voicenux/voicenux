@@ -69,7 +69,7 @@ pub fn build(st: &St, open_lab: OpenLab) -> VoicesPage {
     smooth_scroll(&grid_scroll);
 
     let empty = adw::StatusPage::builder()
-        .icon_name("edit-find-symbolic")
+        .paintable(&super::load_picture("magnifying-glass-tilted-left"))
         .title(t("No voices found"))
         .description(t("Try another word or category."))
         .build();

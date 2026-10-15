@@ -22,11 +22,12 @@ pub struct Window {
     st: St,
 }
 
+/// The pages: name, picture and title.
 pub const PAGES: &[(&str, &str, &str)] = &[
-    ("voices", "audio-input-microphone-symbolic", "Voices"),
-    ("soundboard", "view-app-grid-symbolic", "Soundboard"),
-    ("voicelab", "applications-science-symbolic", "Voicelab"),
-    ("settings", "preferences-system-symbolic", "Settings"),
+    ("voices", "studio-microphone", "Voices"),
+    ("soundboard", "speaker-high-volume", "Soundboard"),
+    ("voicelab", "alembic", "Voicelab"),
+    ("settings", "gear", "Settings"),
 ];
 
 impl Window {
@@ -182,7 +183,7 @@ pub fn build(app: &adw::Application, st: &St) -> Window {
     nav.add_css_class("vn-nav");
     for (i, (_, pic, title)) in PAGES.iter().enumerate() {
         let row = gtk::Box::new(gtk::Orientation::Horizontal, 12);
-        row.append(&gtk::Image::from_icon_name(pic));
+        row.append(&super::icon(pic, 26));
         row.append(&gtk::Label::new(Some(t_dyn(title).as_str())));
         nav.append(&row);
         if let Some(r) = nav.row_at_index(i as i32) {
@@ -218,6 +219,7 @@ pub fn build(app: &adw::Application, st: &St) -> Window {
 
     let banner = adw::Banner::new("");
     let content = gtk::Box::new(gtk::Orientation::Vertical, 0);
+    content.add_css_class("vn-content");
     content.append(&banner);
     stack.set_vexpand(true);
     content.append(&stack);

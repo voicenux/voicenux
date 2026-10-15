@@ -81,7 +81,7 @@ pub fn build(st: &St) -> SoundboardPage {
     smooth_scroll(&scroll);
 
     let empty = adw::StatusPage::builder()
-        .icon_name("view-app-grid-symbolic")
+        .paintable(&super::texture("speaker-high-volume"))
         .title(t("No sounds yet"))
         .description(t("Add audio files, or drop them here. MP3, OGG, FLAC and WAV work."))
         .build();

@@ -71,6 +71,10 @@ pub fn build(st: &St) -> (gtk::CenterBox, [gtk::Widget; 2]) {
     live_box.append(&live_label);
     live.set_child(Some(&live_box));
     live.set_popover(Some(&help_popover()));
+    // The button inside too, so it stays flat in the raised look.
+    if let Some(inner) = live.first_child() {
+        inner.add_css_class("flat");
+    }
     right.append(&live);
 
     bar.set_start_widget(Some(&left));

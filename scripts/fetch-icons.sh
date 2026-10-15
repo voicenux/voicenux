@@ -117,4 +117,13 @@ high-voltage|High voltage/3D/high_voltage_3d.png
 loudspeaker|Loudspeaker/3D/loudspeaker_3d.png
 level|Level slider/3D/level_slider_3d.png
 basketball|Basketball/3D/basketball_3d.png
+gear|Gear/3D/gear_3d.png
+alembic|Alembic/3D/alembic_3d.png
+keyboard-2|Keyboard/3D/keyboard_3d.png
+magnifying-glass-tilted-left|Magnifying glass tilted left/3D/magnifying_glass_tilted_left_3d.png
+globe-with-meridians|Globe with meridians/3D/globe_with_meridians_3d.png
+lady-beetle|Lady beetle/3D/lady_beetle_3d.png
+hot-beverage|Hot beverage/3D/hot_beverage_3d.png
+scissors|Scissors/3D/scissors_3d.png
+speaker-high-volume|Speaker high volume/3D/speaker_high_volume_3d.png
 LIST
