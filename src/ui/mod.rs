@@ -163,16 +163,13 @@ pub fn fold(s: &str) -> String {
 }
 
 /// A search field with a little "Ctrl F" key cap at its end while it is empty and not focused.
-/// Escape empties it, a second Escape leaves it.
+/// Escape empties it, a second Escape leaves it. It goes at the end of a header bar: in the
+/// middle it would leave no room to drag the window.
 pub fn search_field(placeholder: &str) -> (gtk::Overlay, gtk::SearchEntry) {
-    // Narrow when the window is, wide when there is room.
-    let entry = gtk::SearchEntry::builder()
-        .placeholder_text(placeholder)
-        .hexpand(true)
-        .width_chars(10)
-        .max_width_chars(34)
-        .build();
+    // Narrow when the window is, wider when there is room.
+    let entry = gtk::SearchEntry::builder().placeholder_text(placeholder).width_chars(10).max_width_chars(17).build();
     entry.add_css_class("vn-search");
+    entry.add_css_class("vn-capped");
     let caps = gtk::Box::new(gtk::Orientation::Horizontal, 3);
     caps.append(&label(crate::i18n::t("Ctrl"), &["vn-key"]));
     caps.append(&label("F", &["vn-key"]));
@@ -188,7 +185,14 @@ pub fn search_field(placeholder: &str) -> (gtk::Overlay, gtk::SearchEntry) {
         let (entry, caps, focus) = (entry.downgrade(), caps.clone(), focus.downgrade());
         move || {
             if let (Some(e), Some(f)) = (entry.upgrade(), focus.upgrade()) {
-                caps.set_visible(e.text().is_empty() && !f.contains_focus());
+                let show = e.text().is_empty() && !f.contains_focus();
+                caps.set_visible(show);
+                // Keeps the placeholder clear of the key caps.
+                if show {
+                    e.add_css_class("vn-capped");
+                } else {
+                    e.remove_css_class("vn-capped");
+                }
             }
         }
     };

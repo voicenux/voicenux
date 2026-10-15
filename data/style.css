@@ -999,6 +999,10 @@ entry.vn-search {
   padding-left: 12px;
 }
 
+entry.vn-search.vn-capped > text {
+  margin-right: 52px;
+}
+
 entry.search > image {
   color: var(--accent-color);
 }
