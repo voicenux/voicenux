@@ -1,34 +1,46 @@
-//! Cuts the start and end of a sound, like a video clip: its waveform with two handles, and a
-//! playhead that says where listening starts. Listening plays in the headphones only.
+//! Cuts the start and end of a sound, like a video clip: a time ruler, the waveform with two
+//! handles, and a playhead that says where listening starts. Listening plays in the headphones only.
 //!
-//! Mouse: drag a handle to cut, drag the playhead or click into the cut to move it, click
-//! outside the cut to move the nearest handle there. Keys: Space listens or pauses, the arrows
-//! move the playhead (Shift for bigger steps), Home and End jump to the ends of the cut, I and O
-//! set the start and end at the playhead, Ctrl+S saves, Escape cancels.
+//! Mouse: drag a handle to cut, drag the playhead, click into the cut or the ruler to move it,
+//! click outside the cut to move the nearest handle there. Ctrl with the wheel zooms, the wheel
+//! alone scrolls along a zoomed sound. Keys work wherever the focus is, only typing a time keeps
+//! them: Space listens or pauses, ← and → move the playhead (Shift for bigger steps, Ctrl for
+//! smaller ones), Home and End or ↑ and ↓ jump to the ends of the cut, I and O set the start and
+//! end at the playhead, + and − zoom, 0 shows all, Ctrl+Z undoes, Ctrl+S saves, Escape cancels.
 
-use std::cell::Cell;
+use std::cell::{Cell, RefCell};
 use std::rc::Rc;
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 
 use adw::prelude::*;
-use gtk::{cairo, gdk, glib};
+use gtk::{gdk, glib, graphene, gsk, pango};
 
+use super::visuals::{BRAND, Canvas, rgba};
 use super::{label, value_field};
 use crate::i18n::{fill, t, t_dyn};
 use crate::soundboard::{self, RATE, SoundData};
 use crate::state::{Change, St};
 
 /// Width of a handle.
-const HANDLE: f64 = 14.0;
+const HANDLE: f32 = 14.0;
+/// Height of the time ruler above the waveform.
+const RULER: f32 = 26.0;
+/// Height of the waveform.
+const WAVE: f32 = 150.0;
 /// The shortest sound a cut leaves, in seconds.
 const SHORTEST: f32 = 0.05;
-/// How finely the waveform is kept.
-const PEAKS: usize = 1600;
+/// How finely the waveform is kept, at least and at most. Long sounds get more, for zooming.
+const PEAKS: (usize, usize) = (1600, 120_000);
+/// The shortest stretch the editor zooms in to, in seconds.
+const CLOSEST: f32 = 0.05;
 /// How far the pointer may be from the playhead to grab it.
-const HEAD_REACH: f64 = 7.0;
-const ACCENT: (f64, f64, f64) = (0.23, 0.51, 0.96);
-const ACCENT_LIGHT: (f64, f64, f64) = (0.42, 0.66, 1.0);
+const HEAD_REACH: f32 = 7.0;
+/// Labels on the ruler are at least this far apart, in pixels.
+const LABEL_GAP: f32 = 70.0;
+const ACCENT: (f32, f32, f32) = (0.23, 0.51, 0.96);
+const ACCENT_LIGHT: (f32, f32, f32) = (0.42, 0.66, 1.0);
+const WHITE: (f32, f32, f32) = (1.0, 1.0, 1.0);
 
 #[derive(Clone, Copy, PartialEq)]
 enum Side {
@@ -36,9 +48,11 @@ enum Side {
     End,
 }
 
-/// What is under the pointer on the waveform.
+/// What is under the pointer.
 #[derive(Clone, Copy, PartialEq)]
 enum Zone {
+    /// The time ruler: a click moves the playhead there.
+    Ruler,
     Handle(Side),
     Head,
     /// Inside the cut: a click moves the playhead there.
@@ -47,11 +61,11 @@ enum Zone {
     Outside,
 }
 
-/// What a drag on the waveform moves.
+/// What a drag moves.
 #[derive(Clone, Copy, PartialEq)]
 enum Grab {
     /// A handle, and how far the pointer is from its edge.
-    Handle(Side, f64),
+    Handle(Side, f32),
     Head,
 }
 
@@ -64,12 +78,26 @@ struct Trim {
     length: f32,
     start: Cell<f32>,
     end: Cell<f32>,
-    wave: gtk::DrawingArea,
+    /// The cut as it is saved, to know if there is something to lose.
+    saved: (f32, f32),
+    /// Earlier cuts for Ctrl+Z, and undone ones for Ctrl+Shift+Z.
+    undo: RefCell<Vec<(f32, f32)>>,
+    redo: RefCell<Vec<(f32, f32)>>,
+    dialog: glib::WeakRef<adw::Dialog>,
+    wave: Canvas,
+    /// The part of the sound on screen: its value is where it starts, its page size how long it
+    /// is. All of it, until you zoom.
+    view: gtk::Adjustment,
+    /// Scrolls a zoomed sound. Clear while all of it shows.
+    scrollbar: gtk::Scrollbar,
     /// The time of what is dragged or pointed at, over the waveform.
     bubble: gtk::Label,
     start_field: gtk::EditableLabel,
     end_field: gtk::EditableLabel,
     cut_length: gtk::Label,
+    /// Where the playhead is, next to the play button.
+    clock: gtk::Label,
+    total: gtk::Label,
     play: gtk::Button,
     /// When listening started, while it plays.
     playing: Cell<Option<Instant>>,
@@ -80,8 +108,8 @@ struct Trim {
     /// Listening went on when a drag began, so it goes on after.
     resume: Cell<bool>,
     hover: Cell<Option<Zone>>,
-    /// Where the pointer is over the waveform, in pixels.
-    pointer: Cell<f64>,
+    /// Where the pointer is, in pixels.
+    pointer: Cell<(f32, f32)>,
     dragging: Cell<Option<Grab>>,
 }
 
@@ -97,7 +125,23 @@ pub fn open(st: &St, id: &str, parent: &impl IsA<gtk::Widget>) {
         return;
     }
 
-    let wave = gtk::DrawingArea::builder().content_height(150).hexpand(true).focusable(true).build();
+    // The editor draws itself; it exists only after the widgets, so they reach it through this.
+    let editor: Rc<std::cell::OnceCell<std::rc::Weak<Trim>>> = Rc::default();
+    let with = {
+        let editor = editor.clone();
+        move || editor.get().and_then(|e| e.upgrade())
+    };
+
+    let wave = Canvas::new(-1, (RULER + WAVE) as i32, {
+        let with = with.clone();
+        move |w, s, width, height| {
+            if let Some(e) = with() {
+                e.draw(w, s, width, height);
+            }
+        }
+    });
+    wave.set_hexpand(true);
+    wave.set_focusable(true);
     wave.add_css_class("vn-trim-wave");
     wave.update_property(&[gtk::accessible::Property::Label(t("Waveform"))]);
     let bubble = label("", &["vn-trim-bubble", "numeric"]);
@@ -112,18 +156,19 @@ pub fn open(st: &St, id: &str, parent: &impl IsA<gtk::Widget>) {
 
     let play = gtk::Button::new();
     play.add_css_class("vn-gradient-button");
+    play.set_tooltip_text(Some(t("Listen or pause (Space)")));
 
-    // The fields read the times back from the editor, which only exists after them.
-    let editor: Rc<std::cell::OnceCell<std::rc::Weak<Trim>>> = Rc::default();
     let field = |side: Side| {
-        let (e1, e2) = (editor.clone(), editor.clone());
+        let (w1, w2) = (with.clone(), with.clone());
         value_field(
-            move || e1.get().and_then(|e| e.upgrade()).map(|e| format!("{:.2}", e.time(side))).unwrap_or_default(),
+            move || w1().map(|e| format!("{:.2}", e.time(side))).unwrap_or_default(),
             move |f, text| {
-                let Some(e) = e2.get().and_then(|e| e.upgrade()) else { return };
+                let Some(e) = w2() else { return };
                 if let Ok(v) = text.replace(',', ".").trim_end_matches('s').trim().parse::<f32>()
                     && v.is_finite()
+                    && (v - e.time(side)).abs() > 1e-4
                 {
+                    e.remember();
                     e.set(side, v);
                 }
                 f.set_text(&seconds(e.time(side)));
@@ -137,48 +182,62 @@ pub fn open(st: &St, id: &str, parent: &impl IsA<gtk::Widget>) {
         f.set_max_width_chars(6);
     }
 
+    let dialog = adw::Dialog::builder().content_width(680).build();
+    let start = sound.start.clamp(0.0, length - SHORTEST);
+    let mut end = sound.end.unwrap_or(length).clamp(SHORTEST, length);
+    if end <= start {
+        end = length;
+    }
+    let view = gtk::Adjustment::new(0.0, 0.0, length as f64, 0.1, 1.0, length as f64);
+    let scrollbar = gtk::Scrollbar::new(gtk::Orientation::Horizontal, Some(&view));
+    scrollbar.add_css_class("vn-trim-scroll");
+    scrollbar.set_opacity(0.0);
+    scrollbar.set_can_target(false);
     let e = Rc::new(Trim {
         st: st.clone(),
         id: id.to_string(),
-        peaks: soundboard::peaks(&data, PEAKS),
+        peaks: soundboard::peaks(&data, (data.frames.len() / 32).clamp(PEAKS.0, PEAKS.1)),
         data,
         length,
-        start: Cell::new(sound.start.clamp(0.0, length - SHORTEST)),
-        end: Cell::new(sound.end.unwrap_or(length).clamp(SHORTEST, length)),
+        start: Cell::new(start),
+        end: Cell::new(end),
+        saved: (start, end),
+        undo: RefCell::default(),
+        redo: RefCell::default(),
+        dialog: dialog.downgrade(),
         wave: wave.clone(),
+        view: view.clone(),
+        scrollbar: scrollbar.clone(),
         bubble,
         start_field: start_field.clone(),
         end_field: end_field.clone(),
         cut_length: label("", &["numeric"]),
+        clock: label("", &["vn-trim-clock", "numeric"]),
+        total: label(&format!("/ {}", seconds(length)), &["dim-label", "numeric"]),
         play: play.clone(),
         playing: Cell::new(None),
-        head: Cell::new(0.0),
-        from: Cell::new(0.0),
+        head: Cell::new(start),
+        from: Cell::new(start),
         resume: Cell::new(false),
         hover: Cell::new(None),
-        pointer: Cell::new(0.0),
+        pointer: Cell::new((0.0, 0.0)),
         dragging: Cell::new(None),
     });
     let _ = editor.set(Rc::downgrade(&e));
-    if e.end.get() <= e.start.get() {
-        e.end.set(length);
-    }
-    e.head.set(e.start.get());
-
-    wave.set_draw_func({
-        let e = Rc::downgrade(&e);
-        move |area, cr, w, h| {
-            if let Some(e) = e.upgrade() {
-                e.draw(area, cr, w as f64, h as f64);
+    e.pointer_events();
+    e.wheel();
+    view.connect_value_changed({
+        let with = with.clone();
+        move |_| {
+            if let Some(e) = with() {
+                e.refresh();
             }
         }
     });
-    e.pointer_events();
-    e.wave_keys();
     play.connect_clicked({
-        let e = Rc::downgrade(&e);
+        let with = with.clone();
         move |_| {
-            if let Some(e) = e.upgrade() {
+            if let Some(e) = with() {
                 e.toggle_play();
             }
         }
@@ -199,46 +258,85 @@ pub fn open(st: &St, id: &str, parent: &impl IsA<gtk::Widget>) {
     let reset = gtk::Button::with_label(t("Use all of it"));
     reset.add_css_class("pill");
     reset.connect_clicked({
-        let e = Rc::downgrade(&e);
+        let with = with.clone();
         move |_| {
-            if let Some(e) = e.upgrade() {
+            if let Some(e) = with() {
+                e.remember();
                 e.set(Side::Start, 0.0);
                 e.set(Side::End, e.length);
             }
         }
     });
-    let buttons = gtk::Box::new(gtk::Orientation::Horizontal, 10);
-    buttons.set_halign(gtk::Align::Center);
-    buttons.append(&play);
-    buttons.append(&reset);
+    // Like a video player: play, and where the playhead is.
+    let transport = gtk::Box::new(gtk::Orientation::Horizontal, 12);
+    transport.append(&play);
+    let clock = gtk::Box::new(gtk::Orientation::Horizontal, 5);
+    clock.append(&e.clock);
+    clock.append(&e.total);
+    transport.append(&clock);
+    let zoom_button = |icon: &str, tip: &str, key: &str, factor: f32| {
+        let b = gtk::Button::from_icon_name(icon);
+        b.add_css_class("circular");
+        b.set_valign(gtk::Align::Center);
+        b.set_tooltip_text(Some(&format!("{tip} ({key})")));
+        let with = with.clone();
+        b.connect_clicked(move |_| {
+            if let Some(e) = with() {
+                e.zoom(factor, e.head.get());
+            }
+        });
+        b
+    };
+    let tools = gtk::Box::new(gtk::Orientation::Horizontal, 8);
+    tools.append(&zoom_button("zoom-out-symbolic", t("Zoom out"), "−", 1.0 / 1.6));
+    tools.append(&zoom_button("zoom-in-symbolic", t("Zoom in"), "+", 1.6));
+    reset.set_margin_start(4);
+    tools.append(&reset);
+    let buttons = gtk::CenterBox::new();
+    buttons.set_start_widget(Some(&transport));
+    buttons.set_end_widget(Some(&tools));
 
     let headphones = label(t("Listening plays in your headphones only."), &["dim-label", "caption"]);
-    headphones.set_wrap(true);
-    headphones.set_justify(gtk::Justification::Center);
+    headphones.set_ellipsize(gtk::pango::EllipsizeMode::End);
+    headphones.set_xalign(0.0);
+    headphones.set_hexpand(true);
 
     let body = gtk::Box::new(gtk::Orientation::Vertical, 16);
-    body.set_margin_top(12);
-    body.set_margin_bottom(20);
+    body.set_margin_top(8);
+    body.set_margin_bottom(14);
     body.set_margin_start(20);
     body.set_margin_end(20);
-    body.append(&wave_box);
+    let wave_and_bar = gtk::Box::new(gtk::Orientation::Vertical, 2);
+    wave_and_bar.append(&wave_box);
+    scrollbar.set_margin_start(HANDLE as i32);
+    scrollbar.set_margin_end(HANDLE as i32);
+    wave_and_bar.append(&scrollbar);
+    body.append(&wave_and_bar);
     body.append(&times);
     body.append(&buttons);
     body.append(&key_hints());
-    body.append(&headphones);
 
-    let dialog = adw::Dialog::builder().content_width(640).build();
+    // Cancel and Save at the bottom right, where other desktops have them.
+    let cancel = gtk::Button::with_label(t("Cancel"));
+    cancel.set_tooltip_text(Some(t("Close without saving (Esc)")));
+    let save = gtk::Button::with_label(t("Save"));
+    save.add_css_class("suggested-action");
+    save.set_tooltip_text(Some(t("Save the cut")));
+    let actions = gtk::Box::new(gtk::Orientation::Horizontal, 10);
+    actions.append(&cancel);
+    actions.append(&save);
+    let footer = gtk::Box::new(gtk::Orientation::Horizontal, 16);
+    footer.add_css_class("vn-dialog-footer");
+    footer.append(&headphones);
+    footer.append(&actions);
+
     let header = adw::HeaderBar::new();
     header.set_show_end_title_buttons(false);
     header.set_title_widget(Some(&adw::WindowTitle::new(t("Trim sound"), &t_dyn(&sound.name))));
-    let cancel = gtk::Button::with_label(t("Cancel"));
-    let save = gtk::Button::with_label(t("Save"));
-    save.add_css_class("suggested-action");
-    header.pack_start(&cancel);
-    header.pack_end(&save);
     let view = adw::ToolbarView::new();
     view.add_top_bar(&header);
     view.set_content(Some(&body));
+    view.add_bottom_bar(&footer);
     dialog.set_child(Some(&view));
     // Enter saves.
     dialog.set_default_widget(Some(&save));
@@ -247,16 +345,16 @@ pub fn open(st: &St, id: &str, parent: &impl IsA<gtk::Widget>) {
         let dialog = dialog.downgrade();
         move |_| {
             if let Some(d) = dialog.upgrade() {
-                d.close();
+                d.force_close();
             }
         }
     });
     let save_and_close = Rc::new({
-        let (e, dialog) = (Rc::downgrade(&e), dialog.downgrade());
+        let (with, dialog) = (with.clone(), dialog.downgrade());
         move || {
-            if let (Some(e), Some(d)) = (e.upgrade(), dialog.upgrade()) {
+            if let (Some(e), Some(d)) = (with(), dialog.upgrade()) {
                 e.save();
-                d.close();
+                d.force_close();
             }
         }
     });
@@ -264,39 +362,73 @@ pub fn open(st: &St, id: &str, parent: &impl IsA<gtk::Widget>) {
         let save_and_close = save_and_close.clone();
         move |_| save_and_close()
     });
-    // Before any button sees it: Space listens, like in video editors, wherever the focus is.
-    // Only typing a time keeps its Space.
+    // Before any button sees them, so a focused button never takes Space or the arrows. Only
+    // typing a time keeps its keys.
     let keys = gtk::EventControllerKey::new();
     keys.set_propagation_phase(gtk::PropagationPhase::Capture);
     keys.connect_key_pressed({
-        let (e, dialog) = (Rc::downgrade(&e), dialog.downgrade());
-        move |_, key, _, mods| {
-            let (Some(e), Some(d)) = (e.upgrade(), dialog.upgrade()) else { return glib::Propagation::Proceed };
-            let typing = d.focus().is_some_and(|f| f.is::<gtk::Text>());
-            match key {
-                gdk::Key::space | gdk::Key::KP_Space if !typing => {
-                    e.toggle_play();
-                    glib::Propagation::Stop
-                }
-                gdk::Key::s | gdk::Key::S if mods.contains(gdk::ModifierType::CONTROL_MASK) => {
-                    save_and_close();
-                    glib::Propagation::Stop
-                }
-                _ => glib::Propagation::Proceed,
+        let (with, dialog) = (with.clone(), dialog.downgrade());
+        move |c, key, _, mods| {
+            let (Some(e), Some(d)) = (with(), dialog.upgrade()) else { return glib::Propagation::Proceed };
+            // Keys in a menu over the dialog, like the one of a time field, belong to the menu.
+            if c.current_event().and_then(|ev| ev.surface()) != d.native().and_then(|n| n.surface()) {
+                return glib::Propagation::Proceed;
             }
+            let ctrl = mods.contains(gdk::ModifierType::CONTROL_MASK);
+            let shift = mods.contains(gdk::ModifierType::SHIFT_MASK);
+            if ctrl && matches!(key, gdk::Key::s | gdk::Key::S) {
+                save_and_close();
+                return glib::Propagation::Stop;
+            }
+            if d.focus().is_some_and(|f| f.is::<gtk::Text>()) {
+                return glib::Propagation::Proceed;
+            }
+            let step = if shift {
+                1.0
+            } else if ctrl {
+                0.01
+            } else {
+                0.1
+            };
+            match key {
+                gdk::Key::space | gdk::Key::KP_Space => e.toggle_play(),
+                gdk::Key::Left | gdk::Key::KP_Left => e.seek(e.head.get() - step),
+                gdk::Key::Right | gdk::Key::KP_Right => e.seek(e.head.get() + step),
+                gdk::Key::Home | gdk::Key::KP_Home | gdk::Key::Up | gdk::Key::KP_Up => e.seek(e.start.get()),
+                gdk::Key::End | gdk::Key::KP_End | gdk::Key::Down | gdk::Key::KP_Down => e.seek(e.end.get()),
+                gdk::Key::i | gdk::Key::I if !ctrl => {
+                    e.remember();
+                    e.set(Side::Start, e.head.get());
+                }
+                gdk::Key::o | gdk::Key::O if !ctrl => {
+                    e.remember();
+                    e.set(Side::End, e.head.get());
+                }
+                gdk::Key::plus | gdk::Key::equal | gdk::Key::KP_Add if !ctrl => e.zoom(1.6, e.head.get()),
+                gdk::Key::minus | gdk::Key::KP_Subtract if !ctrl => e.zoom(1.0 / 1.6, e.head.get()),
+                gdk::Key::_0 | gdk::Key::KP_0 if !ctrl => e.zoom(0.0, 0.0),
+                gdk::Key::z | gdk::Key::Z if ctrl && shift => e.step_history(false),
+                gdk::Key::z | gdk::Key::Z if ctrl => e.step_history(true),
+                gdk::Key::y | gdk::Key::Y if ctrl => e.step_history(false),
+                gdk::Key::Escape => d.force_close(),
+                _ => return glib::Propagation::Proceed,
+            }
+            glib::Propagation::Stop
         }
     });
     dialog.add_controller(keys);
     // The playhead moves while listening.
     wave.add_tick_callback({
-        let e = Rc::downgrade(&e);
+        let with = with.clone();
         move |_, _| {
-            let Some(e) = e.upgrade() else { return glib::ControlFlow::Break };
+            let Some(e) = with() else { return glib::ControlFlow::Break };
             e.follow();
             glib::ControlFlow::Continue
         }
     });
     e.update();
+    // Closing the window with a cut that is not saved: the dialog pulses instead.
+    dialog.connect_close_attempt(super::popup::nudge);
     // The dialog keeps the editor while it is open.
     dialog.connect_closed(move |_| e.stop());
     // The keys work right away.
@@ -313,6 +445,7 @@ fn key_hints() -> gtk::Box {
         (vec![t("Spacebar")], t("Listen")),
         (vec!["←", "→"], t("Move the playhead")),
         (vec!["I", "O"], t("Set start and end")),
+        (vec![t("Ctrl"), "Z"], t("Undo")),
     ] {
         let item = gtk::Box::new(gtk::Orientation::Horizontal, 4);
         for k in keys {
@@ -328,6 +461,51 @@ fn key_hints() -> gtk::Box {
 
 fn seconds(v: f32) -> String {
     format!("{v:.2} s")
+}
+
+/// A good step between labels on the ruler, and how many small ticks it has, for `per_second`
+/// pixels in a second.
+fn ruler_steps(per_second: f32) -> (f32, u32) {
+    const STEPS: [(f32, u32); 16] = [
+        (0.05, 5),
+        (0.1, 5),
+        (0.2, 4),
+        (0.25, 5),
+        (0.5, 5),
+        (1.0, 5),
+        (2.0, 4),
+        (5.0, 5),
+        (10.0, 5),
+        (15.0, 3),
+        (30.0, 6),
+        (60.0, 6),
+        (120.0, 4),
+        (300.0, 5),
+        (600.0, 6),
+        (1800.0, 6),
+    ];
+    STEPS.into_iter().find(|(step, _)| step * per_second >= LABEL_GAP).unwrap_or(STEPS[STEPS.len() - 1])
+}
+
+/// A ruler label: "1.5 s", or "1:30" in sounds of a minute or more.
+fn ruler_label(v: f32, step: f32, long: bool) -> String {
+    // As many decimals as the step needs: 0.25 needs two, 0.5 one.
+    let decimals = (0..3).find(|d| ((step * 10f32.powi(*d)).fract()).abs() < 1e-3).unwrap_or(2) as usize;
+    if long {
+        let whole = v.floor() as u32;
+        let rest = if decimals > 0 { format!("{:.*}", decimals, v.fract()).trim_start_matches('0').to_string() } else { String::new() };
+        format!("{}:{:02}{rest}", whole / 60, whole % 60)
+    } else {
+        format!("{v:.decimals$} s")
+    }
+}
+
+/// A rectangle with round corners, filled.
+fn fill_round(s: &gtk::Snapshot, rect: graphene::Rect, r: f32, color: &gdk::RGBA) {
+    let rounded = gsk::RoundedRect::from_rect(rect, r);
+    s.push_rounded_clip(&rounded);
+    s.append_color(color, &rect);
+    s.pop();
 }
 
 impl Trim {
@@ -349,6 +527,28 @@ impl Trim {
         self.update();
     }
 
+    /// Keeps the cut as it is now for Ctrl+Z. Called before every change.
+    fn remember(&self) {
+        let now = (self.start.get(), self.end.get());
+        let mut undo = self.undo.borrow_mut();
+        if undo.last() != Some(&now) {
+            undo.push(now);
+        }
+        self.redo.borrow_mut().clear();
+    }
+
+    /// Goes back one cut, or forward again.
+    fn step_history(&self, back: bool) {
+        let (from, to) = if back { (&self.undo, &self.redo) } else { (&self.redo, &self.undo) };
+        let Some((start, end)) = from.borrow_mut().pop() else { return };
+        to.borrow_mut().push((self.start.get(), self.end.get()));
+        self.start.set(start);
+        self.end.set(end);
+        self.head.set(self.head.get().clamp(start, end));
+        self.stop();
+        self.update();
+    }
+
     /// Moves the playhead, inside the cut.
     fn set_head(&self, v: f32) {
         self.head.set(v.clamp(self.start.get(), self.end.get()));
@@ -366,17 +566,23 @@ impl Trim {
     }
 
     fn update(&self) {
-        self.start_field.set_text(&seconds(self.start.get()));
-        self.end_field.set_text(&seconds(self.end.get()));
-        self.cut_length.set_label(&seconds(self.end.get() - self.start.get()));
+        let (start, end) = (self.start.get(), self.end.get());
+        self.start_field.set_text(&seconds(start));
+        self.end_field.set_text(&seconds(end));
+        self.cut_length.set_label(&seconds(end - start));
+        // A cut that is not saved yet stays open on a click next to the dialog.
+        if let Some(d) = self.dialog.upgrade() {
+            d.set_can_close((start, end) == self.saved);
+        }
         self.refresh();
     }
 
-    /// Redraws, and puts the cursor, the bubble and the play button in step.
+    /// Redraws, and puts the cursor, the bubble, the clock and the play button in step.
     fn refresh(&self) {
         self.wave.queue_draw();
         self.show_play();
-        let w = self.wave.width() as f64;
+        self.show_clock();
+        let w = self.wave.width() as f32;
         let cursor = match (self.dragging.get(), self.hover.get()) {
             (Some(Grab::Head), _) => "grabbing",
             (Some(Grab::Handle(..)), _) | (None, Some(Zone::Handle(_))) => "ew-resize",
@@ -388,15 +594,15 @@ impl Trim {
         let shown = match (self.dragging.get(), self.hover.get()) {
             (Some(Grab::Head), _) | (None, Some(Zone::Head)) => Some(self.head.get()),
             (Some(Grab::Handle(side, _)), _) | (None, Some(Zone::Handle(side))) => Some(self.time(side)),
-            (None, Some(Zone::Inside)) => Some(self.t(self.pointer.get(), w)),
+            (None, Some(Zone::Inside | Zone::Ruler)) => Some(self.aim(w)),
             _ => None,
         };
         match shown {
             Some(time) => {
                 self.bubble.set_label(&seconds(time));
                 let (_, width, _, _) = self.bubble.measure(gtk::Orientation::Horizontal, -1);
-                let x = self.x(time, w) - width as f64 / 2.0;
-                self.bubble.set_margin_start(x.clamp(0.0, (w - width as f64).max(0.0)) as i32);
+                let x = self.x(time, w) - width as f32 / 2.0;
+                self.bubble.set_margin_start(x.clamp(0.0, (w - width as f32).max(0.0)) as i32);
                 self.bubble.set_visible(true);
             }
             None => self.bubble.set_visible(false),
@@ -412,18 +618,106 @@ impl Trim {
         self.play.set_child(Some(&adw::ButtonContent::builder().icon_name(icon).label(text).build()));
     }
 
+    fn show_clock(&self) {
+        let text = seconds(self.head.get());
+        if self.clock.label() != text {
+            self.clock.set_label(&text);
+        }
+    }
+
+    /// The part of the sound on screen: where it starts, and how long it is.
+    fn shown(&self) -> (f32, f32) {
+        (self.view.value() as f32, self.view.page_size() as f32)
+    }
+
     /// Where a time is on the waveform, and back.
-    fn x(&self, t: f32, w: f64) -> f64 {
-        HANDLE + t as f64 / self.length as f64 * (w - 2.0 * HANDLE)
+    fn x(&self, t: f32, w: f32) -> f32 {
+        let (from, span) = self.shown();
+        HANDLE + (t - from) / span * (w - 2.0 * HANDLE)
     }
 
-    fn t(&self, x: f64, w: f64) -> f32 {
-        ((x - HANDLE) / (w - 2.0 * HANDLE)).clamp(0.0, 1.0) as f32 * self.length
+    fn t(&self, x: f32, w: f32) -> f32 {
+        let (from, span) = self.shown();
+        from + ((x - HANDLE) / (w - 2.0 * HANDLE)).clamp(0.0, 1.0) * span
     }
 
-    fn zone(&self, x: f64) -> Zone {
-        let w = self.wave.width() as f64;
+    /// Zooms in by `factor` (out below 1) and keeps `around` where it is on screen. A factor of
+    /// 0 shows all of the sound again.
+    fn zoom(&self, factor: f32, around: f32) {
+        let (from, span) = self.shown();
+        let w = (self.wave.width() as f32 - 2.0 * HANDLE).max(1.0);
+        // So close that a column of the waveform still has a peak of its own.
+        let closest = CLOSEST.max(self.length * (w / 4.0) / self.peaks.len() as f32).min(self.length);
+        let new_span = if factor <= 0.0 { self.length } else { (span / factor).clamp(closest, self.length) };
+        let at = ((around - from) / span).clamp(0.0, 1.0);
+        let new_from = (around - at * new_span).clamp(0.0, self.length - new_span);
+        self.view.configure(
+            new_from as f64,
+            0.0,
+            self.length as f64,
+            (new_span / 20.0) as f64,
+            (new_span * 0.9) as f64,
+            new_span as f64,
+        );
+        let zoomed = new_span < self.length * 0.999;
+        self.scrollbar.set_opacity(if zoomed { 1.0 } else { 0.0 });
+        self.scrollbar.set_can_target(zoomed);
+        self.refresh();
+    }
+
+    /// Moves a zoomed view by `dt` seconds.
+    fn pan(&self, dt: f32) {
+        let (from, span) = self.shown();
+        self.view.set_value((from + dt).clamp(0.0, self.length - span) as f64);
+    }
+
+    /// Keeps the playhead on screen while it plays, a page at a time.
+    fn keep_in_view(&self) {
+        let (from, span) = self.shown();
+        let head = self.head.get();
+        if head > from + span || head < from {
+            self.pan(head - from - span * 0.05);
+        }
+    }
+
+    /// Ctrl with the wheel zooms at the pointer, the wheel alone scrolls a zoomed sound.
+    fn wheel(self: &Rc<Self>) {
+        let scroll = gtk::EventControllerScroll::new(gtk::EventControllerScrollFlags::BOTH_AXES);
+        scroll.connect_scroll({
+            let e = Rc::downgrade(self);
+            move |c, dx, dy| {
+                let Some(e) = e.upgrade() else { return glib::Propagation::Proceed };
+                let w = e.wave.width() as f32;
+                let (_, span) = e.shown();
+                let wheel = c.unit() == gdk::ScrollUnit::Wheel;
+                if c.current_event_state().contains(gdk::ModifierType::CONTROL_MASK) {
+                    let at = e.t(e.pointer.get().0, w);
+                    let steps = if wheel { dy as f32 } else { dy as f32 / 40.0 };
+                    e.zoom(1.25f32.powf(-steps), at);
+                } else {
+                    // Wheels scroll a tenth of the screen a notch, touchpads follow the fingers.
+                    let per_px = span / (w - 2.0 * HANDLE).max(1.0);
+                    let d = if dx != 0.0 { dx } else { dy } as f32;
+                    e.pan(if wheel { d * span * 0.1 } else { d * per_px });
+                }
+                glib::Propagation::Stop
+            }
+        });
+        self.wave.add_controller(scroll);
+    }
+
+    /// Where a click at the pointer would put the playhead.
+    fn aim(&self, w: f32) -> f32 {
+        self.t(self.pointer.get().0, w).clamp(self.start.get(), self.end.get())
+    }
+
+    fn zone(&self, x: f32, y: f32) -> Zone {
+        let w = self.wave.width() as f32;
         let (sx, ex, hx) = (self.x(self.start.get(), w), self.x(self.end.get(), w), self.x(self.head.get(), w));
+        // The playhead's knob sits in the ruler, the rest of the ruler seeks.
+        if y < RULER {
+            return if (x - hx).abs() <= HEAD_REACH + 2.0 { Zone::Head } else { Zone::Ruler };
+        }
         // The handles themselves come first, then the playhead, then a little room inside the
         // cut next to the handles.
         if x >= sx - HANDLE - 3.0 && x <= sx {
@@ -447,10 +741,10 @@ impl Trim {
         let motion = gtk::EventControllerMotion::new();
         motion.connect_motion({
             let e = Rc::downgrade(self);
-            move |_, x, _| {
+            move |_, x, y| {
                 if let Some(e) = e.upgrade() {
-                    e.pointer.set(x);
-                    e.hover.set(Some(e.zone(x)));
+                    e.pointer.set((x as f32, y as f32));
+                    e.hover.set(Some(e.zone(x as f32, y as f32)));
                     e.refresh();
                 }
             }
@@ -469,25 +763,24 @@ impl Trim {
         let drag = gtk::GestureDrag::new();
         drag.connect_drag_begin({
             let e = Rc::downgrade(self);
-            move |g, x, _| {
+            move |g, x, y| {
                 let Some(e) = e.upgrade() else { return };
+                let (x, y) = (x as f32, y as f32);
                 g.set_state(gtk::EventSequenceState::Claimed);
                 e.wave.grab_focus();
                 // Listening pauses while something moves, and goes on after.
                 e.resume.set(e.playing.get().is_some());
                 e.stop();
-                let w = e.wave.width() as f64;
-                let grab = match e.zone(x) {
-                    Zone::Head | Zone::Inside => Grab::Head,
-                    Zone::Handle(side) => {
-                        let edge = e.x(e.time(side), w);
-                        Grab::Handle(side, edge - x)
-                    }
-                    Zone::Outside => {
-                        let (sx, ex) = (e.x(e.start.get(), w), e.x(e.end.get(), w));
-                        Grab::Handle(if x < sx { Side::Start } else if x > ex { Side::End } else { Side::Start }, 0.0)
-                    }
+                let w = e.wave.width() as f32;
+                let grab = match e.zone(x, y) {
+                    Zone::Head | Zone::Inside | Zone::Ruler => Grab::Head,
+                    Zone::Handle(side) => Grab::Handle(side, e.x(e.time(side), w) - x),
+                    Zone::Outside => Grab::Handle(if x < e.x(e.start.get(), w) { Side::Start } else { Side::End }, 0.0),
                 };
+                if matches!(grab, Grab::Handle(..)) {
+                    e.remember();
+                }
+                e.pointer.set((x, y));
                 e.dragging.set(Some(grab));
                 match grab {
                     Grab::Head => e.set_head(e.t(x, w)),
@@ -497,13 +790,14 @@ impl Trim {
         });
         drag.connect_drag_update({
             let e = Rc::downgrade(self);
-            move |g, dx, _| {
-                let (Some(e), Some((x, _))) = (e.upgrade(), g.start_point()) else { return };
-                let w = e.wave.width() as f64;
-                e.pointer.set(x + dx);
+            move |g, dx, dy| {
+                let (Some(e), Some((x, y))) = (e.upgrade(), g.start_point()) else { return };
+                let (x, y) = ((x + dx) as f32, (y + dy) as f32);
+                let w = e.wave.width() as f32;
+                e.pointer.set((x, y));
                 match e.dragging.get() {
-                    Some(Grab::Head) => e.set_head(e.t(x + dx, w)),
-                    Some(Grab::Handle(side, offset)) => e.set(side, e.t(x + dx + offset, w)),
+                    Some(Grab::Head) => e.set_head(e.t(x, w)),
+                    Some(Grab::Handle(side, offset)) => e.set(side, e.t(x + offset, w)),
                     None => {}
                 }
             }
@@ -512,8 +806,14 @@ impl Trim {
             let e = Rc::downgrade(self);
             move |_, _, _| {
                 let Some(e) = e.upgrade() else { return };
+                // A drag that ended where it began is nothing to undo.
+                let now = (e.start.get(), e.end.get());
+                if matches!(e.dragging.get(), Some(Grab::Handle(..))) && e.undo.borrow().last() == Some(&now) {
+                    e.undo.borrow_mut().pop();
+                }
                 e.dragging.set(None);
-                e.hover.set(Some(e.zone(e.pointer.get())));
+                let (x, y) = e.pointer.get();
+                e.hover.set(Some(e.zone(x, y)));
                 e.refresh();
                 if e.resume.take() {
                     e.toggle_play();
@@ -521,29 +821,6 @@ impl Trim {
             }
         });
         self.wave.add_controller(drag);
-    }
-
-    /// Keys while the waveform has the focus.
-    fn wave_keys(self: &Rc<Self>) {
-        let keys = gtk::EventControllerKey::new();
-        keys.connect_key_pressed({
-            let e = Rc::downgrade(self);
-            move |_, key, _, mods| {
-                let Some(e) = e.upgrade() else { return glib::Propagation::Proceed };
-                let step = if mods.contains(gdk::ModifierType::SHIFT_MASK) { 1.0 } else { 0.1 };
-                match key {
-                    gdk::Key::Left | gdk::Key::KP_Left => e.seek(e.head.get() - step),
-                    gdk::Key::Right | gdk::Key::KP_Right => e.seek(e.head.get() + step),
-                    gdk::Key::Home | gdk::Key::KP_Home => e.seek(e.start.get()),
-                    gdk::Key::End | gdk::Key::KP_End => e.seek(e.end.get()),
-                    gdk::Key::i | gdk::Key::I => e.set(Side::Start, e.head.get()),
-                    gdk::Key::o | gdk::Key::O => e.set(Side::End, e.head.get()),
-                    _ => return glib::Propagation::Proceed,
-                }
-                glib::Propagation::Stop
-            }
-        });
-        self.wave.add_controller(keys);
     }
 
     /// Listens from the playhead, or pauses where it is.
@@ -582,6 +859,8 @@ impl Trim {
             }
             None => {}
         }
+        self.keep_in_view();
+        self.show_clock();
         self.wave.queue_draw();
     }
 
@@ -595,98 +874,163 @@ impl Trim {
         self.st.update_sound(sound);
     }
 
-    fn draw(&self, area: &gtk::DrawingArea, cr: &cairo::Context, w: f64, h: f64) {
-        let fg = area.color();
-        let (fr, fgr, fb) = (fg.red() as f64, fg.green() as f64, fg.blue() as f64);
+    fn draw(&self, widget: &gtk::Widget, s: &gtk::Snapshot, w: f32, h: f32) {
+        let fg = widget.color();
+        let ink = (fg.red(), fg.green(), fg.blue());
         let (sx, ex) = (self.x(self.start.get(), w), self.x(self.end.get(), w));
         let (left, right) = (HANDLE, w - HANDLE);
-        let mid = h / 2.0;
+        let top = RULER;
+        let mid = top + (h - top) / 2.0;
+        let dragging = self.dragging.get();
+        let hover = if dragging.is_none() { self.hover.get() } else { None };
+        // Zoomed in, the handles and the frame can lie outside.
+        s.push_clip(&graphene::Rect::new(0.0, 0.0, w, h));
+
+        self.draw_ruler(widget, s, w, ink);
 
         // Ground.
-        rounded(cr, left, 0.0, right - left, h, 10.0);
-        cr.set_source_rgba(fr, fgr, fb, 0.05);
-        let _ = cr.fill();
+        fill_round(s, graphene::Rect::new(left, top, right - left, h - top), 10.0, &rgba(ink, 0.05));
 
         // Waveform: a bar every 4 pixels, colored inside the cut and grey outside.
-        let grad = cairo::LinearGradient::new(sx, 0.0, ex, 0.0);
-        grad.add_color_stop_rgb(0.0, 0.15, 0.39, 0.92);
-        grad.add_color_stop_rgb(0.5, 0.23, 0.51, 0.96);
-        grad.add_color_stop_rgb(1.0, 0.13, 0.83, 0.93);
+        let (inside, outside) = (gsk::PathBuilder::new(), gsk::PathBuilder::new());
         let columns = ((right - left) / 4.0).max(1.0) as usize;
-        cr.set_line_cap(cairo::LineCap::Round);
-        cr.set_line_width(2.5);
+        let (from, span) = self.shown();
+        let n = self.peaks.len();
+        let index = |t: f32| ((t / self.length * n as f32) as usize).min(n - 1);
         for c in 0..columns {
-            let a = c * self.peaks.len() / columns;
-            let b = ((c + 1) * self.peaks.len() / columns).max(a + 1).min(self.peaks.len());
-            let peak = self.peaks[a..b].iter().fold(0.0f32, |m, p| m.max(*p)) as f64;
-            let x = left + 2.0 + c as f64 * 4.0;
-            let half = (peak.powf(0.7) * (h / 2.0 - 14.0)).max(1.0);
-            cr.move_to(x, mid - half);
-            cr.line_to(x, mid + half);
-            if x >= sx && x <= ex {
-                let _ = cr.set_source(&grad);
-            } else {
-                cr.set_source_rgba(fr, fgr, fb, 0.22);
-            }
-            let _ = cr.stroke();
+            let a = index(from + span * c as f32 / columns as f32);
+            let b = index(from + span * (c + 1) as f32 / columns as f32).max(a + 1).min(n);
+            let peak = self.peaks[a..b].iter().fold(0.0f32, |m, p| m.max(*p));
+            let x = left + 2.0 + c as f32 * 4.0;
+            let half = (peak.powf(0.7) * ((h - top) / 2.0 - 14.0)).max(1.0);
+            let path = if x >= sx && x <= ex { &inside } else { &outside };
+            path.move_to(x, mid - half);
+            path.line_to(x, mid + half);
         }
+        let bars = gsk::Stroke::new(2.5);
+        bars.set_line_cap(gsk::LineCap::Round);
+        s.append_stroke(&outside.to_path(), &bars, &rgba(ink, 0.22));
+        s.push_stroke(&inside.to_path(), &bars);
+        s.append_linear_gradient(
+            &graphene::Rect::new(sx, top, (ex - sx).max(1.0), h - top),
+            &graphene::Point::new(sx, 0.0),
+            &graphene::Point::new(ex.max(sx + 1.0), 0.0),
+            &[
+                gsk::ColorStop::new(0.0, rgba(BRAND[0], 1.0)),
+                gsk::ColorStop::new(0.5, rgba(BRAND[1], 1.0)),
+                gsk::ColorStop::new(1.0, rgba(BRAND[2], 1.0)),
+            ],
+        );
+        s.pop();
 
         // Where a click would put the playhead.
-        if self.dragging.get().is_none() && self.hover.get() == Some(Zone::Inside) {
-            let x = self.pointer.get();
-            cr.set_source_rgba(1.0, 1.0, 1.0, 0.35);
-            cr.set_line_width(1.0);
-            cr.move_to(x, 6.0);
-            cr.line_to(x, h - 6.0);
-            let _ = cr.stroke();
+        if matches!(hover, Some(Zone::Inside | Zone::Ruler)) {
+            let x = self.x(self.aim(w), w);
+            s.append_color(&rgba(WHITE, 0.35), &graphene::Rect::new(x - 0.5, 4.0, 1.0, h - 10.0));
         }
 
         // The frame of the cut, with a handle on each side. The one under the pointer lights up.
-        let lit = |side: Side| match (self.dragging.get(), self.hover.get()) {
-            (Some(Grab::Handle(s, _)), _) => s == side,
-            (None, Some(Zone::Handle(s))) => s == side,
+        let lit = |side: Side| match (dragging, hover) {
+            (Some(Grab::Handle(sd, _)), _) => sd == side,
+            (None, Some(Zone::Handle(sd))) => sd == side,
             _ => false,
         };
-        cr.set_source_rgb(ACCENT.0, ACCENT.1, ACCENT.2);
-        cr.set_line_width(3.0);
-        cr.rectangle(sx, 1.5, ex - sx, h - 3.0);
-        let _ = cr.stroke();
+        let frame = gsk::RoundedRect::from_rect(graphene::Rect::new(sx - 1.5, top, ex - sx + 3.0, h - top), 0.0);
+        s.append_border(&frame, &[3.0; 4], &[rgba(ACCENT, 1.0); 4]);
         for (side, x) in [(Side::Start, sx - HANDLE), (Side::End, ex)] {
             let c = if lit(side) { ACCENT_LIGHT } else { ACCENT };
-            rounded(cr, x, 0.0, HANDLE, h, 6.0);
-            cr.set_source_rgb(c.0, c.1, c.2);
-            let _ = cr.fill();
-            cr.set_source_rgba(1.0, 1.0, 1.0, 0.9);
-            cr.set_line_width(2.0);
+            fill_round(s, graphene::Rect::new(x, top, HANDLE, h - top), 6.0, &rgba(c, 1.0));
             for dx in [-2.0, 2.0] {
-                cr.move_to(x + HANDLE / 2.0 + dx, mid - 10.0);
-                cr.line_to(x + HANDLE / 2.0 + dx, mid + 10.0);
+                fill_round(s, graphene::Rect::new(x + HANDLE / 2.0 + dx - 1.0, mid - 10.0, 2.0, 20.0), 1.0, &rgba(WHITE, 0.9));
             }
-            let _ = cr.stroke();
         }
 
-        // Playhead, with a knob to grab it. It grows under the pointer.
+        // Playhead: a line, and a knob in the ruler to grab it. It grows under the pointer.
         let x = self.x(self.head.get(), w);
-        let big = self.dragging.get() == Some(Grab::Head) || (self.dragging.get().is_none() && self.hover.get() == Some(Zone::Head));
-        cr.set_source_rgb(1.0, 1.0, 1.0);
-        cr.set_line_width(2.0);
-        cr.move_to(x, 12.0);
-        cr.line_to(x, h - 4.0);
-        let _ = cr.stroke();
-        cr.arc(x, 10.0, if big { 7.5 } else { 6.0 }, 0.0, std::f64::consts::TAU);
-        let _ = cr.fill_preserve();
-        cr.set_source_rgba(0.0, 0.0, 0.0, 0.3);
-        cr.set_line_width(1.0);
-        let _ = cr.stroke();
+        let big = dragging == Some(Grab::Head) || hover == Some(Zone::Head);
+        s.append_color(&rgba(WHITE, 1.0), &graphene::Rect::new(x - 1.0, 8.0, 2.0, h - 12.0));
+        let (half, tall) = if big { (8.0, 17.0) } else { (6.5, 14.0) };
+        let knob = gsk::PathBuilder::new();
+        knob.move_to(x - half, 3.0);
+        knob.line_to(x + half, 3.0);
+        knob.line_to(x + half, 3.0 + tall - half);
+        knob.line_to(x, 3.0 + tall);
+        knob.line_to(x - half, 3.0 + tall - half);
+        knob.close();
+        let knob = knob.to_path();
+        let round = gsk::Stroke::new(2.0);
+        round.set_line_join(gsk::LineJoin::Round);
+        s.append_stroke(&knob, &round, &rgba(WHITE, 1.0));
+        s.append_fill(&knob, gsk::FillRule::Winding, &rgba(WHITE, 1.0));
+        s.append_stroke(&knob, &gsk::Stroke::new(1.0), &rgba((0.0, 0.0, 0.0), 0.25));
+        s.pop();
+    }
+
+    /// The time ruler: the cut tinted, ticks, and a label on every big tick.
+    fn draw_ruler(&self, widget: &gtk::Widget, s: &gtk::Snapshot, w: f32, ink: (f32, f32, f32)) {
+        let (left, right) = (HANDLE, w - HANDLE);
+        let base = RULER - 4.0;
+        let (sx, ex) = (self.x(self.start.get(), w), self.x(self.end.get(), w));
+        let corner = graphene::Size::new(5.0, 5.0);
+        let none = graphene::Size::new(0.0, 0.0);
+        let cut = gsk::RoundedRect::new(graphene::Rect::new(sx, 0.0, ex - sx, base), corner, corner, none, none);
+        s.push_rounded_clip(&cut);
+        s.append_color(&rgba(ACCENT, 0.14), cut.bounds());
+        s.pop();
+        s.append_color(&rgba(ink, 0.18), &graphene::Rect::new(left, base, right - left, 1.0));
+
+        let (from, span) = self.shown();
+        let per_second = (right - left) / span;
+        let (step, parts) = ruler_steps(per_second);
+        let small = step / parts as f32;
+        let long = self.length >= 60.0;
+        let mut font = widget.pango_context().font_description().unwrap_or_default();
+        font.set_size((font.size() as f32 * 0.78) as i32);
+        font.set_weight(pango::Weight::Semibold);
+        let (first, last) = ((from / small).ceil() as u32, ((from + span) / small).floor() as u32);
+        for i in first..=last {
+            let v = i as f32 * small;
+            let x = self.x(v, w).round();
+            let major = i % parts == 0;
+            let (len, alpha) = if major { (8.0, 0.5) } else { (4.0, 0.25) };
+            s.append_color(&rgba(ink, alpha), &graphene::Rect::new(x - 0.5, base - len, 1.0, len));
+            if !major {
+                continue;
+            }
+            let layout = widget.create_pango_layout(Some(&ruler_label(v, step, long)));
+            layout.set_font_description(Some(&font));
+            let (_, logical) = layout.pixel_extents();
+            // A label that would stick out on the right is left out.
+            if x + 4.0 + logical.width() as f32 > right {
+                continue;
+            }
+            s.save();
+            s.translate(&graphene::Point::new(x + 4.0, base - 8.0 - logical.height() as f32 * 0.55));
+            s.append_layout(&layout, &rgba(ink, 0.6));
+            s.restore();
+        }
     }
 }
 
-fn rounded(cr: &cairo::Context, x: f64, y: f64, w: f64, h: f64, r: f64) {
-    use std::f64::consts::{FRAC_PI_2, PI};
-    cr.new_sub_path();
-    cr.arc(x + w - r, y + r, r, -FRAC_PI_2, 0.0);
-    cr.arc(x + w - r, y + h - r, r, 0.0, FRAC_PI_2);
-    cr.arc(x + r, y + h - r, r, FRAC_PI_2, PI);
-    cr.arc(x + r, y + r, r, PI, 3.0 * FRAC_PI_2);
-    cr.close_path();
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn ruler_labels() {
+        assert_eq!(ruler_label(1.5, 0.5, false), "1.5 s");
+        assert_eq!(ruler_label(2.0, 1.0, false), "2 s");
+        assert_eq!(ruler_label(0.25, 0.25, false), "0.25 s");
+        assert_eq!(ruler_label(90.0, 30.0, true), "1:30");
+        assert_eq!(ruler_label(61.5, 0.5, true), "1:01.5");
+    }
+
+    #[test]
+    fn ruler_steps_leave_room_for_labels() {
+        for per_second in [5.0, 40.0, 120.0, 900.0, 4000.0] {
+            let (step, parts) = ruler_steps(per_second);
+            assert!(step * per_second >= LABEL_GAP || step == 1800.0, "{per_second}");
+            assert!(parts >= 3);
+        }
+    }
 }

@@ -1553,6 +1553,9 @@ msgstr "Abspielkopf bewegen"
 msgid "Set start and end"
 msgstr "Anfang und Ende setzen"
 
+msgid "Ctrl"
+msgstr "Strg"
+
 msgid "Delete…"
 msgstr "Löschen …"
 
@@ -1564,3 +1567,21 @@ msgstr "Aus Favoriten entfernen"
 
 msgid "Change shortcut"
 msgstr "Tastenkürzel ändern"
+
+msgid "Listen or pause (Space)"
+msgstr "Anhören oder pausieren (Leertaste)"
+
+msgid "Close without saving (Esc)"
+msgstr "Schließen ohne Speichern (Esc)"
+
+msgid "Undo"
+msgstr "Rückgängig"
+
+msgid "Save the cut"
+msgstr "Schnitt speichern"
+
+msgid "Zoom in"
+msgstr "Vergrößern"
+
+msgid "Zoom out"
+msgstr "Verkleinern"

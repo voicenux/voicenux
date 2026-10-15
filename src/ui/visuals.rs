@@ -53,7 +53,7 @@ glib::wrapper! {
 }
 
 impl Canvas {
-    fn new(width: i32, height: i32, draw: impl Fn(&gtk::Widget, &gtk::Snapshot, f32, f32) + 'static) -> Self {
+    pub fn new(width: i32, height: i32, draw: impl Fn(&gtk::Widget, &gtk::Snapshot, f32, f32) + 'static) -> Self {
         let c: Self = glib::Object::new();
         c.set_size_request(width, height);
         *c.imp().draw.borrow_mut() = Some(Box::new(draw));
@@ -81,11 +81,11 @@ fn moved(last: &Cell<f32>, v: f32) -> bool {
     }
 }
 
-fn rgba((r, g, b): (f32, f32, f32), a: f32) -> gdk::RGBA {
+pub fn rgba((r, g, b): (f32, f32, f32), a: f32) -> gdk::RGBA {
     gdk::RGBA::new(r, g, b, a)
 }
 
-fn circle(cx: f32, cy: f32, r: f32) -> gsk::RoundedRect {
+pub fn circle(cx: f32, cy: f32, r: f32) -> gsk::RoundedRect {
     gsk::RoundedRect::from_rect(graphene::Rect::new(cx - r, cy - r, 2.0 * r, 2.0 * r), r)
 }
 

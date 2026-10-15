@@ -566,6 +566,33 @@ editablelabel.vn-value-field text {
   border-radius: 12px;
 }
 
+scrollbar.vn-trim-scroll {
+  background: none;
+  transition: opacity 200ms ease;
+}
+
+scrollbar.vn-trim-scroll slider {
+  min-height: 6px;
+  background-color: color-mix(in srgb, var(--accent-bg-color) 70%, transparent);
+}
+
+/* The bottom of a dialog, with its buttons on the right. */
+.vn-dialog-footer {
+  padding: 14px 20px;
+  border-top: 1px solid var(--vn-line);
+  background-color: color-mix(in srgb, var(--vn-soft) 60%, transparent);
+}
+
+.vn-dialog-footer button {
+  min-width: 96px;
+}
+
+.vn-trim-clock {
+  font-weight: 800;
+  font-size: 15px;
+  color: var(--accent-color);
+}
+
 .vn-trim-bubble {
   padding: 2px 8px;
   border-radius: 99px;
