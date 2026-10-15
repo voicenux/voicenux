@@ -441,19 +441,17 @@ fn volume_button(st: &St) -> gtk::MenuButton {
 }
 
 /// A volume slider with a speaker that shows the level, and the value in percent. Click the value
-/// to type one. Above 100 %, the slider stops at 100 % on the way, so that is easy to hit.
+/// to type one. It holds at 50 % and 100 % on the way, so those are easy to hit.
 fn volume_slider(value: f64, max: f64, on_change: impl Fn(f64) + 'static) -> gtk::Box {
     let row = gtk::Box::new(gtk::Orientation::Horizontal, 10);
     row.add_css_class("vn-volume");
     let speaker = gtk::Image::new();
     speaker.add_css_class("vn-volume-icon");
-    // Steps of 5 %, so the keyboard gets past the stop at 100 %.
     let scale = gtk::Scale::with_range(gtk::Orientation::Horizontal, 0.0, max, 0.05);
     scale.set_hexpand(true);
     scale.set_value(value);
+    super::notches(&scale, &[0.5, 1.0]);
     let text = |v: f64| format!("{:.0} %", v * 100.0);
-    // A typed value goes in as it is, without the stop at 100 %.
-    let typed = Rc::new(Cell::new(false));
     let field = value_field(
         {
             let scale = scale.clone();
@@ -461,14 +459,9 @@ fn volume_slider(value: f64, max: f64, on_change: impl Fn(f64) + 'static) -> gtk
         },
         {
             let scale = scale.clone();
-            let typed = typed.clone();
             move |f, typed_text| {
-                if let Ok(n) = typed_text.replace('%', "").replace(',', ".").trim().parse::<f64>()
-                    && n.is_finite()
-                {
-                    typed.set(true);
+                if let Some(n) = super::typed_number(typed_text, &["%"]) {
                     scale.set_value((n / 100.0).clamp(0.0, max));
-                    typed.set(false);
                 }
                 // Also puts the old value back after something that is not a number.
                 f.set_text(&text(scale.value()));
@@ -493,11 +486,6 @@ fn volume_slider(value: f64, max: f64, on_change: impl Fn(f64) + 'static) -> gtk
     show(value);
     scale.connect_value_changed(move |s| {
         let v = s.value();
-        if !typed.get() && max > 1.0 && v != 1.0 && (v - 1.0).abs() < 0.04 {
-            // Calls this again with 1.0.
-            s.set_value(1.0);
-            return;
-        }
         show(v);
         on_change(v);
     });

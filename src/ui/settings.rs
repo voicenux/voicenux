@@ -11,41 +11,89 @@ use crate::i18n::{fill, t, t_dyn};
 use crate::shortcuts::{self, ACTIONS};
 use crate::state::{Change, St};
 
+/// How a setting with a slider is shown and typed.
+#[derive(Clone, Copy)]
+enum Unit {
+    Db,
+    Percent,
+}
+
+impl Unit {
+    fn show(self, v: f64) -> String {
+        match self {
+            Unit::Db => format!("{:+.0} dB", v),
+            Unit::Percent => format!("{:.0} %", v * 100.0),
+        }
+    }
+
+    /// The number to start typing from.
+    fn bare(self, v: f64) -> String {
+        match self {
+            Unit::Db => format!("{v:.1}").trim_end_matches(".0").to_string(),
+            Unit::Percent => format!("{:.0}", v * 100.0),
+        }
+    }
+
+    fn parse(self, text: &str) -> Option<f64> {
+        match self {
+            Unit::Db => super::typed_number(text, &["db"]),
+            Unit::Percent => super::typed_number(text, &["%"]).map(|v| v / 100.0),
+        }
+    }
+}
+
+/// A setting with a slider, and its value that you can click to type one. The slider holds at
+/// 0 dB, or at 50 % and 100 %.
 fn scale_row(
     title: &str,
     subtitle: &str,
     min: f64,
     max: f64,
     value: f64,
-    fmt: fn(f64) -> String,
+    unit: Unit,
     on: impl Fn(f64) + 'static,
 ) -> adw::ActionRow {
     let row = adw::ActionRow::builder().title(title).subtitle(subtitle).build();
-    let shown = label(&fmt(value), &["dim-label", "numeric"]);
-    shown.set_width_chars(7);
     let scale = gtk::Scale::with_range(gtk::Orientation::Horizontal, min, max, (max - min) / 200.0);
     scale.set_value(value);
     scale.set_draw_value(false);
     scale.set_width_request(220);
     scale.set_valign(gtk::Align::Center);
+    super::notches(&scale, match unit {
+        Unit::Db => &[0.0],
+        Unit::Percent => &[0.5, 1.0],
+    });
+    let shown = super::value_field(
+        {
+            let scale = scale.clone();
+            move || unit.bare(scale.value())
+        },
+        {
+            let scale = scale.clone();
+            move |f, text| {
+                if let Some(v) = unit.parse(text) {
+                    scale.set_value(v.clamp(min, max));
+                }
+                // Also puts the old value back after something that is not a number.
+                f.set_text(&unit.show(scale.value()));
+            }
+        },
+    );
+    shown.add_css_class("numeric");
+    shown.set_width_chars(7);
+    shown.set_max_width_chars(7);
+    shown.set_valign(gtk::Align::Center);
+    shown.set_text(&unit.show(value));
     scale.connect_value_changed({
         let shown = shown.clone();
         move |s| {
-            shown.set_label(&fmt(s.value()));
+            shown.set_text(&unit.show(s.value()));
             on(s.value());
         }
     });
     row.add_suffix(&scale);
     row.add_suffix(&shown);
     row
-}
-
-fn db(v: f64) -> String {
-    format!("{:+.0} dB", v)
-}
-
-fn pct(v: f64) -> String {
-    format!("{:.0} %", v * 100.0)
 }
 
 /// A combo row for devices, with "System default" on top. Keeps itself up to date.
@@ -208,7 +256,7 @@ pub fn build(st: &St, window: &adw::ApplicationWindow) -> adw::ToolbarView {
         -12.0,
         24.0,
         c.input_gain_db as f64,
-        db,
+        Unit::Db,
         {
             let st = st.clone();
             move |v| st.update(|c| c.input_gain_db = v as f32)
@@ -230,7 +278,7 @@ pub fn build(st: &St, window: &adw::ApplicationWindow) -> adw::ToolbarView {
         .active(c.gate)
         .build();
     let gate_level =
-        scale_row(t("Gate level"), t("Sounds below this level are muted."), -80.0, -20.0, c.gate_db as f64, db, {
+        scale_row(t("Gate level"), t("Sounds below this level are muted."), -80.0, -20.0, c.gate_db as f64, Unit::Db, {
             let st = st.clone();
             move |v| st.update(|c| c.gate_db = v as f32)
         });
@@ -264,7 +312,7 @@ pub fn build(st: &St, window: &adw::ApplicationWindow) -> adw::ToolbarView {
         move |r| st.update(|c| c.default_mic = r.is_active())
     });
     virt.add(&default);
-    virt.add(&scale_row(t("Volume"), t("How loud apps hear you."), -24.0, 12.0, c.mic_volume_db as f64, db, {
+    virt.add(&scale_row(t("Volume"), t("How loud apps hear you."), -24.0, 12.0, c.mic_volume_db as f64, Unit::Db, {
         let st = st.clone();
         move |v| st.update(|c| c.mic_volume_db = v as f32)
     }));
@@ -291,7 +339,7 @@ pub fn build(st: &St, window: &adw::ApplicationWindow) -> adw::ToolbarView {
         0.0,
         1.5,
         c.monitor_volume as f64,
-        pct,
+        Unit::Percent,
         {
             let st = st.clone();
             move |v| st.update(|c| c.monitor_volume = v as f32)

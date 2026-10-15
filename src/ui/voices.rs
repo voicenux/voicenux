@@ -735,9 +735,15 @@ pub fn param_row(p: &'static blocks::ParamSpec, value: f32, on_change: impl Fn(f
             scale.set_value(to_scale(value));
             scale.set_draw_value(false);
             scale.set_hexpand(true);
+            // Holds at zero, half way for percents, and where the effect starts out.
+            let mut points = vec![to_scale(p.default)];
             if !p.log && p.min < 0.0 && p.max > 0.0 {
-                scale.add_mark(0.0, gtk::PositionType::Bottom, None);
+                points.push(0.0);
             }
+            if matches!(p.unit, blocks::Unit::Percent) {
+                points.push(0.5);
+            }
+            super::notches(&scale, &points);
             let shown = value_field(
                 {
                     let scale = scale.clone();

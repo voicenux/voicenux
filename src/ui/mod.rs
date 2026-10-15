@@ -179,6 +179,64 @@ pub fn search_field(placeholder: &str) -> (gtk::Overlay, gtk::SearchEntry) {
     (overlay, entry)
 }
 
+/// Notches for a slider, in its own numbers. While you drag it, the slider holds still at a notch
+/// until the pointer is a few pixels past, then tears away. Keys and typed values go where they
+/// go. Each notch gets a little tick under the slider.
+pub fn notches(scale: &gtk::Scale, points: &[f64]) {
+    /// How far from a notch it still holds, in pixels.
+    const REACH: f64 = 8.0;
+    let adj = scale.adjustment();
+    let mut points: Vec<f64> = points.iter().copied().filter(|p| *p > adj.lower() && *p < adj.upper()).collect();
+    points.dedup_by(|a, b| (*a - *b).abs() < 1e-6);
+    if points.is_empty() {
+        return;
+    }
+    for p in &points {
+        scale.add_mark(*p, gtk::PositionType::Bottom, None);
+    }
+    let held = std::rc::Rc::new(std::cell::Cell::new(false));
+    let press = gtk::EventControllerLegacy::new();
+    press.set_propagation_phase(gtk::PropagationPhase::Capture);
+    press.connect_event({
+        let held = held.clone();
+        move |_, e| {
+            use gdk::EventType::*;
+            match e.event_type() {
+                ButtonPress | TouchBegin => held.set(true),
+                ButtonRelease | TouchEnd | TouchCancel => held.set(false),
+                _ => {}
+            }
+            glib::Propagation::Proceed
+        }
+    });
+    scale.add_controller(press);
+    scale.connect_value_changed(move |s| {
+        if !held.get() {
+            return;
+        }
+        let adj = s.adjustment();
+        let per_px = (adj.upper() - adj.lower()) / s.width().max(1) as f64;
+        let v = s.value();
+        if let Some(p) = points.iter().find(|p| (v - **p).abs() <= REACH * per_px)
+            && v != *p
+        {
+            // Calls the other handlers again, with the notch.
+            s.set_value(*p);
+        }
+    });
+}
+
+/// A number someone typed: "1,5", "+3 dB", "80 %". `units` are cut off the end first.
+pub fn typed_number(text: &str, units: &[&str]) -> Option<f64> {
+    let mut t = text.trim().replace(',', ".").to_lowercase();
+    for u in units {
+        if let Some(rest) = t.strip_suffix(u) {
+            t = rest.trim().to_string();
+        }
+    }
+    t.trim_start_matches('+').parse::<f64>().ok().filter(|v| v.is_finite())
+}
+
 /// A value that looks like a label. A click opens it for typing: `start` gives the text to begin
 /// with, `done` gets the field and what was typed, and must set the shown text again. Enter or a
 /// click anywhere else puts the value in, Escape keeps the old one.
@@ -253,4 +311,19 @@ pub fn snapshot(widget: &gtk::Widget, path: &str) -> anyhow::Result<()> {
     let bounds = gtk::graphene::Rect::new(0.0, 0.0, w as f32, h as f32);
     renderer.render_texture(&node, Some(&bounds)).save_to_png(path)?;
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::typed_number;
+
+    #[test]
+    fn typed_numbers() {
+        assert_eq!(typed_number("1,5", &[]), Some(1.5));
+        assert_eq!(typed_number("+3 dB", &["db"]), Some(3.0));
+        assert_eq!(typed_number(" 80 % ", &["%"]), Some(80.0));
+        assert_eq!(typed_number("-12db", &["db"]), Some(-12.0));
+        assert_eq!(typed_number("loud", &["db"]), None);
+        assert_eq!(typed_number("inf", &[]), None);
+    }
 }
