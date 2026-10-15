@@ -25,11 +25,17 @@ thread_local! {
 pub struct Lab {
     pub widget: gtk::Box,
     open: Rc<dyn Fn(&str)>,
+    new_voice: Rc<dyn Fn()>,
 }
 
 impl Lab {
     pub fn open(&self, id: &str) {
         (self.open)(id)
+    }
+
+    /// Makes a new voice and opens it.
+    pub fn new_voice(&self) {
+        (self.new_voice)()
     }
 }
 
@@ -229,7 +235,7 @@ pub fn build(st: &St) -> Lab {
         }
     });
 
-    let make_new = {
+    let make_new: Rc<dyn Fn()> = Rc::new({
         let st = st.clone();
         let show_editor = show_editor.clone();
         move || {
@@ -237,12 +243,16 @@ pub fn build(st: &St) -> Lab {
             st.set_voice(&v.id);
             show_editor(&v.id);
         }
-    };
+    });
+    new.set_tooltip_text(Some(&super::with_key(t("New voice"), "N")));
     new.connect_clicked({
         let make_new = make_new.clone();
         move |_| make_new()
     });
-    start.connect_clicked(move |_| make_new());
+    start.connect_clicked({
+        let make_new = make_new.clone();
+        move |_| make_new()
+    });
 
     st.subscribe({
         let rebuild_list = rebuild_list.clone();
@@ -286,7 +296,7 @@ pub fn build(st: &St) -> Lab {
         }
     });
     OPEN.with(|o| *o.borrow_mut() = Some(open.clone()));
-    Lab { widget, open }
+    Lab { widget, open, new_voice: make_new }
 }
 
 /// Fills the editor with one voice. Called again after changes to the block list.

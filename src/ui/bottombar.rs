@@ -7,11 +7,11 @@ use super::visuals::level_meter;
 use crate::i18n::{fill, t};
 use crate::state::{Change, St};
 
-fn pill(icon: &str, text: &str, tip: &str) -> gtk::ToggleButton {
+fn pill(icon: &str, text: &str, tip: &str, key: &str) -> gtk::ToggleButton {
     let b = gtk::ToggleButton::new();
     b.set_child(Some(&adw::ButtonContent::builder().icon_name(icon).label(text).build()));
     b.add_css_class("vn-pill");
-    b.set_tooltip_text(Some(tip));
+    b.set_tooltip_text(Some(&super::with_key(tip, key)));
     b
 }
 
@@ -27,7 +27,7 @@ pub fn build(st: &St) -> (gtk::CenterBox, [gtk::Widget; 2]) {
     let mute = gtk::Button::from_icon_name("audio-input-microphone-symbolic");
     mute.add_css_class("vn-mute");
     mute.set_valign(gtk::Align::Center);
-    mute.set_tooltip_text(Some(t("Mute microphone")));
+    mute.set_tooltip_text(Some(&super::with_key(t("Mute microphone"), "M")));
     mute.connect_clicked({
         let st = st.clone();
         move |_| st.set_muted(!st.muted.get())
@@ -47,9 +47,9 @@ pub fn build(st: &St) -> (gtk::CenterBox, [gtk::Widget; 2]) {
     // Middle: the switches.
     let mid = gtk::Box::new(gtk::Orientation::Horizontal, 8);
     mid.set_halign(gtk::Align::Center);
-    let voice = pill("audio-input-microphone-symbolic", t("Voice changer"), t("Turn your voice changer on or off"));
-    let hear = pill("audio-headphones-symbolic", t("Hear myself"), t("Hear your changed voice in your headphones"));
-    let bg = pill("weather-few-clouds-symbolic", t("Background"), t("Play the background sounds of a voice"));
+    let voice = pill("audio-input-microphone-symbolic", t("Voice changer"), t("Turn your voice changer on or off"), "T");
+    let hear = pill("audio-headphones-symbolic", t("Hear myself"), t("Hear your changed voice in your headphones"), "H");
+    let bg = pill("weather-few-clouds-symbolic", t("Background"), t("Play the background sounds of a voice"), "B");
     mid.append(&voice);
     mid.append(&hear);
     mid.append(&bg);

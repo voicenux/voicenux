@@ -698,6 +698,18 @@ impl State {
         self.notify(Change::Sounds);
     }
 
+    /// Brings back the sound removed last. False when there is none.
+    pub fn undo_last_remove(&self) -> bool {
+        let last = self.trash.borrow().last().map(|(_, s)| s.id.clone());
+        match last {
+            Some(id) => {
+                self.undo_remove(&id);
+                true
+            }
+            None => false,
+        }
+    }
+
     /// The Undo for a removed sound is gone: so is its file.
     pub fn forget_removed(&self, id: &str) {
         let gone: Vec<_> = {

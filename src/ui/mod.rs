@@ -3,6 +3,7 @@
 pub mod bottombar;
 mod emoji;
 mod find_sounds;
+pub mod help;
 pub mod keys;
 pub mod onboarding;
 pub mod popup;
@@ -122,12 +123,18 @@ pub fn animate_in(widget: &impl IsA<gtk::Widget>, delay: usize) {
     w.add_css_class(new);
 }
 
+/// A tooltip with its key, like "Random voice (Ctrl+R)".
+pub fn with_key(tip: &str, key: &str) -> String {
+    format!("{tip} ({}+{key})", crate::i18n::t("Ctrl"))
+}
+
 /// Lower case and without umlauts, so "mause" finds "Mäuse" too.
 pub fn fold(s: &str) -> String {
     s.to_lowercase().replace('ä', "a").replace('ö', "o").replace('ü', "u").replace('ß', "ss")
 }
 
-/// A search field. Escape empties it, a second Escape leaves it.
+/// A search field with a little "Ctrl F" key cap at its end while it is empty and not focused.
+/// Escape empties it, a second Escape leaves it.
 pub fn search_field(placeholder: &str) -> (gtk::Overlay, gtk::SearchEntry) {
     // Narrow when the window is, wide when there is room.
     let entry = gtk::SearchEntry::builder()
@@ -137,8 +144,31 @@ pub fn search_field(placeholder: &str) -> (gtk::Overlay, gtk::SearchEntry) {
         .max_width_chars(34)
         .build();
     entry.add_css_class("vn-search");
+    let caps = gtk::Box::new(gtk::Orientation::Horizontal, 3);
+    caps.append(&label(crate::i18n::t("Ctrl"), &["vn-key"]));
+    caps.append(&label("F", &["vn-key"]));
+    caps.set_halign(gtk::Align::End);
+    caps.set_valign(gtk::Align::Center);
+    caps.set_margin_end(10);
+    caps.set_can_target(false);
     let overlay = gtk::Overlay::new();
     overlay.set_child(Some(&entry));
+    overlay.add_overlay(&caps);
+    let focus = gtk::EventControllerFocus::new();
+    let sync = {
+        let (entry, caps, focus) = (entry.downgrade(), caps.clone(), focus.downgrade());
+        move || {
+            if let (Some(e), Some(f)) = (entry.upgrade(), focus.upgrade()) {
+                caps.set_visible(e.text().is_empty() && !f.contains_focus());
+            }
+        }
+    };
+    focus.connect_contains_focus_notify({
+        let sync = sync.clone();
+        move |_| sync()
+    });
+    entry.connect_changed(move |_| sync());
+    entry.add_controller(focus);
     entry.connect_stop_search(|e| {
         if e.text().is_empty() {
             e.emit_move_focus(gtk::DirectionType::TabForward);

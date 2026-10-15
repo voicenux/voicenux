@@ -3,7 +3,7 @@
 use std::rc::Rc;
 
 use adw::prelude::*;
-use gtk::glib;
+use gtk::{gdk, glib};
 
 use super::{bottombar, label, logo, settings, soundboard, voicelab, voices};
 use crate::i18n::{t, t_dyn};
@@ -16,6 +16,9 @@ pub struct Window {
     pub stack: gtk::Stack,
     nav: gtk::ListBox,
     lab: voicelab::Lab,
+    voice_search: gtk::SearchEntry,
+    sound_search: gtk::SearchEntry,
+    add_sounds: gtk::Button,
     st: St,
 }
 
@@ -47,6 +50,81 @@ impl Window {
         let toast = adw::Toast::new(text);
         toast.set_timeout(2);
         self.toast.add_toast(toast);
+    }
+
+    /// Keys that work on every page. Menus and dialogs keep their own keys.
+    fn key(&self, event: Option<gdk::Event>, key: gdk::Key, mods: gdk::ModifierType) -> glib::Propagation {
+        if self.window.visible_dialog().is_some() || event.and_then(|e| e.surface()) != self.window.surface() {
+            return glib::Propagation::Proceed;
+        }
+        let ctrl = mods.contains(gdk::ModifierType::CONTROL_MASK);
+        let st = &self.st;
+        if key == gdk::Key::F1 && !ctrl {
+            super::help::show(&self.window);
+            return glib::Propagation::Stop;
+        }
+        if !ctrl || mods.contains(gdk::ModifierType::ALT_MASK) {
+            return glib::Propagation::Proceed;
+        }
+        let page = self.stack.visible_child_name().unwrap_or_default();
+        match key.to_lower() {
+            gdk::Key::f => {
+                if page == "soundboard" {
+                    self.sound_search.grab_focus();
+                } else {
+                    self.show_page("voices");
+                    self.voice_search.grab_focus();
+                }
+            }
+            gdk::Key::_1 | gdk::Key::KP_1 => self.show_page("voices"),
+            gdk::Key::_2 | gdk::Key::KP_2 => self.show_page("soundboard"),
+            gdk::Key::_3 | gdk::Key::KP_3 => self.show_page("voicelab"),
+            gdk::Key::_4 | gdk::Key::KP_4 | gdk::Key::comma => self.show_page("settings"),
+            gdk::Key::t => {
+                st.set_voice_on(!st.config.borrow().voice_on);
+                self.toast(if st.config.borrow().voice_on { t("Voice changer on") } else { t("Voice changer off") });
+            }
+            gdk::Key::h => {
+                st.set_hear_myself(!st.config.borrow().hear_myself);
+                self.toast(if st.config.borrow().hear_myself { t("Hear myself on") } else { t("Hear myself off") });
+            }
+            gdk::Key::b => {
+                st.set_background(!st.config.borrow().background);
+                self.toast(if st.config.borrow().background { t("Background on") } else { t("Background off") });
+            }
+            gdk::Key::m => {
+                st.set_muted(!st.muted.get());
+                self.toast(if st.muted.get() { t("Microphone muted") } else { t("Microphone on") });
+            }
+            gdk::Key::r => {
+                st.random_voice();
+                self.toast(&crate::i18n::fill(t("Voice: {}"), &[&t_dyn(&st.current().name)]));
+            }
+            gdk::Key::o => {
+                self.show_page("soundboard");
+                self.add_sounds.emit_clicked();
+            }
+            gdk::Key::n => {
+                self.show_page("voicelab");
+                self.lab.new_voice();
+            }
+            gdk::Key::question | gdk::Key::slash => super::help::show(&self.window),
+            // Brings back the sound removed last, while its note is up.
+            gdk::Key::z if page == "soundboard" => {
+                if !st.undo_last_remove() {
+                    return glib::Propagation::Proceed;
+                }
+            }
+            gdk::Key::w => self.window.close(),
+            gdk::Key::q => {
+                if let Some(app) = self.window.application() {
+                    self.window.close();
+                    app.quit();
+                }
+            }
+            _ => return glib::Propagation::Proceed,
+        }
+        glib::Propagation::Stop
     }
 }
 
@@ -102,11 +180,14 @@ pub fn build(app: &adw::Application, st: &St) -> Window {
     let nav = gtk::ListBox::new();
     nav.add_css_class("navigation-sidebar");
     nav.add_css_class("vn-nav");
-    for (_, icon, title) in PAGES {
+    for (i, (_, pic, title)) in PAGES.iter().enumerate() {
         let row = gtk::Box::new(gtk::Orientation::Horizontal, 12);
-        row.append(&gtk::Image::from_icon_name(icon));
+        row.append(&gtk::Image::from_icon_name(pic));
         row.append(&gtk::Label::new(Some(t_dyn(title).as_str())));
         nav.append(&row);
+        if let Some(r) = nav.row_at_index(i as i32) {
+            r.set_tooltip_text(Some(&format!("{} ({}+{})", t_dyn(title), t("Ctrl"), i + 1)));
+        }
     }
     nav.connect_row_selected({
         let stack = stack.clone();
@@ -170,9 +251,27 @@ pub fn build(app: &adw::Application, st: &St) -> Window {
 
     super::popup::watch(&window);
 
-    let win = Window { window: window.clone(), toast, stack, nav, lab: lab.clone(), st: st.clone() };
+    let win = Window {
+        window: window.clone(),
+        toast,
+        stack,
+        nav,
+        lab: lab.clone(),
+        voice_search: voices_page.search.clone(),
+        sound_search: sounds_page.search.clone(),
+        add_sounds: sounds_page.add.clone(),
+        st: st.clone(),
+    };
+    let keys = gtk::EventControllerKey::new();
+    keys.set_propagation_phase(gtk::PropagationPhase::Capture);
+    keys.connect_key_pressed({
+        let win = win.clone();
+        move |c, key, _, mods| win.key(c.current_event(), key, mods)
+    });
+    window.add_controller(keys);
     let _ = win_cell.set(win.clone());
     win.show_page("voices");
+    history(&win);
 
     // Typing anywhere searches voices.
     voices_page.search.set_key_capture_widget(Some(&voices_page.widget));
@@ -239,6 +338,69 @@ pub fn build(app: &adw::Application, st: &St) -> Window {
         }
     });
     win
+}
+
+/// The back and forward buttons of the mouse go through the pages you saw, like in a browser.
+fn history(win: &Window) {
+    #[derive(Default)]
+    struct History {
+        back: Vec<String>,
+        forward: Vec<String>,
+        current: String,
+        /// Going back or forward right now, so the page change is not a new step.
+        stepping: bool,
+    }
+    let h: Rc<std::cell::RefCell<History>> = Rc::default();
+    h.borrow_mut().current = win.stack.visible_child_name().unwrap_or_default().to_string();
+    win.stack.connect_visible_child_name_notify({
+        let h = h.clone();
+        move |s| {
+            let name = s.visible_child_name().unwrap_or_default().to_string();
+            let mut h = h.borrow_mut();
+            if name == h.current {
+                return;
+            }
+            let old = std::mem::replace(&mut h.current, name);
+            if !h.stepping {
+                h.back.push(old);
+                h.forward.clear();
+            }
+        }
+    });
+    let click = gtk::GestureClick::new();
+    click.set_button(0);
+    click.set_propagation_phase(gtk::PropagationPhase::Capture);
+    let window = win.window.clone();
+    let win = win.clone();
+    click.connect_pressed(move |g, _, _, _| {
+        let back = match g.current_button() {
+            8 => true,
+            9 => false,
+            _ => {
+                g.set_state(gtk::EventSequenceState::Denied);
+                return;
+            }
+        };
+        g.set_state(gtk::EventSequenceState::Claimed);
+        if win.window.visible_dialog().is_some() {
+            return;
+        }
+        let next = {
+            let h = &mut *h.borrow_mut();
+            let (from, to) = if back { (&mut h.back, &mut h.forward) } else { (&mut h.forward, &mut h.back) };
+            let next = from.pop();
+            if next.is_some() {
+                to.push(h.current.clone());
+            }
+            next
+        };
+        if let Some(page) = next {
+            h.borrow_mut().stepping = true;
+            win.show_page(&page);
+            h.borrow_mut().stepping = false;
+        }
+    });
+    window.add_controller(click);
 }
 
 /// The current voice, small, at the bottom of the sidebar. Gone while the voice changer is off.

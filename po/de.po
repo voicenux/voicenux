@@ -1556,6 +1556,15 @@ msgstr "Anfang und Ende setzen"
 msgid "Ctrl"
 msgstr "Strg"
 
+msgid "Del"
+msgstr "Entf"
+
+msgid "Home"
+msgstr "Pos1"
+
+msgid "Menu"
+msgstr "Menü"
+
 msgid "Search your sounds"
 msgstr "Deine Sounds durchsuchen"
 
@@ -1604,6 +1613,72 @@ msgstr "Rückgängig"
 msgid "Search MyInstants"
 msgstr "MyInstants durchsuchen"
 
+msgid "Everywhere"
+msgstr "Überall"
+
+msgid "Search"
+msgstr "Suchen"
+
+msgid "Go to a page"
+msgstr "Seite wechseln"
+
+msgid "Background on or off"
+msgstr "Hintergrund an oder aus"
+
+msgid "Mute the microphone"
+msgstr "Mikrofon stummschalten"
+
+msgid "This list"
+msgstr "Diese Liste"
+
+msgid "Close the window"
+msgstr "Fenster schließen"
+
+msgid "Move between voices"
+msgstr "Zwischen Stimmen wechseln"
+
+msgid "Use the voice"
+msgstr "Stimme benutzen"
+
+msgid "More for a voice, or right-click it"
+msgstr "Mehr zu einer Stimme, oder klick sie mit rechts an"
+
+msgid "Type anywhere to search"
+msgstr "Einfach lostippen, um zu suchen"
+
+msgid "Play the sound"
+msgstr "Sound abspielen"
+
+msgid "Remove the sound"
+msgstr "Sound entfernen"
+
+msgid "Move the sound"
+msgstr "Sound verschieben"
+
+msgid "Listen or pause"
+msgstr "Anhören oder pausieren"
+
+msgid "Move the playhead, Shift for 1 s, Ctrl for 0.01 s"
+msgstr "Abspielkopf bewegen, mit Umschalt 1 s, mit Strg 0,01 s"
+
+msgid "Jump to the start or end"
+msgstr "Zum Anfang oder Ende springen"
+
+msgid "Set start and end at the playhead"
+msgstr "Anfang und Ende am Abspielkopf setzen"
+
+msgid "Undo, Ctrl+Shift+Z redoes"
+msgstr "Rückgängig, Strg+Umschalt+Z stellt wieder her"
+
+msgid "Keyboard shortcuts"
+msgstr "Tastenkürzel"
+
+msgid "Keys in the app"
+msgstr "Tasten in der App"
+
+msgid "Ctrl+F searches, Ctrl+T turns the voice changer on or off, and more."
+msgstr "Strg+F sucht, Strg+T schaltet den Stimmverzerrer an oder aus, und mehr."
+
 msgid "Removed {}"
 msgstr "{} entfernt"
 
@@ -1621,3 +1696,9 @@ msgstr "Vergrößern"
 
 msgid "Zoom out"
 msgstr "Verkleinern"
+
+msgid "Zoom in or out, also Ctrl with the wheel"
+msgstr "Vergrößern oder verkleinern, auch mit Strg und Mausrad"
+
+msgid "Show all of the sound"
+msgstr "Ganzen Sound zeigen"

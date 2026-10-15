@@ -30,10 +30,10 @@ pub type OpenLab = Rc<dyn Fn(&str)>;
 
 pub fn build(st: &St, open_lab: OpenLab) -> VoicesPage {
     let header = adw::HeaderBar::new();
-    let search = gtk::SearchEntry::builder().placeholder_text(t("Search voices")).width_request(320).build();
-    header.set_title_widget(Some(&search));
+    let (search_box, search) = super::search_field(t("Search voices"));
+    header.set_title_widget(Some(&search_box));
     let random = gtk::Button::from_icon_name("media-playlist-shuffle-symbolic");
-    random.set_tooltip_text(Some(t("Random voice")));
+    random.set_tooltip_text(Some(&super::with_key(t("Random voice"), "R")));
     header.pack_end(&random);
     random.connect_clicked({
         let st = st.clone();

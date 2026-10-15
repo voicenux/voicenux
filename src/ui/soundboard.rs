@@ -24,6 +24,9 @@ struct Pad {
 
 pub struct SoundboardPage {
     pub widget: adw::ToolbarView,
+    pub search: gtk::SearchEntry,
+    /// Opens the file chooser to add sounds.
+    pub add: gtk::Button,
     /// Header buttons that drop their text in a narrow window.
     pub shrink: Vec<adw::ButtonContent>,
 }
@@ -41,6 +44,7 @@ pub fn build(st: &St) -> SoundboardPage {
     let add = gtk::Button::new();
     add.set_child(Some(&add_content));
     add.add_css_class("suggested-action");
+    add.set_tooltip_text(Some(&super::with_key(t("Add audio files"), "O")));
     header.pack_start(&add);
     let find = gtk::ToggleButton::new();
     find.set_child(Some(&find_content));
@@ -375,7 +379,7 @@ pub fn build(st: &St) -> SoundboardPage {
             _ => {}
         }
     });
-    SoundboardPage { widget: view, shrink: vec![add_content, find_content, stop_content] }
+    SoundboardPage { widget: view, search, add, shrink: vec![add_content, find_content, stop_content] }
 }
 
 /// More: sort the sounds, or bring back the starter sounds.

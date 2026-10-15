@@ -321,7 +321,7 @@ pub fn open(st: &St, id: &str, parent: &impl IsA<gtk::Widget>) {
     cancel.set_tooltip_text(Some(t("Close without saving (Esc)")));
     let save = gtk::Button::with_label(t("Save"));
     save.add_css_class("suggested-action");
-    save.set_tooltip_text(Some(t("Save the cut")));
+    save.set_tooltip_text(Some(&super::with_key(t("Save the cut"), "S")));
     let actions = gtk::Box::new(gtk::Orientation::Horizontal, 10);
     actions.append(&cancel);
     actions.append(&save);

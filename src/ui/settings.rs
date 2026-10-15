@@ -280,6 +280,20 @@ pub fn build(st: &St, window: &adw::ApplicationWindow) -> adw::ToolbarView {
         .subtitle(t("Add a shortcut in your desktop's keyboard settings that runs a command like “voicenux toggle” or “voicenux voice robot”."))
         .build();
     keys.add(&no_portal);
+    let in_app = adw::ActionRow::builder()
+        .title(t("Keys in the app"))
+        .subtitle(t("Ctrl+F searches, Ctrl+T turns the voice changer on or off, and more."))
+        .activatable(true)
+        .build();
+    let f1 = label("F1", &["vn-key"]);
+    f1.set_valign(gtk::Align::Center);
+    in_app.add_suffix(&f1);
+    in_app.add_suffix(&gtk::Image::from_icon_name("go-next-symbolic"));
+    in_app.connect_activated({
+        let window = window.clone();
+        move |_| super::help::show(&window)
+    });
+    keys.add(&in_app);
     let sync_keys = {
         let st = st.clone();
         let setup = setup.clone();
