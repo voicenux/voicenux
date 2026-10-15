@@ -54,6 +54,8 @@ pub struct Config {
     pub height: i32,
     /// The page the window showed last.
     pub page: String,
+    /// Other apps on this computer may control Voicenux, see `src/api.rs`.
+    pub api: bool,
 }
 
 impl Default for Config {
@@ -88,6 +90,7 @@ impl Default for Config {
             width: 1180,
             height: 760,
             page: "voices".into(),
+            api: false,
         }
     }
 }

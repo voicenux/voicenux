@@ -95,6 +95,16 @@ Desktops without global shortcuts can run commands instead:
 | `voicenux stop` | Stop all sounds |
 | `voicenux open soundboard` | Open the window on a page |
 
+### Stream Deck and other apps
+
+Plugins for [OpenDeck](https://github.com/nekename/OpenDeck) or a Stream Deck, scripts and bots can play your sounds and change your voice. Turn on **Let other apps control Voicenux** in **Settings → Other apps**. Then a WebSocket at `ws://127.0.0.1:41967` tells apps about every change, and plain HTTP works too:
+
+```bash
+curl -X POST http://127.0.0.1:41967/api/sound/airhorn
+```
+
+Only apps on your computer reach it, web pages can not use it. [API.md](API.md) lists every action and event.
+
 ### Keys in the app
 
 <img width="720" src="res/keys.png" alt="Keyboard shortcuts: keys that work everywhere, on the voices, on the soundboard and in Trim sound, each shown as key caps">

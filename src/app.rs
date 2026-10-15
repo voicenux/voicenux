@@ -270,6 +270,7 @@ pub fn run() -> glib::ExitCode {
 
             let st = State::new();
             apply_appearance(&st);
+            crate::api::start(&st);
             let c = Rc::new(Ctx {
                 st: st.clone(),
                 app: app.clone(),

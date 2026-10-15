@@ -1,5 +1,6 @@
 use std::io::Write;
 
+mod api;
 mod app;
 mod audio;
 mod config;

@@ -406,6 +406,7 @@ pub fn build(st: &St, window: &adw::ApplicationWindow) -> adw::ToolbarView {
     };
     sync_keys();
     page.append(&keys.widget);
+    page.append(&api_group(st).widget);
 
     // Performance.
     let perf = Group::new("high-voltage", t("Performance"), "");
@@ -507,6 +508,86 @@ pub fn build(st: &St, window: &adw::ApplicationWindow) -> adw::ToolbarView {
     view.add_top_bar(&header);
     view.set_content(Some(&scroll));
     view
+}
+
+/// Other apps on this computer, like a Stream Deck plugin, may control Voicenux. See `src/api.rs`.
+fn api_group(st: &St) -> Group {
+    let group =
+        Group::new("video-game", t("Other apps"), t("Stream Deck plugins like for OpenDeck, and scripts, can use your voices and sounds."));
+    let on = adw::SwitchRow::builder()
+        .title(t("Let other apps control Voicenux"))
+        .subtitle(t("Only apps on this computer. Web pages can not use it."))
+        .active(st.config.borrow().api)
+        .build();
+    on.connect_active_notify({
+        let st = st.clone();
+        move |r| st.update(|c| c.api = r.is_active())
+    });
+    group.add(&on);
+    let address = format!("ws://127.0.0.1:{0}   http://127.0.0.1:{0}/api", crate::api::PORT);
+    let status = adw::ActionRow::builder().subtitle_selectable(true).build();
+    status.add_css_class("property");
+    let apps = label("", &["dim-label"]);
+    apps.set_valign(gtk::Align::Center);
+    status.add_suffix(&apps);
+    let copy = gtk::Button::from_icon_name("edit-copy-symbolic");
+    copy.set_valign(gtk::Align::Center);
+    copy.add_css_class("flat");
+    copy.set_tooltip_text(Some(t("Copy")));
+    copy.connect_clicked({
+        let (st, address) = (st.clone(), address.clone());
+        move |b| {
+            b.clipboard().set_text(address.split_whitespace().next().unwrap_or(""));
+            st.notify(Change::Notice(t("Copied").to_string()));
+        }
+    });
+    status.add_suffix(&copy);
+    group.add(&status);
+    let docs = adw::ActionRow::builder()
+        .title(t("How apps use it"))
+        .subtitle(t("The actions and events, for people who build plugins."))
+        .activatable(true)
+        .build();
+    docs.add_suffix(&gtk::Image::from_icon_name("go-next-symbolic"));
+    docs.connect_activated(|r| {
+        let window = r.root().and_downcast::<gtk::Window>();
+        gtk::UriLauncher::new("https://github.com/voicenux/voicenux/blob/main/API.md").launch(
+            window.as_ref(),
+            None::<&gtk::gio::Cancellable>,
+            |_| {},
+        );
+    });
+    group.add(&docs);
+    let sync = {
+        let st = st.clone();
+        move || {
+            let s = st.api.borrow().clone();
+            status.set_visible(s.running || s.error.is_some());
+            copy.set_visible(s.running);
+            match &s.error {
+                Some(e) => {
+                    status.set_title(t("Could not start"));
+                    status.set_subtitle(&fill(t("Port {} is taken, maybe by another Voicenux. {}"), &[&crate::api::PORT.to_string(), e]));
+                    apps.set_label("");
+                }
+                None => {
+                    status.set_title(t("Address"));
+                    status.set_subtitle(&address);
+                    apps.set_label(&match s.clients {
+                        0 => t("No app connected").to_string(),
+                        n => fill(t("Apps connected: {}"), &[&n.to_string()]),
+                    });
+                }
+            }
+        }
+    };
+    sync();
+    st.subscribe(move |c| {
+        if matches!(c, Change::Api) {
+            sync();
+        }
+    });
+    group
 }
 
 /// About Voicenux: the logo, the version, links and who to thank.

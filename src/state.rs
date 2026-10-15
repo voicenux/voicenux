@@ -38,6 +38,18 @@ pub enum Change {
     Engine(Option<String>),
     /// Something changed without a click, worth a short note (shortcut, tray, command line).
     Notice(String),
+    /// The API for other apps started, stopped, failed or got a client.
+    Api,
+}
+
+/// How the API for other apps is doing, for Settings.
+#[derive(Clone, Debug, Default)]
+pub struct ApiStatus {
+    pub running: bool,
+    /// Why it could not start.
+    pub error: Option<String>,
+    /// Apps connected over WebSocket.
+    pub clients: usize,
 }
 
 /// Smoothed meter positions (0..1) for the widgets, updated once per frame.
@@ -67,6 +79,7 @@ pub struct State {
     pub ready: Cell<bool>,
     /// A tray icon is there to bring the window back.
     pub tray: Cell<bool>,
+    pub api: RefCell<ApiStatus>,
     pub error: RefCell<Option<String>>,
     listeners: RefCell<Vec<Listener>>,
     sounds: RefCell<HashMap<String, Arc<SoundData>>>,
@@ -102,6 +115,7 @@ impl State {
             muted: Cell::new(false),
             ready: Cell::new(false),
             tray: Cell::new(false),
+            api: RefCell::default(),
             error: RefCell::default(),
             listeners: RefCell::default(),
             sounds: RefCell::default(),
@@ -590,6 +604,20 @@ impl State {
 
     pub fn stop_sounds(&self) {
         self.engine.rt(RtCmd::StopAll);
+    }
+
+    pub fn stop_sound(&self, id: &str) {
+        let rt = self.sound_rt_id(id);
+        self.engine.rt(RtCmd::Stop(rt));
+    }
+
+    /// The sounds that play right now.
+    pub fn playing_sounds(&self) -> Vec<String> {
+        let mut ids: Vec<String> =
+            self.engine.meters.playing().into_iter().filter_map(|(rt, _)| self.sound_id_of(rt)).collect();
+        ids.sort();
+        ids.dedup();
+        ids
     }
 
     /// Plays a sound found online in the headphones only, to listen before adding it.

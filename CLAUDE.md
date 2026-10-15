@@ -34,6 +34,8 @@
 - `src/audio/graph.rs` owns the PipeWire connection: a `pw_filter` (`voicenux_engine`), the virtual
   source `voicenux_mic` and the links between them, the microphone and the headphones. pipewire-rs
   has no filter yet, `src/audio/filter.rs` wraps the C API.
+- `src/api.rs` lets other apps control Voicenux (WebSocket and HTTP on 127.0.0.1:41967, off by
+  default). Keep `API.md` in step with it. Raise `VERSION` there only for changes that break clients.
 - Users never touch a config file. Every option has a place in the app, `src/config.rs` only
   stores it.
 - Everything a user can read comes in English and German. Write the English text in the code and

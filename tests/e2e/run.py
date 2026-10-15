@@ -8,11 +8,13 @@ folder, plays a test tone into the fake mic and checks what comes out of the
     python3 tests/e2e/run.py [path/to/voicenux]
 """
 
+import json
 import os
 import subprocess
 import sys
 import tempfile
 import time
+import urllib.request
 import wave
 
 import numpy as np
@@ -101,7 +103,7 @@ def main():
         time.sleep(1)
         os.makedirs(ENV["XDG_CONFIG_HOME"] + "/voicenux", exist_ok=True)
         with open(ENV["XDG_CONFIG_HOME"] + "/voicenux/config.toml", "w") as f:
-            f.write('onboarded = true\ninput = "vn_e2e_mic"\nvoice = "chipmunk"\nbackground = false\n')
+            f.write('onboarded = true\ninput = "vn_e2e_mic"\nvoice = "chipmunk"\nbackground = false\napi = true\n')
         procs.append(subprocess.Popen([BIN, "--background"], env=ENV, stderr=subprocess.DEVNULL))
         time.sleep(3)
 
@@ -144,6 +146,17 @@ def main():
         quiet = rms(capture(1.2))
         y = capture(1.2, None, coin)
         check("soundboard plays into the mic", rms(y) > 0.01 and rms(y) > quiet * 10, f"rms {rms(y):.4f}, silence {quiet:.5f}")
+
+        def api_coin():
+            req = urllib.request.Request("http://127.0.0.1:41967/api/sound/coin", method="POST")
+            with urllib.request.urlopen(req, timeout=5) as r:
+                assert json.load(r)["ok"]
+
+        y = capture(1.2, None, api_coin)
+        check("the API plays a sound into the mic", rms(y) > 0.01 and rms(y) > quiet * 10, f"rms {rms(y):.4f}")
+        with urllib.request.urlopen("http://127.0.0.1:41967/api/state", timeout=5) as r:
+            state = json.load(r)["result"]
+        check("the API tells the voice", state["voice"]["id"] == "deep", state["voice"]["id"])
 
         sh(BIN, "voice", "robot")
         time.sleep(0.5)

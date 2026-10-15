@@ -1729,3 +1729,42 @@ msgstr "Effekte suchen"
 
 msgid "No effects found"
 msgstr "Keine Effekte gefunden"
+
+msgid "Other apps"
+msgstr "Andere Apps"
+
+msgid "Stream Deck plugins like for OpenDeck, and scripts, can use your voices and sounds."
+msgstr "Stream-Deck-Plugins wie für OpenDeck und Skripte können deine Stimmen und Sounds benutzen."
+
+msgid "Let other apps control Voicenux"
+msgstr "Andere Apps dürfen Voicenux steuern"
+
+msgid "Only apps on this computer. Web pages can not use it."
+msgstr "Nur Apps auf diesem Computer. Webseiten können es nicht benutzen."
+
+msgid "Copy"
+msgstr "Kopieren"
+
+msgid "Copied"
+msgstr "Kopiert"
+
+msgid "How apps use it"
+msgstr "So benutzen Apps es"
+
+msgid "The actions and events, for people who build plugins."
+msgstr "Die Aktionen und Ereignisse, für alle, die Plugins bauen."
+
+msgid "Could not start"
+msgstr "Konnte nicht starten"
+
+msgid "Port {} is taken, maybe by another Voicenux. {}"
+msgstr "Port {} ist belegt, vielleicht von einem anderen Voicenux. {}"
+
+msgid "Address"
+msgstr "Adresse"
+
+msgid "No app connected"
+msgstr "Keine App verbunden"
+
+msgid "Apps connected: {}"
+msgstr "Verbundene Apps: {}"
