@@ -140,9 +140,10 @@ def main():
         def coin():
             sh(BIN, "sound", "coin")
 
+        # The starter coin is a recording, so it is checked by its level, against silence.
+        quiet = rms(capture(1.2))
         y = capture(1.2, None, coin)
-        f = dominant(y, 500, 3000)
-        check("soundboard plays into the mic", abs(f - 1318.5) < 15 or abs(f - 987.8) < 15, f"{f:.1f} Hz, rms {rms(y):.4f}")
+        check("soundboard plays into the mic", rms(y) > 0.01 and rms(y) > quiet * 10, f"rms {rms(y):.4f}, silence {quiet:.5f}")
 
         sh(BIN, "voice", "robot")
         time.sleep(0.5)
