@@ -310,7 +310,7 @@ fn key_hints() -> gtk::Box {
     let row = gtk::Box::new(gtk::Orientation::Horizontal, 18);
     row.set_halign(gtk::Align::Center);
     for (keys, what) in [
-        (vec![t("Space")], t("Listen")),
+        (vec![t("Spacebar")], t("Listen")),
         (vec!["←", "→"], t("Move the playhead")),
         (vec!["I", "O"], t("Set start and end")),
     ] {

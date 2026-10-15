@@ -1544,7 +1544,7 @@ msgstr "Anhören spielt nur in deinen Kopfhörern."
 msgid "Waveform"
 msgstr "Wellenform"
 
-msgid "Space"
+msgid "Spacebar"
 msgstr "Leertaste"
 
 msgid "Move the playhead"
