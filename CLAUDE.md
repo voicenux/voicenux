@@ -53,6 +53,9 @@
   shadow can overshoot to a negative blur and GTK crashes.
 - Rings and glows of tiles that move (voice cards, sound pads) stay inside the tile: use `inset`
   shadows. Shadows that reach out of a moving tile left broken bits on NVIDIA at 130 % scale.
+- Every popover goes through `popup::menu`: it bounces open, and a click next to it still does
+  what it hits, like on other desktops. Right-click menus use `popup::context`. A click next to a
+  dialog closes it; a dialog that would lose something sets `can_close` to false or `vn-stay`.
 - Background sounds are made in code (`src/dsp/ambience.rs`). Starter sounds are CC0 recordings
   from Freesound in `data/sounds`: add them to `scripts/fetch-sounds.py`, run `make sounds` and
   credit them in `data/sounds/LICENSE`. Only CC0, never clips from meme sites. **Find sounds**
@@ -68,6 +71,8 @@
   `pw-link -l` and `pw-record --target voicenux_mic`.
 - Never test with injected input (XTest, ydotool, remote desktop portal). Drive the app with its
   own commands instead: `voicenux open <page>`, `voicenux voice <id>`, `voicenux sound <id>`.
+- `voicenux --dialog keys|about|trim:SOUND|find:WORDS` opens a dialog or the MyInstants search,
+  for screenshots. Menus are popups of their own, `--snapshot` does not see them.
 - For screenshots, `voicenux --snapshot file.png` renders the window into a PNG. It needs a desktop
   that draws frames: on a locked screen, run Voicenux in `kwin_wayland --virtual` with its own
   `dbus-daemon` and `GTK_A11Y=none`. `LANGUAGE=en` for English. A fake microphone fed by `pw-play`

@@ -53,19 +53,21 @@ sudo make install
 
 The switches at the bottom turn the voice changer, hear myself and the background sounds of a voice on or off. The button on the left mutes your microphone. On the right you see which apps use your new voice right now.
 
-Every voice has a few settings on the right, like pitch or how big the room is. **Customize** makes a copy in Voicelab, where you can change everything.
+Every voice has a few settings on the right, like pitch or how big the room is. Sliders hold at 0, 50 % and 100 % while you drag them, and a click on a value lets you type it. **Customize** makes a copy in Voicelab, where you can change everything. Right-click a voice to use it, star it, customize it or give it a shortcut. To search, just start typing.
 
 When you close the window, Voicenux keeps running in the tray, so your voice keeps working.
 
 ### Soundboard
 
-<img width="720" src="res/soundboard.png" alt="The soundboard with sound pads; Drum Roll and Applause are playing and show their progress as a ring. On the right, Find sounds lists applause sounds from MyInstants, each with a play and an add button">
+<img width="720" src="res/soundboard.png" alt="The soundboard with sound pads; Drum Roll and Applause are playing and show their progress as a ring, Drum Roll has a mark for its cut and Air Horn shows its shortcut. On the right, Find sounds lists applause sounds from MyInstants, each with a play and an add button">
 
-Sounds play into the Voicenux Microphone, and you hear them too. Add your own with **Add sounds**, or drop audio files on the page. MP3, OGG, FLAC and WAV work. The menu of a sound changes its name, picture, volume and shortcut, and what a press does: play from the start, play and stop, play on top or loop. Right-click a sound to open it.
+Sounds play into the Voicenux Microphone, and you hear them too. Add your own with **Add sounds**, or drop audio files on the page. MP3, OGG, FLAC and WAV work. The menu of a sound changes its name, picture, volume and shortcut, and what a press does: play from the start, play and stop, play on top or loop. Right-click a sound to open it. Small marks on a pad show how it plays and if it is cut, and its shortcut shows under its name.
 
-<img width="720" src="res/trim.png" alt="Trim sound for Drum Roll: the waveform with a blue frame and a handle on each side, from 0.80 s to 5.20 s, and a playhead while it plays">
+Type to search your sounds. When none matches, one click searches MyInstants for the same words. Drag a sound onto another one to move it there, or use Alt with ← and →. Delete removes a sound, and **Undo** brings it back. Escape stops all sounds.
 
-**Trim sound** in the menu cuts the start and end, like a video clip. Drag the handles over the waveform, or type the times. **Listen** plays the cut sound in your headphones only, from the white playhead: drag it, or click into the cut. Space listens or pauses, ← and → move the playhead, I and O set the start and end at the playhead.
+<img width="720" src="res/trim.png" alt="Trim sound for Drum Roll: a time ruler in seconds over the waveform, a blue frame with a handle on each side from 0.80 s to 5.20 s, the playhead at the start of the cut, and Cancel and Save at the bottom right">
+
+**Trim sound** in the menu cuts the start and end, like a video clip. Drag the handles over the waveform, or type the times. The ruler on top shows the seconds. **Listen** plays the cut sound in your headphones only, from the white playhead: drag it, or click into the cut or the ruler. The playhead can leave the cut too: it sticks to its ends for a moment, then tears away. Behind the cut, Listen plays on to the end of the sound. Space listens or pauses, ← and → move the playhead (with Shift a second, with Ctrl a hundredth), I and O set the start and end at the playhead, and Ctrl+Z undoes. For exact cuts, zoom in with Ctrl and the mouse wheel, or with + and −. The wheel then scrolls along the sound.
 
 **Find sounds** searches [MyInstants](https://www.myinstants.com). ▶ plays a sound in your headphones only, + adds it to your soundboard. Only the words you search for are sent, and only when you search.
 
@@ -73,7 +75,7 @@ Sounds play into the Voicenux Microphone, and you hear them too. Add your own wi
 
 <img width="720" src="res/voicelab.png" alt="Voicelab with a custom voice called Space Pirate: a pitch effect and a ring modulator, each with its settings">
 
-Build your own voice from 25 effects: pitch and formant, harmony, robot, whisper, auto-tune, vocoder, echo, reverb, chorus, flanger, phaser, vibrato, tremolo, ring modulator, distortion, bit crusher, filters, compressor, noise gate, noise, background sounds, radio beeps and glitches. Effects run from top to bottom. With Hear myself on, you hear every change right away.
+Build your own voice from 25 effects: pitch and formant, harmony, robot, whisper, auto-tune, vocoder, echo, reverb, chorus, flanger, phaser, vibrato, tremolo, ring modulator, distortion, bit crusher, filters, compressor, noise gate, noise, background sounds, radio beeps and glitches. Effects run from top to bottom. With Hear myself on, you hear every change right away. Right-click a voice in the list to use, duplicate or delete it.
 
 ### Shortcuts
 
@@ -92,6 +94,12 @@ Desktops without global shortcuts can run commands instead:
 | `voicenux sound airhorn` | Play a sound. `voicenux sounds` shows them all. |
 | `voicenux stop` | Stop all sounds |
 | `voicenux open soundboard` | Open the window on a page |
+
+### Keys in the app
+
+<img width="720" src="res/keys.png" alt="Keyboard shortcuts: keys that work everywhere, on the voices, on the soundboard and in Trim sound, each shown as key caps">
+
+Inside the app, F1 shows all keys. Ctrl+F searches, Ctrl+1 to 4 switch pages, Ctrl+T turns the voice changer on or off and Ctrl+M mutes your microphone. The back and forward buttons of your mouse go through the pages you saw.
 
 ## Voices
 
