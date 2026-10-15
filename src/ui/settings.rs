@@ -4,7 +4,7 @@ use std::rc::Rc;
 
 use adw::prelude::*;
 
-use super::{icon, label, smooth_scroll};
+use super::{label, line_icon, smooth_scroll, tinted};
 use crate::audio::Device;
 use crate::audio::easyeffects::Use as EasyEffects;
 use crate::i18n::{fill, t, t_dyn};
@@ -190,7 +190,7 @@ fn easyeffects_row(st: &St) -> adw::SwitchRow {
     row
 }
 
-/// A section of the settings: a 3D picture, a title and its rows in a card.
+/// A section of the settings: a Lucide icon on a tile, a title and its rows in a card.
 struct Group {
     widget: gtk::Box,
     head: gtk::Box,
@@ -198,10 +198,10 @@ struct Group {
 }
 
 impl Group {
-    fn new(pic: &str, title: &str, description: &str) -> Self {
+    fn new(pic: &str, tint: &str, title: &str, description: &str) -> Self {
         let head = gtk::Box::new(gtk::Orientation::Horizontal, 14);
         head.add_css_class("vn-settings-head");
-        let img = icon(pic, 40);
+        let img = tinted(pic, 40, tint);
         img.set_valign(gtk::Align::Center);
         head.append(&img);
         let texts = gtk::Box::new(gtk::Orientation::Vertical, 2);
@@ -248,7 +248,7 @@ pub fn build(st: &St, window: &adw::ApplicationWindow) -> adw::ToolbarView {
     let c = st.config.borrow().clone();
 
     // Microphone.
-    let mic = Group::new("studio-microphone", t("Microphone"), t("The real microphone you talk into."));
+    let mic = Group::new("mic", "blue", t("Microphone"), t("The real microphone you talk into."));
     mic.add(&device_row(st, t("Microphone"), true));
     mic.add(&scale_row(
         t("Microphone volume"),
@@ -298,7 +298,8 @@ pub fn build(st: &St, window: &adw::ApplicationWindow) -> adw::ToolbarView {
 
     // Virtual microphone.
     let virt = Group::new(
-        "microphone",
+        "mic-vocal",
+        "cyan",
         t("Voicenux Microphone"),
         t("Apps hear your new voice through this microphone. Pick it in Discord, OBS or your game."),
     );
@@ -331,7 +332,7 @@ pub fn build(st: &St, window: &adw::ApplicationWindow) -> adw::ToolbarView {
     page.append(&virt.widget);
 
     // Hear myself.
-    let hear = Group::new("headphone", t("Hear myself"), t("Where you hear your own changed voice and the soundboard."));
+    let hear = Group::new("headphones", "violet", t("Hear myself"), t("Where you hear your own changed voice and the soundboard."));
     hear.add(&device_row(st, t("Headphones"), false));
     hear.add(&scale_row(
         t("Volume"),
@@ -349,7 +350,8 @@ pub fn build(st: &St, window: &adw::ApplicationWindow) -> adw::ToolbarView {
 
     // Shortcuts.
     let keys = Group::new(
-        "keyboard-2",
+        "keyboard",
+        "orange",
         t("Shortcuts"),
         t("Work everywhere, even in games. Your desktop asks once to confirm the keys."),
     );
@@ -409,7 +411,7 @@ pub fn build(st: &St, window: &adw::ApplicationWindow) -> adw::ToolbarView {
     page.append(&api_group(st).widget);
 
     // Performance.
-    let perf = Group::new("high-voltage", t("Performance"), "");
+    let perf = Group::new("zap", "yellow", t("Performance"), "");
     let low = adw::SwitchRow::builder()
         .title(t("Low latency"))
         .subtitle(t("Less delay between talking and hearing yourself. Pitch effects sound a little rougher."))
@@ -423,7 +425,7 @@ pub fn build(st: &St, window: &adw::ApplicationWindow) -> adw::ToolbarView {
     page.append(&perf.widget);
 
     // App.
-    let app = Group::new("gear", t("App"), "");
+    let app = Group::new("settings", "gray", t("App"), "");
     let autostart = adw::SwitchRow::builder()
         .title(t("Start with the computer"))
         .subtitle(t("Starts in the background, without a window."))
@@ -513,7 +515,7 @@ pub fn build(st: &St, window: &adw::ApplicationWindow) -> adw::ToolbarView {
 /// Other apps on this computer, like a Stream Deck plugin, may control Voicenux. See `src/api.rs`.
 fn api_group(st: &St) -> Group {
     let group =
-        Group::new("video-game", t("Other apps"), t("Stream Deck plugins like for OpenDeck, and scripts, can use your voices and sounds."));
+        Group::new("plug", "green", t("Other apps"), t("Stream Deck plugins like for OpenDeck, and scripts, can use your voices and sounds."));
     let on = adw::SwitchRow::builder()
         .title(t("Let other apps control Voicenux"))
         .subtitle(t("Only apps on this computer. Web pages can not use it."))
@@ -616,12 +618,12 @@ pub fn about_dialog() -> adw::Dialog {
     links.set_halign(gtk::Align::Center);
     links.set_margin_top(10);
     for (pic, text, url) in [
-        ("globe-with-meridians", t("Website"), "https://github.com/voicenux/voicenux"),
-        ("lady-beetle", t("Report a bug"), "https://github.com/voicenux/voicenux/issues"),
-        ("hot-beverage", t("Buy me a coffee"), "https://ko-fi.com/felitendo"),
+        ("globe", t("Website"), "https://github.com/voicenux/voicenux"),
+        ("bug", t("Report a bug"), "https://github.com/voicenux/voicenux/issues"),
+        ("coffee", t("Buy me a coffee"), "https://ko-fi.com/felitendo"),
     ] {
         let row = gtk::Box::new(gtk::Orientation::Horizontal, 8);
-        row.append(&icon(pic, 20));
+        row.append(&line_icon(pic, 18));
         row.append(&label(text, &[]));
         let b = gtk::Button::builder().child(&row).css_classes(["pill"]).tooltip_text(url).build();
         b.connect_clicked(move |b| {
@@ -636,7 +638,7 @@ pub fn about_dialog() -> adw::Dialog {
     credits.add_css_class("vn-keys-card");
     credits.set_margin_top(14);
     for (title, names) in [
-        (t("Pictures"), vec!["Fluent Emoji by Microsoft (MIT)"]),
+        (t("Pictures"), vec!["Fluent Emoji by Microsoft (MIT)", "Lucide (ISC)"]),
         (t("Thanks to"), vec!["Freeverb by Jezar at Dreampoint", "RNNoise by Xiph.Org", "Symphonia", "gtk-rs"]),
     ] {
         let head = label(title, &["heading"]);

@@ -23,12 +23,12 @@ pub struct Window {
     st: St,
 }
 
-/// The pages: name, picture and title.
-pub const PAGES: &[(&str, &str, &str)] = &[
-    ("voices", "studio-microphone", "Voices"),
-    ("soundboard", "speaker-high-volume", "Soundboard"),
-    ("voicelab", "alembic", "Voicelab"),
-    ("settings", "gear", "Settings"),
+/// The pages: id, Lucide icon, title and the color of the icon's tile.
+pub const PAGES: &[(&str, &str, &str, &str)] = &[
+    ("voices", "mic", "Voices", "blue"),
+    ("soundboard", "volume-2", "Soundboard", "pink"),
+    ("voicelab", "flask-conical", "Voicelab", "green"),
+    ("settings", "settings", "Settings", "gray"),
 ];
 
 impl Window {
@@ -182,9 +182,9 @@ pub fn build(app: &adw::Application, st: &St) -> Window {
     let nav = gtk::ListBox::new();
     nav.add_css_class("navigation-sidebar");
     nav.add_css_class("vn-nav");
-    for (i, (_, pic, title)) in PAGES.iter().enumerate() {
+    for (i, (_, pic, title, tint)) in PAGES.iter().enumerate() {
         let row = gtk::Box::new(gtk::Orientation::Horizontal, 12);
-        row.append(&super::icon(pic, 26));
+        row.append(&super::tinted(pic, 28, tint));
         row.append(&gtk::Label::new(Some(t_dyn(title).as_str())));
         nav.append(&row);
         if let Some(r) = nav.row_at_index(i as i32) {

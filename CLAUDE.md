@@ -46,6 +46,9 @@
   run `make icons`. Never draw own pictures for voices or sounds. All other emoji are in
   `data/emoji`, small, for the picture picker; `data/emoji.tsv` has their English and German
   names for the search. `make emoji` makes both again; run it after `make icons`.
+- The sidebar, the settings and the list of keys use Lucide icons (ISC) instead: white on a tile
+  of a `.vn-tint-*` color, made by `ui::tinted`. They are paths in `data/lucide/icons.tsv`, drawn
+  by `ui/glyph.rs`. Add new ones to `NAMES` in `scripts/fetch-lucide.py` and run `make lucide`.
 - Look: colorful and Voicemod-like is wanted: the Fluent Emoji 3D pictures, the blue gradient
   (deep blue to cyan), glow and lively animations. A flat libadwaita look, a game-icons look and
   a violet to pink gradient were tried and dropped again. No wiggle animations. Do not redesign

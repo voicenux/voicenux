@@ -227,7 +227,7 @@ mod tests {
         for (_, desc, _) in crate::shortcuts::ACTIONS {
             check(desc);
         }
-        for (_, _, title) in crate::ui::window::PAGES {
+        for (_, _, title, _) in crate::ui::window::PAGES {
             check(title);
         }
         assert!(missing.is_empty(), "missing German texts:\n{}", missing.join("\n"));

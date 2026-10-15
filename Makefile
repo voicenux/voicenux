@@ -3,7 +3,7 @@ DESTDIR ?=
 APP_ID = io.github.voicenux.Voicenux
 BIN = target/release/voicenux
 
-.PHONY: all build check e2e run install uninstall icons emoji sounds clean
+.PHONY: all build check e2e run install uninstall icons emoji lucide sounds clean
 
 all: build
 
@@ -28,6 +28,7 @@ install:
 	install -Dm644 data/$(APP_ID).metainfo.xml $(DESTDIR)$(PREFIX)/share/metainfo/$(APP_ID).metainfo.xml
 	install -Dm644 data/app/$(APP_ID).svg $(DESTDIR)$(PREFIX)/share/icons/hicolor/scalable/apps/$(APP_ID).svg
 	install -Dm644 LICENSE $(DESTDIR)$(PREFIX)/share/licenses/voicenux/LICENSE
+	install -Dm644 data/lucide/LICENSE $(DESTDIR)$(PREFIX)/share/licenses/voicenux/LICENSE.lucide
 
 uninstall:
 	rm -f $(DESTDIR)$(PREFIX)/bin/voicenux
@@ -43,6 +44,10 @@ icons:
 # Downloads all other Fluent Emoji for the picture picker, small, and their names. Needs Pillow.
 emoji:
 	python3 -I scripts/fetch-emoji.py
+
+# Downloads the Lucide icons of the sidebar and the settings, listed in the script.
+lucide:
+	python3 -I scripts/fetch-lucide.py
 
 # Downloads the CC0 starter sounds from Freesound and levels them. Needs ffmpeg.
 sounds:
