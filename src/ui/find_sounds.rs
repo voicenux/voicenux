@@ -37,7 +37,7 @@ struct Finder {
 /// The panel, and its search field to focus.
 pub fn panel(st: &St) -> (gtk::Box, gtk::SearchEntry) {
     let search = gtk::SearchEntry::new();
-    search.set_placeholder_text(Some(t("Search sounds")));
+    search.set_placeholder_text(Some(t("Search MyInstants")));
     // Searches while typing, after a short pause. Enter searches at once.
     search.set_search_delay(250);
     search.set_margin_top(12);

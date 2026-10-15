@@ -7,7 +7,7 @@ use std::sync::OnceLock;
 
 use adw::prelude::*;
 
-use super::{icon, label, load_picture, popup, smooth_scroll};
+use super::{fold, icon, label, load_picture, popup, smooth_scroll};
 use crate::i18n::{language, t};
 
 /// One picture of `data/emoji.tsv`.
@@ -35,10 +35,6 @@ fn index() -> &'static [Emoji] {
     })
 }
 
-/// Lower case and without umlauts, so "mause" finds "Mäuse" too.
-fn fold(s: &str) -> String {
-    s.to_lowercase().replace('ä', "a").replace('ö', "o").replace('ü', "u").replace('ß', "ss")
-}
 
 fn find(id: &str) -> Option<&'static Emoji> {
     static BY_ID: OnceLock<HashMap<&'static str, &'static Emoji>> = OnceLock::new();

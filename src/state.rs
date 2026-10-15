@@ -31,6 +31,8 @@ pub enum Change {
     Devices,
     Users,
     Sounds,
+    /// A sound was removed. It can come back until its note is gone.
+    SoundRemoved { id: String, name: String },
     Settings,
     /// The engine is up, or failed with a message.
     Engine(Option<String>),
@@ -69,6 +71,8 @@ pub struct State {
     listeners: RefCell<Vec<Listener>>,
     sounds: RefCell<HashMap<String, Arc<SoundData>>>,
     sound_ids: RefCell<HashMap<String, u32>>,
+    /// Removed sounds and where they were, kept for Undo. Their files go when the note goes.
+    trash: RefCell<Vec<(usize, soundboard::Sound)>>,
     save_source: RefCell<Option<glib::SourceId>>,
 }
 
@@ -102,6 +106,7 @@ impl State {
             listeners: RefCell::default(),
             sounds: RefCell::default(),
             sound_ids: RefCell::default(),
+            trash: RefCell::default(),
             save_source: RefCell::default(),
         });
         st.push_all();
@@ -663,13 +668,85 @@ impl State {
         errors
     }
 
+    /// Removes a sound. [`State::undo_remove`] brings it back, until [`State::forget_removed`].
     pub fn remove_sound(&self, id: &str) {
         let rt = self.sound_rt_id(id);
         self.engine.rt(RtCmd::Stop(rt));
         self.sounds.borrow_mut().remove(id);
+        let taken = {
+            let mut lib = self.library.borrow_mut();
+            let taken = lib.take(id);
+            lib.save();
+            taken
+        };
+        let Some((pos, sound)) = taken else { return };
+        let name = crate::i18n::t_dyn(&sound.name);
+        self.trash.borrow_mut().push((pos, sound));
+        self.notify(Change::Sounds);
+        self.notify(Change::SoundRemoved { id: id.to_string(), name });
+    }
+
+    pub fn undo_remove(&self, id: &str) {
+        let Some(i) = self.trash.borrow().iter().position(|(_, s)| s.id == id) else { return };
+        let (pos, sound) = self.trash.borrow_mut().remove(i);
         {
             let mut lib = self.library.borrow_mut();
-            lib.remove(id);
+            let pos = pos.min(lib.sound.len());
+            lib.sound.insert(pos, sound);
+            lib.save();
+        }
+        self.notify(Change::Sounds);
+    }
+
+    /// The Undo for a removed sound is gone: so is its file.
+    pub fn forget_removed(&self, id: &str) {
+        let gone: Vec<_> = {
+            let mut trash = self.trash.borrow_mut();
+            let (gone, keep) = trash.drain(..).partition(|(_, s)| s.id == id);
+            *trash = keep;
+            gone
+        };
+        for (_, s) in gone {
+            soundboard::delete_file(&s);
+        }
+    }
+
+    /// Deletes the files of all removed sounds, when the app quits.
+    pub fn empty_trash(&self) {
+        for (_, s) in self.trash.borrow_mut().drain(..) {
+            soundboard::delete_file(&s);
+        }
+    }
+
+    /// Moves a sound before or after another one.
+    pub fn move_sound(&self, id: &str, target: &str, after: bool) {
+        {
+            let mut lib = self.library.borrow_mut();
+            lib.move_next_to(id, target, after);
+            lib.save();
+        }
+        self.notify(Change::Sounds);
+    }
+
+    /// Moves a sound one place left or right.
+    pub fn shift_sound(&self, id: &str, right: bool) {
+        let target = {
+            let lib = self.library.borrow();
+            let Some(pos) = lib.sound.iter().position(|s| s.id == id) else { return };
+            let to = if right { pos + 1 } else { pos.wrapping_sub(1) };
+            match lib.sound.get(to) {
+                Some(s) => s.id.clone(),
+                None => return,
+            }
+        };
+        self.move_sound(id, &target, right);
+    }
+
+    /// Sorts the soundboard by name, as the user reads them.
+    pub fn sort_sounds(&self) {
+        {
+            let mut lib = self.library.borrow_mut();
+            lib.sound.sort_by_cached_key(|s| crate::i18n::t_dyn(&s.name).to_lowercase());
             lib.save();
         }
         self.notify(Change::Sounds);

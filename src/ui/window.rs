@@ -92,8 +92,9 @@ pub fn build(app: &adw::Application, st: &St) -> Window {
         }
     });
     let voices_page = voices::build(st, open_lab);
+    let sounds_page = soundboard::build(st);
     stack.add_named(&voices_page.widget, Some("voices"));
-    stack.add_named(&soundboard::build(st), Some("soundboard"));
+    stack.add_named(&sounds_page.widget, Some("soundboard"));
     stack.add_named(&lab.widget, Some("voicelab"));
     stack.add_named(&settings::build(st, &window), Some("settings"));
 
@@ -162,6 +163,9 @@ pub fn build(app: &adw::Application, st: &St) -> Window {
     for w in &bar_texts {
         narrow.add_setter(w, "visible", Some(&false.to_value()));
     }
+    for c in &sounds_page.shrink {
+        narrow.add_setter(c, "label", Some(&"".to_value()));
+    }
     window.add_breakpoint(narrow);
 
     super::popup::watch(&window);
@@ -207,6 +211,22 @@ pub fn build(app: &adw::Application, st: &St) -> Window {
                 if win.window.is_visible() {
                     win.toast(text);
                 }
+            }
+            Change::SoundRemoved { id, name } => {
+                let toast = adw::Toast::builder()
+                    .title(crate::i18n::fill(t("Removed {}"), &[name]))
+                    .button_label(t("Undo"))
+                    .timeout(6)
+                    .build();
+                toast.connect_button_clicked({
+                    let (st, id) = (win.st.clone(), id.clone());
+                    move |_| st.undo_remove(&id)
+                });
+                toast.connect_dismissed({
+                    let (st, id) = (win.st.clone(), id.clone());
+                    move |_| st.forget_removed(&id)
+                });
+                win.toast.add_toast(toast);
             }
             Change::Engine(err) => match err {
                 Some(e) => {

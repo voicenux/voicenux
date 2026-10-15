@@ -335,6 +335,7 @@ pub fn run() -> glib::ExitCode {
         move |_| {
             if let Some(c) = ctx.borrow_mut().take() {
                 c.st.save_now();
+                c.st.empty_trash();
             }
         }
     });

@@ -122,6 +122,33 @@ pub fn animate_in(widget: &impl IsA<gtk::Widget>, delay: usize) {
     w.add_css_class(new);
 }
 
+/// Lower case and without umlauts, so "mause" finds "Mäuse" too.
+pub fn fold(s: &str) -> String {
+    s.to_lowercase().replace('ä', "a").replace('ö', "o").replace('ü', "u").replace('ß', "ss")
+}
+
+/// A search field. Escape empties it, a second Escape leaves it.
+pub fn search_field(placeholder: &str) -> (gtk::Overlay, gtk::SearchEntry) {
+    // Narrow when the window is, wide when there is room.
+    let entry = gtk::SearchEntry::builder()
+        .placeholder_text(placeholder)
+        .hexpand(true)
+        .width_chars(10)
+        .max_width_chars(34)
+        .build();
+    entry.add_css_class("vn-search");
+    let overlay = gtk::Overlay::new();
+    overlay.set_child(Some(&entry));
+    entry.connect_stop_search(|e| {
+        if e.text().is_empty() {
+            e.emit_move_focus(gtk::DirectionType::TabForward);
+        } else {
+            e.set_text("");
+        }
+    });
+    (overlay, entry)
+}
+
 /// A value that looks like a label. A click opens it for typing: `start` gives the text to begin
 /// with, `done` gets the field and what was typed, and must set the shown text again. Enter or a
 /// click anywhere else puts the value in, Escape keeps the old one.

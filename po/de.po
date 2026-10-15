@@ -1556,6 +1556,30 @@ msgstr "Anfang und Ende setzen"
 msgid "Ctrl"
 msgstr "Strg"
 
+msgid "Search your sounds"
+msgstr "Deine Sounds durchsuchen"
+
+msgid "Find sounds on MyInstants"
+msgstr "Sounds auf MyInstants finden"
+
+msgid "Stop all sounds (Esc)"
+msgstr "Alle Sounds stoppen (Esc)"
+
+msgid "No sounds found"
+msgstr "Keine Sounds gefunden"
+
+msgid "Nothing on your soundboard is called “{}”."
+msgstr "Auf deinem Soundboard heißt nichts „{}“."
+
+msgid "Search MyInstants for “{}”"
+msgstr "Auf MyInstants nach „{}“ suchen"
+
+msgid "More"
+msgstr "Mehr"
+
+msgid "Sort by name"
+msgstr "Nach Namen sortieren"
+
 msgid "Delete…"
 msgstr "Löschen …"
 
@@ -1577,8 +1601,20 @@ msgstr "Schließen ohne Speichern (Esc)"
 msgid "Undo"
 msgstr "Rückgängig"
 
+msgid "Search MyInstants"
+msgstr "MyInstants durchsuchen"
+
+msgid "Removed {}"
+msgstr "{} entfernt"
+
+msgid "Add audio files"
+msgstr "Audiodateien hinzufügen"
+
 msgid "Save the cut"
 msgstr "Schnitt speichern"
+
+msgid "Trimmed"
+msgstr "Gekürzt"
 
 msgid "Zoom in"
 msgstr "Vergrößern"

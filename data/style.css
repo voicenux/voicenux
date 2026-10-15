@@ -479,6 +479,20 @@ flowboxchild .sound-pad.playing .vn-pad-icon {
   font-size: 13px;
 }
 
+.vn-pad-badge {
+  min-width: 22px;
+  min-height: 22px;
+  -gtk-icon-size: 12px;
+  border-radius: 99px;
+  color: var(--accent-color);
+  background-color: color-mix(in srgb, var(--accent-bg-color) 16%, transparent);
+}
+
+.vn-key.vn-pad-keys {
+  font-size: 10px;
+  margin-top: -2px;
+}
+
 .vn-pad-menu {
   min-width: 24px;
   min-height: 24px;
@@ -747,6 +761,20 @@ gridview.vn-emoji-grid > child image {
 gridview.vn-emoji-grid > child:hover image {
   transform: scale(1.15);
 }
+
+/* Dragging pads to sort them: the dragged one fades, a glowing bar shows where it lands. */
+.vn-dragging {
+  opacity: 0.35;
+}
+
+flowboxchild.vn-drop-before .sound-pad {
+  box-shadow: inset 4px 0 0 var(--accent-bg-color), inset 0 0 0 1px var(--vn-line);
+}
+
+flowboxchild.vn-drop-after .sound-pad {
+  box-shadow: inset -4px 0 0 var(--accent-bg-color), inset 0 0 0 1px var(--vn-line);
+}
+
 
 /* Misc */
 

@@ -209,14 +209,31 @@ impl Library {
         Ok(sound)
     }
 
-    pub fn remove(&mut self, id: &str) {
-        if let Some(pos) = self.sound.iter().position(|s| s.id == id) {
-            let s = self.sound.remove(pos);
-            if let Some(file) = s.file {
-                let _ = std::fs::remove_file(dir().join(file));
-            }
-        }
+    /// Takes a sound out of the list, with where it was. Its file stays, for Undo.
+    pub fn take(&mut self, id: &str) -> Option<(usize, Sound)> {
+        let pos = self.sound.iter().position(|s| s.id == id)?;
+        Some((pos, self.sound.remove(pos)))
     }
+
+    /// Moves a sound next to another one, before or after it.
+    pub fn move_next_to(&mut self, id: &str, target: &str, after: bool) {
+        if id == target {
+            return;
+        }
+        let Some((_, s)) = self.take(id) else { return };
+        let to = self.sound.iter().position(|s| s.id == target).map(|p| p + after as usize).unwrap_or(self.sound.len());
+        self.sound.insert(to, s);
+    }
+}
+
+/// Deletes the file of a removed sound. Built-in sounds have none.
+pub fn delete_file(sound: &Sound) {
+    if let Some(file) = &sound.file {
+        let _ = std::fs::remove_file(dir().join(file));
+    }
+}
+
+impl Library {
 }
 
 /// `dir/stem.ext`, or with a number added when that file is there already.
@@ -387,6 +404,27 @@ pub fn resample(input: &[[f32; 2]], from: u32, to: u32) -> Vec<[f32; 2]> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    fn ids(lib: &Library) -> Vec<&str> {
+        lib.sound.iter().map(|s| s.id.as_str()).collect()
+    }
+
+    #[test]
+    fn sounds_move_next_to_others() {
+        let mut lib = Library::starter();
+        lib.sound.truncate(4);
+        assert_eq!(ids(&lib), ["airhorn", "sad-trombone", "rimshot", "drumroll"]);
+        lib.move_next_to("airhorn", "rimshot", true);
+        assert_eq!(ids(&lib), ["sad-trombone", "rimshot", "airhorn", "drumroll"]);
+        lib.move_next_to("drumroll", "sad-trombone", false);
+        assert_eq!(ids(&lib), ["drumroll", "sad-trombone", "rimshot", "airhorn"]);
+        lib.move_next_to("rimshot", "rimshot", true);
+        assert_eq!(ids(&lib), ["drumroll", "sad-trombone", "rimshot", "airhorn"]);
+        let (pos, s) = lib.take("sad-trombone").expect("a sound");
+        assert_eq!((pos, s.id.as_str()), (1, "sad-trombone"));
+        assert_eq!(ids(&lib), ["drumroll", "rimshot", "airhorn"]);
+        assert!(lib.take("nothing").is_none());
+    }
 
     #[test]
     fn resample_keeps_tone() {
