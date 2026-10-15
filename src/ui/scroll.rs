@@ -192,12 +192,18 @@ fn wheel(sw: &gtk::ScrolledWindow, s: &Rc<Scroller>) {
     scroll.connect_scroll(move |c, _, dy| {
         s.stop_auto();
         let mods = gdk::ModifierType::SHIFT_MASK | gdk::ModifierType::CONTROL_MASK;
-        if c.unit() != gdk::ScrollUnit::Wheel
-            || c.current_event_state().intersects(mods)
-            || !own(c)
-            || !s.scrollable()
-        {
+        if c.current_event_state().intersects(mods) || !own(c) || !s.scrollable() {
             return glib::Propagation::Proceed;
+        }
+        if c.unit() != gdk::ScrollUnit::Wheel {
+            // A touchpad over a slider scrolls the page, like in a browser, instead of moving
+            // the slider. Elsewhere GTK scrolls it, with its own swing.
+            if !over_slider(c) {
+                return glib::Propagation::Proceed;
+            }
+            s.target.set((s.adj.value() + dy).clamp(s.adj.lower(), s.max()));
+            s.set_value(s.target.get());
+            return glib::Propagation::Stop;
         }
         // Keep going from where the glide is heading, so fast wheel turns add up.
         let from = if s.tick.borrow().is_some() { s.target.get() } else { s.adj.value() };
@@ -334,6 +340,26 @@ fn draw_mark(cr: &cairo::Context, size: f64) {
         cr.close_path();
         let _ = cr.fill();
     }
+}
+
+/// Whether the pointer of a scroll is over a slider in the scrolled window.
+fn over_slider(c: &gtk::EventControllerScroll) -> bool {
+    let (Some(sw), Some(event)) = (c.widget(), c.current_event()) else { return false };
+    let (Some(native), Some((x, y))) = (sw.native(), event.position()) else { return false };
+    let (tx, ty) = native.surface_transform();
+    let point = gtk::graphene::Point::new((x - tx) as f32, (y - ty) as f32);
+    let Some(p) = native.compute_point(&sw, &point) else { return false };
+    let mut w = sw.pick(p.x() as f64, p.y() as f64, gtk::PickFlags::DEFAULT);
+    while let Some(widget) = w {
+        if widget.is::<gtk::Range>() {
+            return true;
+        }
+        if widget == sw {
+            break;
+        }
+        w = widget.parent();
+    }
+    false
 }
 
 /// A middle click on text pastes, so it must not start autoscroll there.
