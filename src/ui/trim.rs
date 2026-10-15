@@ -2,7 +2,8 @@
 //! handles, and a playhead that says where listening starts. Listening plays in the headphones only.
 //!
 //! Mouse: drag a handle to cut, drag the playhead, click into the cut or the ruler to move it,
-//! click outside the cut to move the nearest handle there. Ctrl with the wheel zooms, the wheel
+//! click outside the cut to move the nearest handle there. The playhead may leave the cut: it
+//! sticks to the ends of the cut for a moment, then tears away. Ctrl with the wheel zooms, the wheel
 //! alone scrolls along a zoomed sound. Keys work wherever the focus is, only typing a time keeps
 //! them: Space listens or pauses, ← and → move the playhead (Shift for bigger steps, Ctrl for
 //! smaller ones), Home and End or ↑ and ↓ jump to the ends of the cut, I and O set the start and
@@ -36,6 +37,8 @@ const PEAKS: (usize, usize) = (1600, 120_000);
 const CLOSEST: f32 = 0.05;
 /// How far the pointer may be from the playhead to grab it.
 const HEAD_REACH: f32 = 7.0;
+/// How close to an end of the cut a dragged playhead sticks to it, in pixels.
+const STICK: f32 = 12.0;
 /// Labels on the ruler are at least this far apart, in pixels.
 const LABEL_GAP: f32 = 70.0;
 const ACCENT: (f32, f32, f32) = (0.23, 0.51, 0.96);
@@ -105,6 +108,8 @@ struct Trim {
     head: Cell<f32>,
     /// Where listening started. The playhead goes back there when the sound is over.
     from: Cell<f32>,
+    /// Where listening stops: the end of the cut, or of the sound behind the cut.
+    until: Cell<f32>,
     /// Listening went on when a drag began, so it goes on after.
     resume: Cell<bool>,
     hover: Cell<Option<Zone>>,
@@ -218,6 +223,7 @@ pub fn open(st: &St, id: &str, parent: &impl IsA<gtk::Widget>) {
         playing: Cell::new(None),
         head: Cell::new(start),
         from: Cell::new(start),
+        until: Cell::new(end),
         resume: Cell::new(false),
         hover: Cell::new(None),
         pointer: Cell::new((0.0, 0.0)),
@@ -522,7 +528,6 @@ impl Trim {
             Side::Start => self.start.set(v.clamp(0.0, self.end.get() - SHORTEST)),
             Side::End => self.end.set(v.clamp(self.start.get() + SHORTEST, self.length)),
         }
-        self.head.set(self.head.get().clamp(self.start.get(), self.end.get()));
         self.stop();
         self.update();
     }
@@ -544,15 +549,25 @@ impl Trim {
         to.borrow_mut().push((self.start.get(), self.end.get()));
         self.start.set(start);
         self.end.set(end);
-        self.head.set(self.head.get().clamp(start, end));
         self.stop();
         self.update();
     }
 
-    /// Moves the playhead, inside the cut.
+    /// Moves the playhead, anywhere in the sound.
     fn set_head(&self, v: f32) {
-        self.head.set(v.clamp(self.start.get(), self.end.get()));
+        self.head.set(v.clamp(0.0, self.length));
         self.refresh();
+    }
+
+    /// A time near an end of the cut snaps to it, so the playhead sticks there for a moment
+    /// before it tears away.
+    fn stick(&self, t: f32, w: f32) -> f32 {
+        let x = self.x(t, w);
+        [self.start.get(), self.end.get()]
+            .into_iter()
+            .find(|edge| (x - self.x(*edge, w)).abs() <= STICK)
+            .unwrap_or(t)
+            .clamp(0.0, self.length)
     }
 
     /// Moves the playhead and goes on listening from there if it was playing.
@@ -708,7 +723,7 @@ impl Trim {
 
     /// Where a click at the pointer would put the playhead.
     fn aim(&self, w: f32) -> f32 {
-        self.t(self.pointer.get().0, w).clamp(self.start.get(), self.end.get())
+        self.stick(self.t(self.pointer.get().0, w), w)
     }
 
     fn zone(&self, x: f32, y: f32) -> Zone {
@@ -783,7 +798,7 @@ impl Trim {
                 e.pointer.set((x, y));
                 e.dragging.set(Some(grab));
                 match grab {
-                    Grab::Head => e.set_head(e.t(x, w)),
+                    Grab::Head => e.set_head(e.stick(e.t(x, w), w)),
                     Grab::Handle(side, offset) => e.set(side, e.t(x + offset, w)),
                 }
             }
@@ -796,7 +811,7 @@ impl Trim {
                 let w = e.wave.width() as f32;
                 e.pointer.set((x, y));
                 match e.dragging.get() {
-                    Some(Grab::Head) => e.set_head(e.t(x, w)),
+                    Some(Grab::Head) => e.set_head(e.stick(e.t(x, w), w)),
                     Some(Grab::Handle(side, offset)) => e.set(side, e.t(x + offset, w)),
                     None => {}
                 }
@@ -830,11 +845,20 @@ impl Trim {
             self.show_play();
             return;
         }
-        // At the end, start over.
-        let from = if self.head.get() >= self.end.get() - 0.02 { self.start.get() } else { self.head.get() };
+        // At the end of the cut, start over. Behind the cut, play on to the end of the sound, so
+        // you hear what the cut leaves out.
+        let (start, end, head) = (self.start.get(), self.end.get(), self.head.get());
+        let (from, until) = if (head - end).abs() <= 0.02 || head >= self.length - 0.02 {
+            (start, end)
+        } else if head > end {
+            (head, self.length)
+        } else {
+            (head, end)
+        };
         self.from.set(from);
+        self.until.set(until);
         self.head.set(from);
-        let cut = soundboard::trim(&self.data, from, Some(self.end.get()));
+        let cut = soundboard::trim(&self.data, from, Some(until));
         self.st.preview(Arc::new(cut));
         self.playing.set(Some(Instant::now()));
         self.show_play();
@@ -850,7 +874,7 @@ impl Trim {
     fn follow(&self) {
         let Some(started) = self.playing.get() else { return };
         match self.st.preview_progress() {
-            Some(p) => self.head.set(self.from.get() + p * (self.end.get() - self.from.get())),
+            Some(p) => self.head.set(self.from.get() + p * (self.until.get() - self.from.get())),
             // The engine needs a moment to start it.
             None if started.elapsed() > Duration::from_millis(250) => {
                 self.playing.set(None);
@@ -948,6 +972,10 @@ impl Trim {
         // Playhead: a line, and a knob in the ruler to grab it. It grows under the pointer.
         let x = self.x(self.head.get(), w);
         let big = dragging == Some(Grab::Head) || hover == Some(Zone::Head);
+        // Stuck to an end of the cut while dragged: the knob takes the color of the cut.
+        let head = self.head.get();
+        let stuck = dragging == Some(Grab::Head) && (head == self.start.get() || head == self.end.get());
+        let knob_color = if stuck { ACCENT_LIGHT } else { WHITE };
         s.append_color(&rgba(WHITE, 1.0), &graphene::Rect::new(x - 1.0, 8.0, 2.0, h - 12.0));
         let (half, tall) = if big { (8.0, 17.0) } else { (6.5, 14.0) };
         let knob = gsk::PathBuilder::new();
@@ -960,8 +988,8 @@ impl Trim {
         let knob = knob.to_path();
         let round = gsk::Stroke::new(2.0);
         round.set_line_join(gsk::LineJoin::Round);
-        s.append_stroke(&knob, &round, &rgba(WHITE, 1.0));
-        s.append_fill(&knob, gsk::FillRule::Winding, &rgba(WHITE, 1.0));
+        s.append_stroke(&knob, &round, &rgba(knob_color, 1.0));
+        s.append_fill(&knob, gsk::FillRule::Winding, &rgba(knob_color, 1.0));
         s.append_stroke(&knob, &gsk::Stroke::new(1.0), &rgba((0.0, 0.0, 0.0), 0.25));
         s.pop();
     }
