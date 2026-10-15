@@ -550,10 +550,12 @@ fn effect_picker(st: &St, editor: &gtk::Box, id: &str) -> gtk::Popover {
     let popover = gtk::Popover::new();
     popup::menu(&popover);
     let col = gtk::Box::new(gtk::Orientation::Vertical, 6);
-    col.set_margin_top(10);
     col.set_margin_bottom(10);
     col.set_margin_start(10);
     col.set_margin_end(10);
+    // Each group: its title, its tiles, and each tile with the words that find it.
+    type Tiles = Vec<(gtk::Button, String)>;
+    let mut groups: Vec<(gtk::Label, gtk::FlowBox, Tiles)> = Vec::new();
     for g in Group::ALL {
         let head = label(&t_dyn(g.label()), &["heading"]);
         head.set_xalign(0.0);
@@ -567,6 +569,7 @@ fn effect_picker(st: &St, editor: &gtk::Box, id: &str) -> gtk::Popover {
             .column_spacing(4)
             .row_spacing(4)
             .build();
+        let mut tiles = Vec::new();
         for spec in BLOCKS.iter().filter(|b| b.group == g) {
             let b = gtk::Button::new();
             b.add_css_class("flat");
@@ -589,9 +592,16 @@ fn effect_picker(st: &St, editor: &gtk::Box, id: &str) -> gtk::Popover {
                 fill_editor(&st, &editor, &id);
             });
             grid.append(&b);
+            let words = super::fold(&format!("{} {} {} {}", t_dyn(spec.name), spec.name, t_dyn(spec.about), spec.about));
+            tiles.push((b, words));
         }
         col.append(&grid);
+        groups.push((head, grid, tiles));
     }
+    let none = label(t("No effects found"), &["dim-label"]);
+    none.set_margin_top(24);
+    none.set_visible(false);
+    col.append(&none);
     let scroll = gtk::ScrolledWindow::builder()
         .hscrollbar_policy(gtk::PolicyType::Never)
         .min_content_height(420)
@@ -599,6 +609,57 @@ fn effect_picker(st: &St, editor: &gtk::Box, id: &str) -> gtk::Popover {
         .child(&col)
         .build();
     smooth_scroll(&scroll);
-    popover.set_child(Some(&scroll));
+
+    // Typing filters the effects, Enter adds the first one found.
+    let search = gtk::SearchEntry::builder().placeholder_text(t("Search effects")).build();
+    search.set_margin_top(10);
+    search.set_margin_bottom(6);
+    search.set_margin_start(10);
+    search.set_margin_end(10);
+    let groups = Rc::new(groups);
+    search.connect_search_changed({
+        let (groups, none) = (groups.clone(), none.clone());
+        move |e| {
+            let words: Vec<String> = super::fold(&e.text()).split_whitespace().map(String::from).collect();
+            let mut found = false;
+            for (head, grid, tiles) in groups.iter() {
+                let mut any = false;
+                for (b, text) in tiles {
+                    let shown = words.iter().all(|w| text.contains(w.as_str()));
+                    if let Some(cell) = b.parent() {
+                        cell.set_visible(shown);
+                    }
+                    any |= shown;
+                }
+                head.set_visible(any);
+                grid.set_visible(any);
+                found |= any;
+            }
+            none.set_visible(!found);
+        }
+    });
+    search.connect_activate({
+        let groups = groups.clone();
+        move |_| {
+            let first = groups.iter().flat_map(|(_, _, tiles)| tiles).find(|(b, _)| b.parent().is_some_and(|c| c.is_visible()));
+            if let Some((b, _)) = first {
+                b.emit_clicked();
+            }
+        }
+    });
+    popover.connect_map({
+        let search = search.clone();
+        move |_| {
+            search.grab_focus();
+        }
+    });
+    popover.connect_closed({
+        let search = search.clone();
+        move |_| search.set_text("")
+    });
+    let body = gtk::Box::new(gtk::Orientation::Vertical, 0);
+    body.append(&search);
+    body.append(&scroll);
+    popover.set_child(Some(&body));
     popover
 }

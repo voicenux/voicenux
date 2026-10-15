@@ -1720,3 +1720,9 @@ msgstr "Spendier mir einen Kaffee"
 
 msgid "Free software under the {} license."
 msgstr "Freie Software unter der Lizenz {}."
+
+msgid "Search effects"
+msgstr "Effekte suchen"
+
+msgid "No effects found"
+msgstr "Keine Effekte gefunden"
