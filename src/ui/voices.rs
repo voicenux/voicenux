@@ -18,6 +18,8 @@ struct Card {
     child: gtk::FlowBoxChild,
     card: gtk::Box,
     star: gtk::Button,
+    /// The shortcut of the voice, as a key cap in the corner.
+    keys: gtk::Label,
 }
 
 pub struct VoicesPage {
@@ -317,6 +319,11 @@ pub fn build(st: &St, open_lab: OpenLab) -> VoicesPage {
                     refilter(false);
                 }
             }
+            Change::Settings => {
+                for (id, c) in cards.borrow().iter() {
+                    show_keys(&st, &c.keys, id);
+                }
+            }
             _ => {}
         }
     });
@@ -369,11 +376,20 @@ fn card(st: &St, v: &Voice, open_lab: &OpenLab) -> Card {
         move |_| st.toggle_favorite(&id)
     });
 
+    let keys = label("", &["vn-key", "vn-card-keys"]);
+    keys.set_halign(gtk::Align::Start);
+    keys.set_valign(gtk::Align::Start);
+    keys.set_margin_top(10);
+    keys.set_margin_start(10);
+    keys.set_can_target(false);
+    show_keys(st, &keys, &v.id);
+
     // The overlay lifts on hover, so the star moves along with the card.
     let overlay = gtk::Overlay::new();
     overlay.add_css_class("vn-lift");
     overlay.set_child(Some(&card));
     overlay.add_overlay(&star);
+    overlay.add_overlay(&keys);
 
     let child = gtk::FlowBoxChild::new();
     child.set_child(Some(&overlay));
@@ -386,7 +402,14 @@ fn card(st: &St, v: &Voice, open_lab: &OpenLab) -> Card {
             }
         }
     });
-    Card { child, card, star }
+    Card { child, card, star, keys }
+}
+
+/// Shows the shortcut of a voice on its card, or nothing.
+fn show_keys(st: &St, keys: &gtk::Label, id: &str) {
+    let shown = super::keys::shown(st, &format!("voice:{id}"));
+    keys.set_label(shown.as_deref().unwrap_or(""));
+    keys.set_visible(shown.is_some());
 }
 
 /// The right-click menu of a voice card.

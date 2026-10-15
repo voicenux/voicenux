@@ -507,6 +507,11 @@ flowboxchild .sound-pad.playing .vn-pad-icon {
   background-color: color-mix(in srgb, var(--accent-bg-color) 16%, transparent);
 }
 
+.vn-key.vn-card-keys {
+  font-size: 10px;
+  background-color: var(--vn-card);
+}
+
 .vn-key.vn-pad-keys {
   font-size: 10px;
   margin-top: -2px;
