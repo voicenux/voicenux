@@ -377,6 +377,7 @@ pub fn build(st: &St, window: &adw::ApplicationWindow) -> adw::ToolbarView {
         _ => {}
     });
 
+    super::popup::menus_in(&page);
     let view = adw::ToolbarView::new();
     view.add_top_bar(&header);
     view.set_content(Some(&page));

@@ -164,6 +164,8 @@ pub fn build(app: &adw::Application, st: &St) -> Window {
     }
     window.add_breakpoint(narrow);
 
+    super::popup::watch(&window);
+
     let win = Window { window: window.clone(), toast, stack, nav, lab: lab.clone(), st: st.clone() };
     let _ = win_cell.set(win.clone());
     win.show_page("voices");

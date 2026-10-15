@@ -1552,3 +1552,15 @@ msgstr "Abspielkopf bewegen"
 
 msgid "Set start and end"
 msgstr "Anfang und Ende setzen"
+
+msgid "Delete…"
+msgstr "Löschen …"
+
+msgid "Turn off"
+msgstr "Ausschalten"
+
+msgid "Remove from favorites"
+msgstr "Aus Favoriten entfernen"
+
+msgid "Change shortcut"
+msgstr "Tastenkürzel ändern"

@@ -8,7 +8,7 @@ use adw::prelude::*;
 use gtk::glib;
 
 use super::visuals::Orb;
-use super::{animate_in, cat_class, clear, icon, label, smooth_scroll, value_field};
+use super::{animate_in, cat_class, clear, icon, label, popup, smooth_scroll, value_field};
 use crate::dsp::blocks::{self, Kind};
 use crate::i18n::{t, t_dyn};
 use crate::state::{Change, St};
@@ -226,6 +226,7 @@ pub fn build(st: &St, open_lab: OpenLab) -> VoicesPage {
         let cards = cards.clone();
         let order = order.clone();
         let st = st.clone();
+        let open_lab = open_lab.clone();
         let refilter = refilter.clone();
         let update_active = update_active.clone();
         Rc::new(move || {
@@ -234,7 +235,7 @@ pub fn build(st: &St, open_lab: OpenLab) -> VoicesPage {
             order.borrow_mut().clear();
             let voices = st.voices.borrow().clone();
             for v in voices.iter() {
-                let c = card(&st, v);
+                let c = card(&st, v, &open_lab);
                 grid.append(&c.child);
                 order.borrow_mut().push(v.id.clone());
                 cards.borrow_mut().insert(v.id.clone(), c);
@@ -339,7 +340,7 @@ fn refresh_card(c: &Card, v: &Voice) {
     }
 }
 
-fn card(st: &St, v: &Voice) -> Card {
+fn card(st: &St, v: &Voice, open_lab: &OpenLab) -> Card {
     let card = gtk::Box::new(gtk::Orientation::Vertical, 8);
     card.add_css_class("voice-card");
     card.add_css_class(&cat_class(&v.category));
@@ -377,7 +378,50 @@ fn card(st: &St, v: &Voice) -> Card {
     let child = gtk::FlowBoxChild::new();
     child.set_child(Some(&overlay));
     child.set_tooltip_text(Some(&t_dyn(&v.description)));
+    popup::context(&child, {
+        let (st, open_lab, id, weak) = (st.clone(), open_lab.clone(), v.id.clone(), child.downgrade());
+        move |x, y| {
+            if let Some(child) = weak.upgrade() {
+                card_menu(&st, &open_lab, &child, &id, x, y);
+            }
+        }
+    });
     Card { child, card, star }
+}
+
+/// The right-click menu of a voice card.
+fn card_menu(st: &St, open_lab: &OpenLab, child: &gtk::FlowBoxChild, id: &str, x: f64, y: f64) {
+    let Some(v) = st.voice(id) else { return };
+    let on = st.config.borrow().voice == id && st.config.borrow().voice_on;
+    let fav = st.is_favorite(id);
+    let key = format!("voice:{id}");
+    let has_key = super::keys::shown(st, &key).is_some();
+    let (st1, st2, st3, open_lab) = (st.clone(), st.clone(), st.clone(), open_lab.clone());
+    let (id1, id2, id3) = (id.to_string(), id.to_string(), id.to_string());
+    let weak = child.downgrade();
+    let items = vec![
+        if on {
+            popup::Item::new("system-shutdown-symbolic", t("Turn off"), move || st1.set_voice_on(false))
+        } else {
+            popup::Item::new("object-select-symbolic", t("Use voice"), move || st1.set_voice(&id1))
+        },
+        popup::Item::new(
+            if fav { "starred-symbolic" } else { "non-starred-symbolic" },
+            if fav { t("Remove from favorites") } else { t("Add to favorites") },
+            move || st2.toggle_favorite(&id2),
+        ),
+        popup::Item::new("applications-science-symbolic", t("Customize"), move || open_lab(&id3)),
+        popup::Item::new(
+            "input-keyboard-symbolic",
+            if has_key { t("Change shortcut") } else { t("Add shortcut") },
+            move || {
+                if let Some(child) = weak.upgrade() {
+                    super::keys::record(&st3, &child, &key, &t_dyn(&v.name));
+                }
+            },
+        ),
+    ];
+    popup::show_list(child, x, y, items);
 }
 
 /// The selected voice: orb, name, and its main settings.
@@ -638,6 +682,7 @@ pub fn param_row(p: &'static blocks::ParamSpec, value: f32, on_change: impl Fn(f
             let names: Vec<&str> = names.iter().map(String::as_str).collect();
             let dd = gtk::DropDown::from_strings(&names);
             dd.set_selected(value as u32);
+            super::popup::menus_in(&dd);
             dd.connect_selected_notify(move |d| on_change(d.selected() as f32));
             top.append(&dd);
         }

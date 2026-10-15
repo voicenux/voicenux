@@ -8,7 +8,7 @@ use adw::prelude::*;
 use gtk::{gdk, gio, glib};
 
 use super::visuals::progress_ring;
-use super::{animate_in, bounce, clear, icon, icon_picker, label, smooth_scroll, value_field};
+use super::{animate_in, popup, clear, icon, icon_picker, label, smooth_scroll, value_field};
 use crate::i18n::{fill, t, t_dyn};
 use crate::soundboard::{PlayMode, Sound};
 use crate::state::{Change, St};
@@ -284,7 +284,7 @@ fn volume_button(st: &St) -> gtk::MenuButton {
     bx.append(&scale);
     bx.append(&row);
     let p = gtk::Popover::new();
-    bounce(&p);
+    popup::menu(&p);
     p.set_child(Some(&bx));
     b.set_popover(Some(&p));
     b
@@ -397,7 +397,7 @@ fn pad(st: &St, s: &Sound) -> Pad {
     // The editor hangs on the grid cell, which never lifts or squishes, so it stays still.
     let editor = editor(st, s);
     editor.set_parent(&child);
-    stop_clicks(&editor);
+    popup::keep_clicks(&editor);
     child.connect_destroy({
         let editor = editor.clone();
         move |_| editor.unparent()
@@ -412,30 +412,14 @@ fn pad(st: &St, s: &Sound) -> Pad {
             editor.popup();
         }
     });
-    let right_click = gtk::GestureClick::new();
-    right_click.set_button(gdk::BUTTON_SECONDARY);
-    right_click.connect_pressed(move |g, _, x, y| {
-        g.set_state(gtk::EventSequenceState::Claimed);
-        editor.set_pointing_to(Some(&gdk::Rectangle::new(x as i32, y as i32, 1, 1)));
-        editor.popup();
-    });
-    child.add_controller(right_click);
-    Pad { child, pad, progress, ring }
-}
-
-/// Clicks in a popover travel on to the widget it hangs on. Here that is a pad, which would
-/// squish or play, so they stop at the popover.
-fn stop_clicks(popover: &gtk::Popover) {
-    let c = gtk::EventControllerLegacy::new();
-    c.connect_event(|_, e| {
-        use gdk::EventType::*;
-        if matches!(e.event_type(), ButtonPress | ButtonRelease | TouchBegin | TouchUpdate | TouchEnd) {
-            glib::Propagation::Stop
-        } else {
-            glib::Propagation::Proceed
+    popup::context(&child, {
+        let editor = editor.clone();
+        move |x, y| {
+            editor.set_pointing_to(Some(&gdk::Rectangle::new(x as i32, y as i32, 1, 1)));
+            editor.popup();
         }
     });
-    popover.add_controller(c);
+    Pad { child, pad, progress, ring }
 }
 
 /// Popover to rename a sound, change its picture, volume and how it plays.
@@ -497,6 +481,7 @@ fn editor(st: &St, s: &Sound) -> gtk::Popover {
     let names: Vec<&str> = names.iter().map(String::as_str).collect();
     let mode = gtk::DropDown::from_strings(&names);
     mode.set_selected(PlayMode::ALL.iter().position(|m| *m == s.mode).unwrap_or(0) as u32);
+    popup::menus_in(&mode);
     mode.connect_selected_notify({
         let sound = sound.clone();
         let save = save.clone();
@@ -525,7 +510,7 @@ fn editor(st: &St, s: &Sound) -> gtk::Popover {
     b.append(&remove);
 
     let p = gtk::Popover::new();
-    bounce(&p);
+    popup::menu(&p);
     p.set_child(Some(&b));
     trim.connect_clicked({
         let (st, p, id) = (st.clone(), p.downgrade(), s.id.clone());

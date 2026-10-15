@@ -2,7 +2,7 @@
 
 use adw::prelude::*;
 
-use super::{bounce, label};
+use super::{popup, label};
 use super::visuals::level_meter;
 use crate::i18n::{fill, t};
 use crate::state::{Change, St};
@@ -176,7 +176,7 @@ fn help_popover() -> gtk::Popover {
         b.append(&l);
     }
     let p = gtk::Popover::new();
-    bounce(&p);
+    popup::menu(&p);
     p.set_child(Some(&b));
     p
 }

@@ -5,6 +5,7 @@ mod emoji;
 mod find_sounds;
 pub mod keys;
 pub mod onboarding;
+pub mod popup;
 mod scroll;
 mod trim;
 pub mod settings;
@@ -119,18 +120,6 @@ pub fn animate_in(widget: &impl IsA<gtk::Widget>, delay: usize) {
         if w.has_css_class("vn-entering-a") { ("vn-entering-a", "vn-entering-b") } else { ("vn-entering-b", "vn-entering-a") };
     w.remove_css_class(old);
     w.add_css_class(new);
-}
-
-/// Makes a popover open with a little bounce. It has no arrow, so nothing stays behind.
-pub fn bounce(p: &gtk::Popover) {
-    p.set_has_arrow(false);
-    // A new animation name starts the animation again, the same name would not.
-    let flip = std::cell::Cell::new(false);
-    p.connect_map(move |p| {
-        let a = !flip.replace(!flip.get());
-        p.remove_css_class(if a { "vn-bounce-b" } else { "vn-bounce-a" });
-        p.add_css_class(if a { "vn-bounce-a" } else { "vn-bounce-b" });
-    });
 }
 
 /// A value that looks like a label. A click opens it for typing: `start` gives the text to begin

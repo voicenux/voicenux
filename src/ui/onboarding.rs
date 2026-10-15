@@ -58,6 +58,7 @@ pub fn show(st: &St, parent: &adw::ApplicationWindow) {
     let chosen = st.config.borrow().input.clone();
     devices.set_selected(names.iter().position(|n| *n == chosen).unwrap_or(0) as u32);
     devices.set_halign(gtk::Align::Center);
+    super::popup::menus_in(&devices);
     devices.set_margin_top(10);
     devices.connect_selected_notify({
         let st = st.clone();
@@ -119,6 +120,8 @@ pub fn show(st: &St, parent: &adw::ApplicationWindow) {
     body.append(&bar);
 
     let dialog = adw::Dialog::builder().content_width(560).content_height(560).child(&body).build();
+    // A click next to it does not close it: it only pulses.
+    dialog.add_css_class("vn-stay");
     let finish = Rc::new({
         let st = st.clone();
         let dialog = dialog.clone();

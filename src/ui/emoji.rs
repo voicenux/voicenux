@@ -7,7 +7,7 @@ use std::sync::OnceLock;
 
 use adw::prelude::*;
 
-use super::{bounce, icon, label, load_picture, smooth_scroll};
+use super::{icon, label, load_picture, popup, smooth_scroll};
 use crate::i18n::{language, t};
 
 /// One picture of `data/emoji.tsv`.
@@ -68,7 +68,7 @@ pub fn icon_picker(current: &str, size: i32, on_pick: impl Fn(&str) + 'static) -
     button.set_child(Some(&icon(current, size)));
     button.set_tooltip_text(Some(t("Change picture")));
     let popover = gtk::Popover::new();
-    bounce(&popover);
+    popup::menu(&popover);
     button.set_popover(Some(&popover));
     // The grid is made on the first open: there are many pickers, and most never open.
     let on_pick: Rc<dyn Fn(&str)> = Rc::new(on_pick);

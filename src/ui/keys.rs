@@ -52,7 +52,7 @@ pub fn button(st: &St, id: &str, what: &str) -> gtk::Button {
     b
 }
 
-fn record(st: &St, parent: &gtk::Button, id: &str, what: &str) {
+pub fn record(st: &St, parent: &impl IsA<gtk::Widget>, id: &str, what: &str) {
     if st.keys.borrow().unavailable {
         st.notify(Change::Notice(t("Your desktop has no global shortcuts").to_string()));
         return;
