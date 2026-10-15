@@ -272,8 +272,20 @@ pub fn build(app: &adw::Application, st: &St) -> Window {
     });
     window.add_controller(keys);
     let _ = win_cell.set(win.clone());
-    win.show_page("voices");
+    // Opens on the page you left it on.
+    let last = st.config.borrow().page.clone();
+    win.show_page(if PAGES.iter().any(|p| p.0 == last) { &last } else { "voices" });
     history(&win);
+    win.stack.connect_visible_child_name_notify({
+        let st = st.clone();
+        move |s| {
+            let name = s.visible_child_name().unwrap_or_default().to_string();
+            if st.config.borrow().page != name {
+                st.config.borrow_mut().page = name;
+                st.save_later();
+            }
+        }
+    });
 
     // Typing anywhere searches voices.
     voices_page.search.set_key_capture_widget(Some(&voices_page.widget));

@@ -52,6 +52,8 @@ pub struct Config {
     pub previous_default: Option<String>,
     pub width: i32,
     pub height: i32,
+    /// The page the window showed last.
+    pub page: String,
 }
 
 impl Default for Config {
@@ -85,6 +87,7 @@ impl Default for Config {
             previous_default: None,
             width: 1180,
             height: 760,
+            page: "voices".into(),
         }
     }
 }
