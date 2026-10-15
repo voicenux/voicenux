@@ -25,6 +25,8 @@ struct Card {
 pub struct VoicesPage {
     pub widget: adw::ToolbarView,
     pub search: gtk::SearchEntry,
+    /// Puts the focus on the card of the voice in use.
+    pub show_current: Rc<dyn Fn()>,
 }
 
 /// Called with a voice id when someone wants to edit a voice in Voicelab.
@@ -328,7 +330,18 @@ pub fn build(st: &St, open_lab: OpenLab) -> VoicesPage {
         }
     });
 
-    VoicesPage { widget, search }
+    let show_current: Rc<dyn Fn()> = Rc::new({
+        let (st, cards) = (st.clone(), cards.clone());
+        move || {
+            let id = st.config.borrow().voice.clone();
+            if let Some(c) = cards.borrow().get(&id)
+                && c.child.is_visible()
+            {
+                c.child.grab_focus();
+            }
+        }
+    });
+    VoicesPage { widget, search, show_current }
 }
 
 fn refresh_card(c: &Card, v: &Voice) {

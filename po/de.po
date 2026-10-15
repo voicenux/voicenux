@@ -1706,6 +1706,9 @@ msgstr "Vergrößern oder verkleinern, auch mit Strg und Mausrad"
 msgid "Show all of the sound"
 msgstr "Ganzen Sound zeigen"
 
+msgid "Show the voice"
+msgstr "Stimme zeigen"
+
 msgid "Made by {}"
 msgstr "Von {}"
 

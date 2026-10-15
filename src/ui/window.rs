@@ -210,7 +210,16 @@ pub fn build(app: &adw::Application, st: &St) -> Window {
     let spacer = gtk::Box::new(gtk::Orientation::Vertical, 0);
     spacer.set_vexpand(true);
     side.append(&spacer);
-    side.append(&now_card(st));
+    side.append(&now_card(st, {
+        let win_cell = win_cell.clone();
+        let show = voices_page.show_current.clone();
+        move || {
+            if let Some(w) = win_cell.get() {
+                w.show_page("voices");
+                show();
+            }
+        }
+    }));
 
     let side_view = adw::ToolbarView::new();
     side_view.add_top_bar(&side_header);
@@ -418,7 +427,7 @@ fn history(win: &Window) {
 }
 
 /// The current voice, small, at the bottom of the sidebar. Gone while the voice changer is off.
-fn now_card(st: &St) -> gtk::Revealer {
+fn now_card(st: &St, on_click: impl Fn() + 'static) -> gtk::Revealer {
     let card = gtk::Box::new(gtk::Orientation::Horizontal, 10);
     card.add_css_class("vn-now");
     let img = gtk::Image::new();
@@ -435,10 +444,14 @@ fn now_card(st: &St) -> gtk::Revealer {
     text.append(&name);
     card.append(&img);
     card.append(&text);
+    // A click shows the voice on the voice page.
+    let button = gtk::Button::builder().child(&card).css_classes(["flat", "vn-now-button"]).build();
+    button.set_tooltip_text(Some(t("Show the voice")));
+    button.connect_clicked(move |_| on_click());
     let reveal = gtk::Revealer::builder()
         .transition_type(gtk::RevealerTransitionType::SlideUp)
         .transition_duration(260)
-        .child(&card)
+        .child(&button)
         .build();
     let sync = {
         let st = st.clone();
