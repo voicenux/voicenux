@@ -2,7 +2,7 @@
 //! The order of `params` is the index each effect's `set_param` expects.
 
 use super::{BuildCtx, Effect};
-use super::{ambience, autotune, dynamics, modulation, noise, pitch, space, spectral, tone, vocoder};
+use super::{ai, ambience, autotune, dynamics, modulation, noise, pitch, space, spectral, tone, vocoder};
 
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub enum Unit {
@@ -158,6 +158,18 @@ pub static BLOCKS: &[BlockSpec] = &[
             pct("mix", "Mix", 1.0),
         ],
         build: boxed!(pitch::Pitch::new),
+    },
+    BlockSpec {
+        kind: "ai",
+        name: "AI voice",
+        about: "Turns your voice into a character with an AI model. Needs an NVIDIA graphics card.",
+        icon: "sparkles",
+        group: Group::Voice,
+        params: &[
+            choice("model", "Character", crate::ai::NAMES, 0.0),
+            p("key", "Pitch", -24.0, 24.0, 0.0, Unit::Semitones).main(),
+        ],
+        build: boxed!(ai::Ai::new),
     },
     BlockSpec {
         kind: "harmony",

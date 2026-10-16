@@ -114,7 +114,7 @@ Inside the app, F1 shows all keys. Ctrl+F searches, Ctrl+1 to 4 switch pages, Ct
 ## Voices
 
 <details>
-<summary>All 68 voices</summary>
+<summary>All 78 voices</summary>
 
 | Category | Voices |
 |---|---|
@@ -125,13 +125,16 @@ Inside the app, F1 shows all keys. Ctrl+F searches, Ctrl+1 to 4 switch pages, Ct
 | Devices | Radio, Telephone, Walkie-Talkie, Megaphone, Pilot, 1920s Film, Potato Mic, 8-Bit, Fan |
 | Music | Auto-Tune, Angel Choir, Magic Chords, Talk Box, Duet |
 | Funny | Chipmunk, Mouse, Helium, Drunk, Dizzy, Whisper, Kitty, Frog, Duck |
+| AI | SpongeBob, Patrick, Squidward, Plankton, Darth Vader, Yoda, Optimus Prime, GLaDOS, Rick Sanchez, Homer Simpson |
 
 Many of them come with a background sound: rain, bubbles, a campfire, a stadium crowd, wind, a heartbeat and more. All background sounds are made in code. The starter soundboard has well-known sounds and memes from MyInstants, downloaded on the first start.
+
+The AI voices turn your voice into the character with an [RVC](https://github.com/RVC-Project/Retrieval-based-Voice-Conversion-WebUI) model. They run best on an NVIDIA graphics card. Without one, turn on **Run on the processor** in Settings: it takes much of the processor and adds up to a second of delay. The first AI voice you pick downloads the AI engine once (about 5 GB with PyTorch for the graphics card, about 2 GB for the processor), then each voice is about 60 MB. Settings can remove it all again.
 
 </details>
 
 ## Credits
 
-The pictures are [Fluent Emoji](https://github.com/microsoft/fluentui-emoji) by Microsoft (MIT), their German names come from [Unicode CLDR](https://cldr.unicode.org). The icons in the sidebar and the settings are [Lucide](https://lucide.dev) (ISC). The reverb is Freeverb by Jezar at Dreampoint. Noise suppression is RNNoise by Xiph.Org, through [nnnoiseless](https://github.com/jneem/nnnoiseless). Audio files are read with [Symphonia](https://github.com/pdeljanov/Symphonia).
+The pictures are [Fluent Emoji](https://github.com/microsoft/fluentui-emoji) by Microsoft (MIT), their German names come from [Unicode CLDR](https://cldr.unicode.org). The icons in the sidebar and the settings are [Lucide](https://lucide.dev) (ISC). The reverb is Freeverb by Jezar at Dreampoint. Noise suppression is RNNoise by Xiph.Org, through [nnnoiseless](https://github.com/jneem/nnnoiseless). Audio files are read with [Symphonia](https://github.com/pdeljanov/Symphonia). AI voices run with [infer-rvc-python](https://github.com/R3gm/infer_rvc_python) (MIT) and models shared on Hugging Face.
 
 BSD-3-Clause.

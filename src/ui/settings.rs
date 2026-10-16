@@ -423,6 +423,7 @@ pub fn build(st: &St, window: &adw::ApplicationWindow) -> adw::ToolbarView {
     });
     perf.add(&low);
     page.append(&perf.widget);
+    page.append(&ai_group(st).widget);
 
     // App.
     let app = Group::new("settings", t("App"), "");
@@ -521,6 +522,106 @@ pub fn build(st: &St, window: &adw::ApplicationWindow) -> adw::ToolbarView {
     view.add_top_bar(&header);
     view.set_content(Some(&scroll));
     view
+}
+
+/// "5.8 GB", with a comma in German.
+fn gigabytes(bytes: u64) -> String {
+    let text = format!("{:.1} GB", bytes as f64 / 1e9);
+    if crate::i18n::language() == "de" { text.replace('.', ",") } else { text }
+}
+
+/// AI voices: on the processor or not, what the engine takes on disk, and a button to remove it.
+fn ai_group(st: &St) -> Group {
+    let group = Group::new("sparkles", t("AI voices"), t("Character voices made by AI, like SpongeBob or Darth Vader."));
+    let cpu = adw::SwitchRow::builder()
+        .title(t("Run on the processor"))
+        .subtitle(t(
+            "For computers without an NVIDIA graphics card. Takes much of the processor and adds up to a second of delay.",
+        ))
+        .active(st.config.borrow().ai_cpu)
+        .build();
+    cpu.connect_active_notify({
+        let st = st.clone();
+        move |r| {
+            let on = r.is_active();
+            crate::ai::set_cpu(on);
+            st.update(|c| c.ai_cpu = on);
+            // The voices turn usable or gray, and the engine may need another build.
+            st.notify(Change::Voices);
+        }
+    });
+    group.add(&cpu);
+    let row = adw::ActionRow::builder().title(t("AI engine")).build();
+    let remove = gtk::Button::with_label(t("Remove"));
+    remove.add_css_class("destructive-action");
+    remove.set_valign(gtk::Align::Center);
+    row.add_suffix(&remove);
+    group.add(&row);
+    let refresh: Rc<dyn Fn()> = Rc::new({
+        let (row, remove) = (row.clone(), remove.clone());
+        move || {
+            // Anything there counts for removing, also a build for the other setting.
+            let there = crate::ai::dir().join("ready").exists();
+            remove.set_visible(there);
+            if !crate::ai::usable() {
+                row.set_subtitle(t("This computer has no NVIDIA graphics card. Turn on Run on the processor above."));
+                return;
+            }
+            if !there {
+                row.set_subtitle(t("Not installed. It comes with the first AI voice you pick."));
+                return;
+            }
+            row.set_subtitle(t("Installed"));
+            // Thousands of files: counted off the main thread.
+            let (tx, rx) = async_channel::bounded(1);
+            std::thread::spawn(move || {
+                let _ = tx.send_blocking(crate::ai::install::size());
+            });
+            let row = row.clone();
+            gtk::glib::spawn_future_local(async move {
+                if let Ok(size) = rx.recv().await {
+                    row.set_subtitle(&fill(t("Installed, it takes {} on disk."), &[&gigabytes(size)]));
+                }
+            });
+        }
+    });
+    refresh();
+    remove.connect_clicked({
+        let (st, refresh) = (st.clone(), refresh.clone());
+        move |b| {
+            let dialog = adw::AlertDialog::new(
+                Some(t("Remove the AI engine?")),
+                Some(t("All AI voices go with it. They download again when you pick one.")),
+            );
+            dialog.add_response("cancel", t("Cancel"));
+            dialog.add_response("remove", t("Remove"));
+            dialog.set_response_appearance("remove", adw::ResponseAppearance::Destructive);
+            dialog.set_default_response(Some("cancel"));
+            let (st, refresh) = (st.clone(), refresh.clone());
+            dialog.connect_response(None, move |_, r| {
+                if r != "remove" {
+                    return;
+                }
+                // The voice in use goes back to a normal one, so nothing falls silent.
+                let current = st.current();
+                if crate::ai::model_of(&current.block_values()).is_some() {
+                    st.set_voice("baby");
+                }
+                if let Err(e) = crate::ai::install::remove() {
+                    log::warn!("remove AI: {e}");
+                }
+                refresh();
+                st.notify(Change::Voices);
+            });
+            dialog.present(Some(b));
+        }
+    });
+    st.subscribe(move |c| {
+        if matches!(c, Change::Voices) {
+            refresh();
+        }
+    });
+    group
 }
 
 /// Other apps on this computer, like a Stream Deck plugin, may control Voicenux. See `src/api.rs`.

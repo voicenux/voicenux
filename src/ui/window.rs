@@ -359,6 +359,10 @@ pub fn build(app: &adw::Application, st: &St) -> Window {
                 }
                 None => banner.set_revealed(false),
             },
+            Change::AiMissing(id) => {
+                win.window.present();
+                super::ai::offer(&win.st, &win.window, id);
+            }
             _ => {}
         }
     });

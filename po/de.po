@@ -1819,3 +1819,174 @@ msgstr "Furz"
 
 msgid "{} is not downloaded yet. Are you online?"
 msgstr "{} ist noch nicht heruntergeladen. Bist du online?"
+
+msgid "AI voices need an NVIDIA graphics card, or Run on the processor in Settings."
+msgstr "KI-Stimmen brauchen eine NVIDIA-Grafikkarte, oder „Auf dem Prozessor laufen“ in den Einstellungen."
+
+msgid "Run on the processor"
+msgstr "Auf dem Prozessor laufen"
+
+msgid "For computers without an NVIDIA graphics card. Takes much of the processor and adds up to a second of delay."
+msgstr "Für Computer ohne NVIDIA-Grafikkarte. Braucht viel vom Prozessor und verzögert um bis zu eine Sekunde."
+
+msgid "The AI runs on your processor. It adds up to a second of delay."
+msgstr "Die KI läuft auf deinem Prozessor. Sie verzögert um bis zu eine Sekunde."
+
+msgid "It runs on your processor and adds up to a second of delay."
+msgstr "Sie läuft auf deinem Prozessor und verzögert um bis zu eine Sekunde."
+
+msgid "AI voices"
+msgstr "KI-Stimmen"
+
+msgid "Character voices made by AI, like SpongeBob or Darth Vader."
+msgstr "Stimmen von Figuren, gemacht mit KI, wie SpongeBob oder Darth Vader."
+
+msgid "AI engine"
+msgstr "KI-Engine"
+
+msgid "Not installed. It comes with the first AI voice you pick."
+msgstr "Nicht installiert. Sie kommt mit der ersten KI-Stimme, die du wählst."
+
+msgid "This computer has no NVIDIA graphics card. Turn on Run on the processor above."
+msgstr "Dieser Computer hat keine NVIDIA-Grafikkarte. Schalte oben „Auf dem Prozessor laufen“ ein."
+
+msgid "Installed"
+msgstr "Installiert"
+
+msgid "Installed, it takes {} on disk."
+msgstr "Installiert, sie belegt {} auf der Platte."
+
+msgid "Remove the AI engine?"
+msgstr "KI-Engine entfernen?"
+
+msgid "All AI voices go with it. They download again when you pick one."
+msgstr "Alle KI-Stimmen gehen mit. Sie laden neu, wenn du eine wählst."
+
+msgid "Not downloaded yet. Pick the voice to get it."
+msgstr "Noch nicht heruntergeladen. Wähl die Stimme, um sie zu holen."
+
+msgid "Getting the installer…"
+msgstr "Hole den Installer…"
+
+msgid "Getting Python…"
+msgstr "Hole Python…"
+
+msgid "Getting PyTorch. This is the big part…"
+msgstr "Hole PyTorch. Das ist der große Teil…"
+
+msgid "Getting the voice converter…"
+msgstr "Hole den Stimmwandler…"
+
+msgid "Getting the speech models…"
+msgstr "Hole die Sprachmodelle…"
+
+msgid "Starting the AI…"
+msgstr "Starte die KI…"
+
+msgid "Loading {}…"
+msgstr "Lade {}…"
+
+msgid "The AI runs on your graphics card. It adds about 0.3 s of delay."
+msgstr "Die KI läuft auf deiner Grafikkarte. Sie verzögert um etwa 0,3 s."
+
+msgid "The AI did not work: {}"
+msgstr "Die KI hat nicht geklappt: {}"
+
+msgid "Download {}?"
+msgstr "{} herunterladen?"
+
+msgid "The voice is about 60 MB."
+msgstr "Die Stimme ist etwa 60 MB groß."
+
+msgid "The first AI voice also needs the AI engine: about {} GB, once. Each voice is about 60 MB more."
+msgstr "Die erste KI-Stimme braucht auch die KI-Engine: etwa {} GB, nur einmal. Jede Stimme ist dann etwa 60 MB."
+
+msgid "It runs on your NVIDIA graphics card and adds about 0.3 s of delay."
+msgstr "Sie läuft auf deiner NVIDIA-Grafikkarte und verzögert um etwa 0,3 s."
+
+msgid "Download"
+msgstr "Herunterladen"
+
+msgid "Getting {}…"
+msgstr "Hole {}…"
+
+msgid "That did not work: {}"
+msgstr "Das hat nicht geklappt: {}"
+
+msgid "Check your connection and the free space, then try again."
+msgstr "Prüf deine Verbindung und den freien Platz, dann versuch es noch mal."
+
+msgid "Try again"
+msgstr "Nochmal versuchen"
+
+msgid "SpongeBob"
+msgstr "SpongeBob"
+
+msgid "The cheerful fry cook from under the sea."
+msgstr "Der fröhliche Burgerbrater aus der Tiefsee."
+
+msgid "Patrick"
+msgstr "Patrick"
+
+msgid "His best friend, a slow pink star."
+msgstr "Sein bester Freund, ein gemütlicher rosa Seestern."
+
+msgid "Squidward"
+msgstr "Thaddäus"
+
+msgid "Grumpy neighbor with a clarinet."
+msgstr "Mürrischer Nachbar mit Klarinette."
+
+msgid "Plankton"
+msgstr "Plankton"
+
+msgid "Tiny, green and full of evil plans."
+msgstr "Winzig, grün und voller böser Pläne."
+
+msgid "Darth Vader"
+msgstr "Darth Vader"
+
+msgid "Deep breaths behind the mask."
+msgstr "Tiefes Atmen hinter der Maske."
+
+msgid "Yoda"
+msgstr "Yoda"
+
+msgid "Old and wise, the little green master is."
+msgstr "Alt und weise, der kleine grüne Meister ist."
+
+msgid "Optimus Prime"
+msgstr "Optimus Prime"
+
+msgid "Leader of the robots in disguise."
+msgstr "Anführer der getarnten Roboter."
+
+msgid "GLaDOS"
+msgstr "GLaDOS"
+
+msgid "The calm AI that runs the tests."
+msgstr "Die ruhige KI, die die Tests leitet."
+
+msgid "Rick Sanchez"
+msgstr "Rick Sanchez"
+
+msgid "Genius scientist with a portal gun."
+msgstr "Genialer Wissenschaftler mit Portalkanone."
+
+msgid "Homer Simpson"
+msgstr "Homer Simpson"
+
+msgid "Loves doughnuts and his couch."
+msgstr "Liebt Donuts und sein Sofa."
+
+msgid "AI"
+msgstr "KI"
+
+msgid "AI voice"
+msgstr "KI-Stimme"
+
+msgid "Turns your voice into a character with an AI model. Needs an NVIDIA graphics card."
+msgstr "Macht aus deiner Stimme eine Figur, mit einem KI-Modell. Braucht eine NVIDIA-Grafikkarte."
+
+msgid "Character"
+msgstr "Figur"

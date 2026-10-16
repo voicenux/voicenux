@@ -1,5 +1,6 @@
 //! The window and everything in it.
 
+pub mod ai;
 pub mod bottombar;
 mod emoji;
 mod find_sounds;

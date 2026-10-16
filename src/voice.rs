@@ -23,6 +23,7 @@ pub const CATEGORIES: &[Category] = &[
     Category { id: "devices", label: "Devices", color: "#ffbf3c" },
     Category { id: "music", label: "Music", color: "#f45cc4" },
     Category { id: "funny", label: "Funny", color: "#a67cff" },
+    Category { id: "ai", label: "AI", color: "#4f7bff" },
     Category { id: "custom", label: "My voices", color: "#7c8cff" },
 ];
 

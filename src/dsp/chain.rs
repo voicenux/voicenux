@@ -54,7 +54,7 @@ impl Chain {
     /// so every voice ends up about as loud as your own.
     pub fn build_leveled(defs: &[BlockValues], ctx: &BuildCtx) -> Self {
         let mut chain = Self::build(defs, ctx);
-        let mut probe = Self::build(defs, ctx);
+        let mut probe = Self::build(defs, &BuildCtx { live: false, ..*ctx });
         let input = talking(ctx.rate, 1.6);
         let mut x = input.clone();
         let quiet = Ctx { background: false };

@@ -584,7 +584,7 @@ fn run(
                 r => r,
             };
             v.2 = rate;
-            let chain = Chain::build_leveled(&v.0, &BuildCtx::new(rate as f32, v.1));
+            let chain = Chain::build_leveled(&v.0, &BuildCtx::new(rate as f32, v.1).live());
             push(RtCmd::Chain(Box::new(chain)));
         }
     };

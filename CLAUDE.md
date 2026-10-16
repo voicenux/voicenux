@@ -34,6 +34,13 @@
 - `src/audio/graph.rs` owns the PipeWire connection: a `pw_filter` (`voicenux_engine`), the virtual
   source `voicenux_mic` and the links between them, the microphone and the headphones. pipewire-rs
   has no filter yet, `src/audio/filter.rs` wraps the C API.
+- AI voices (`src/ai`, `src/dsp/ai.rs`, `data/ai/helper.py`) run RVC models in a Python helper,
+  installed with one click into `~/.local/share/voicenux/ai` (uv, Python 3.11, PyTorch for CUDA
+  12.6). The `ai` effect only moves samples through lock-free rings; the bridge thread talks to
+  the helper over stdin and stdout. They want an NVIDIA card; the setting "Run on the processor"
+  (`ai_cpu`, or `VOICENUX_AI_CPU=1` for tests) installs a smaller PyTorch and runs them on the
+  processor with bigger blocks and more delay. Models are pinned to a Hugging Face commit in
+  `ai::MODELS`. Only fictional characters, no real people as themselves.
 - `src/api.rs` lets other apps control Voicenux (WebSocket and HTTP on 127.0.0.1:41967, off by
   default). Keep `API.md` in step with it. Raise `VERSION` there only for changes that break clients.
 - Users never touch a config file. Every option has a place in the app, `src/config.rs` only

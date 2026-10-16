@@ -41,6 +41,7 @@
 .cat-devices { --cat-color: #ffb020; }
 .cat-music { --cat-color: #f45cc4; }
 .cat-funny { --cat-color: #a67cff; }
+.cat-ai { --cat-color: #4f7bff; }
 .cat-custom { --cat-color: #7c8cff; }
 .cat-favorites { --cat-color: #ffc83d; }
 .cat-all { --cat-color: #3b82f6; }
@@ -1338,4 +1339,18 @@ banner > revealer > widget {
   .vn-mute.muted {
     color: #ff6b7a;
   }
+}
+
+/* AI voices: gray without an NVIDIA card, a round download mark until they are there. */
+.voice-card.vn-ai-off {
+  opacity: 0.45;
+}
+
+image.vn-ai-get {
+  padding: 6px;
+  border-radius: 99px;
+  background-color: var(--accent-bg-color);
+  color: #ffffff;
+  -gtk-icon-size: 14px;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.35);
 }

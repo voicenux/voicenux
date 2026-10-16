@@ -259,10 +259,15 @@ pub fn build(st: &St, open_lab: OpenLab) -> VoicesPage {
         let cards = cards.clone();
         move |_, child| {
             let id = cards.borrow().iter().find(|(_, c)| &c.child == child).map(|(id, _)| id.clone());
-            // A click on the voice that is on turns it off: your normal voice.
+            // A click on the voice that is on turns it off: your normal voice. Unless it is an AI
+            // voice that is not downloaded: then the click offers the download.
             if let Some(id) = id {
                 let on = st.config.borrow().voice == id && st.config.borrow().voice_on;
-                if on { st.set_voice_on(false) } else { st.set_voice(&id) }
+                let missing = st
+                    .voice(&id)
+                    .and_then(|v| crate::ai::model_of(&v.block_values()))
+                    .is_some_and(|m| !crate::ai::ready(m));
+                if on && !missing { st.set_voice_on(false) } else { st.set_voice(&id) }
             }
         }
     });
@@ -409,9 +414,28 @@ fn card(st: &St, v: &Voice, open_lab: &OpenLab) -> Card {
     overlay.add_overlay(&star);
     overlay.add_overlay(&keys);
 
+    let mut tip = t_dyn(&v.description);
+    // AI voices: gray without a graphics card, with a download mark until they are there.
+    if let Some(model) = crate::ai::model_of(&v.block_values()) {
+        if !crate::ai::usable() {
+            card.add_css_class("vn-ai-off");
+            tip = format!("{tip}\n{}", t("AI voices need an NVIDIA graphics card, or Run on the processor in Settings."));
+        } else if !crate::ai::ready(model) {
+            let get = gtk::Image::from_icon_name("folder-download-symbolic");
+            get.add_css_class("vn-ai-get");
+            get.set_halign(gtk::Align::End);
+            get.set_valign(gtk::Align::Start);
+            get.set_margin_top(40);
+            get.set_margin_end(10);
+            get.set_can_target(false);
+            overlay.add_overlay(&get);
+            tip = format!("{tip}\n{}", t("Not downloaded yet. Pick the voice to get it."));
+        }
+    }
+
     let child = gtk::FlowBoxChild::new();
     child.set_child(Some(&overlay));
-    child.set_tooltip_text(Some(&t_dyn(&v.description)));
+    child.set_tooltip_text(Some(&tip));
     popup::context(&child, {
         let (st, open_lab, id, weak) = (st.clone(), open_lab.clone(), v.id.clone(), child.downgrade());
         move |x, y| {
@@ -588,6 +612,16 @@ impl Detail {
             let shown = d.shown.clone();
             move |_| st.toggle_favorite(&shown.borrow())
         });
+        // The AI tells how it is doing while it starts and loads.
+        glib::timeout_add_local(std::time::Duration::from_millis(500), {
+            let d = d.clone();
+            move || {
+                if d.widget.is_mapped() {
+                    d.update_note();
+                }
+                glib::ControlFlow::Continue
+            }
+        });
         lab.connect_clicked({
             let shown = d.shown.clone();
             move |_| open_lab(&shown.borrow())
@@ -650,16 +684,26 @@ impl Detail {
         } else {
             self.fav.remove_css_class("on");
         }
-        let v = self.st.voice(&id);
-        let note = match v {
-            Some(v) if v.has_background() && !self.st.config.borrow().background => {
-                t("This voice has a background sound. Turn on Background below to hear it.")
-            }
-            _ => "",
-        };
-        self.note.set_label(note);
-        self.note.set_visible(!note.is_empty());
+        self.update_note();
         self.reset.set_visible(self.st.is_tweaked(&id));
+    }
+
+    /// The note under the settings: what the AI does, or a hint about the background sound.
+    fn update_note(&self) {
+        let id = self.shown.borrow().clone();
+        let v = self.st.voice(&id);
+        let model = v.as_ref().and_then(|v| crate::ai::model_of(&v.block_values()));
+        let note = if let Some(model) = model {
+            super::ai::status_text(model)
+        } else if v.is_some_and(|v| v.has_background() && !self.st.config.borrow().background) {
+            t("This voice has a background sound. Turn on Background below to hear it.").into()
+        } else {
+            String::new()
+        };
+        if self.note.label() != note {
+            self.note.set_label(&note);
+        }
+        self.note.set_visible(!note.is_empty());
     }
 
     fn params_for(&self, v: &Voice) {

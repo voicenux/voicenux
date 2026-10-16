@@ -1,6 +1,7 @@
 //! Everything that turns a voice into another voice. No allocations once built, so it is
 //! safe to run on PipeWire's realtime thread.
 
+pub mod ai;
 pub mod ambience;
 pub mod autotune;
 pub mod biquad;
@@ -28,18 +29,25 @@ pub struct BuildCtx {
     pub low_latency: bool,
     /// Effects never get more samples than this per call.
     pub max_block: usize,
+    /// The chain plays for real. A chain that is only measured or tested is not live, so an
+    /// AI voice does not start its helper for it.
+    pub live: bool,
 }
 
 impl BuildCtx {
     pub const MAX_BLOCK: usize = 1024;
 
     pub fn new(rate: f32, low_latency: bool) -> Self {
-        Self { rate, low_latency, max_block: Self::MAX_BLOCK }
+        Self { rate, low_latency, max_block: Self::MAX_BLOCK, live: false }
+    }
+
+    pub fn live(self) -> Self {
+        Self { live: true, ..self }
     }
 
     #[cfg(test)]
     pub fn test() -> Self {
-        Self { rate: 48000.0, low_latency: false, max_block: 48000 * 12 }
+        Self { rate: 48000.0, low_latency: false, max_block: 48000 * 12, live: false }
     }
 }
 

@@ -45,6 +45,8 @@ pub struct Config {
     pub close_to_tray: bool,
     /// A plain one-color tray icon instead of the blue logo.
     pub tray_mono: bool,
+    /// AI voices run on the processor, for computers without an NVIDIA card.
+    pub ai_cpu: bool,
     pub autostart: bool,
     /// "system", "light" or "dark".
     pub appearance: String,
@@ -85,6 +87,7 @@ impl Default for Config {
             shortcuts_on: false,
             close_to_tray: true,
             tray_mono: false,
+            ai_cpu: false,
             autostart: false,
             appearance: "system".into(),
             onboarded: false,

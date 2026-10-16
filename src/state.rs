@@ -40,6 +40,8 @@ pub enum Change {
     Notice(String),
     /// The API for other apps started, stopped, failed or got a client.
     Api,
+    /// An AI voice was picked that is not downloaded yet: the window offers the download.
+    AiMissing(String),
 }
 
 /// How the API for other apps is doing, for Settings.
@@ -99,6 +101,7 @@ type Listener = Rc<dyn Fn(&Change)>;
 impl State {
     pub fn new() -> St {
         let config = Config::load();
+        crate::ai::set_cpu(config.ai_cpu);
         let (tx, rx) = async_channel::unbounded();
         let engine = Engine::start(tx, config.low_latency);
         let mut voices = voice::builtin();
@@ -290,13 +293,23 @@ impl State {
     }
 
     pub fn set_voice(self: &Rc<Self>, id: &str) {
+        let Some(v) = self.voice(id) else { return };
+        // Also for the voice in use: an AI voice can be missing since the last start.
+        if let Some(model) = crate::ai::model_of(&v.block_values()) {
+            if !crate::ai::usable() {
+                let text = crate::i18n::t("AI voices need an NVIDIA graphics card, or Run on the processor in Settings.");
+                self.notify(Change::Notice(text.into()));
+                return;
+            }
+            if !crate::ai::ready(model) {
+                self.notify(Change::AiMissing(id.to_string()));
+                return;
+            }
+        }
         if self.config.borrow().voice == id && self.ready.get() {
             if !self.config.borrow().voice_on {
                 self.set_voice_on(true);
             }
-            return;
-        }
-        if self.voice(id).is_none() {
             return;
         }
         self.config.borrow_mut().voice = id.to_string();
@@ -308,13 +321,21 @@ impl State {
         self.notify(Change::Voice);
     }
 
+    /// Whether a voice can play right away: AI voices need their download. Random and next voice
+    /// skip the others, so they never open the download dialog.
+    fn playable(&self, id: &str) -> bool {
+        self.voice(id).is_some_and(|v| {
+            crate::ai::model_of(&v.block_values()).is_none_or(|m| crate::ai::usable() && crate::ai::ready(m))
+        })
+    }
+
     /// Picks a voice from favorites (or all voices if there are none), not the current one.
     pub fn random_voice(self: &Rc<Self>) {
         let current = self.config.borrow().voice.clone();
         let favs = self.config.borrow().favorites.clone();
         let pool: Vec<String> =
             if favs.len() >= 2 { favs } else { self.voices.borrow().iter().map(|v| v.id.clone()).collect() };
-        let pool: Vec<&String> = pool.iter().filter(|id| **id != current).collect();
+        let pool: Vec<&String> = pool.iter().filter(|id| **id != current && self.playable(id)).collect();
         if pool.is_empty() {
             return;
         }
@@ -331,9 +352,11 @@ impl State {
         let current = self.config.borrow().voice.clone();
         let pos = list.iter().position(|id| *id == current).unwrap_or(0) as i64;
         let len = list.len() as i64;
-        let next = (pos + if forward { 1 } else { -1 }).rem_euclid(len) as usize;
-        let id = list[next].clone();
-        self.set_voice(&id);
+        let step = if forward { 1 } else { -1 };
+        let next = (1..=len).map(|i| list[(pos + i * step).rem_euclid(len) as usize].clone()).find(|id| self.playable(id));
+        if let Some(id) = next {
+            self.set_voice(&id);
+        }
     }
 
     /// Changes one setting of a voice. Built-in voices remember it as a tweak.
