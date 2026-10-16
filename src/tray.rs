@@ -51,15 +51,17 @@ impl ksni::Tray for Tray {
         "Voicenux".into()
     }
 
+    /// The logo goes only as a pixmap: for a name, KDE takes its "-symbolic" icon when there is
+    /// one, and that is the plain icon.
     fn icon_name(&self) -> String {
-        if self.s.mono { MONO.into() } else { crate::app::APP_ID.into() }
+        if self.s.mono { MONO.into() } else { String::new() }
     }
 
     fn icon_theme_path(&self) -> String {
         self.theme_path.clone()
     }
 
-    /// Only for trays that cannot find the icon by its name.
+    /// The logo, and the plain icon for trays that cannot find it by its name.
     fn icon_pixmap(&self) -> Vec<Icon> {
         self.icon.clone()
     }
