@@ -1,5 +1,6 @@
-//! Finds sounds online on MyInstants. It has no API, so this reads its search page. Only the
-//! words someone searches for go out, and only when they search.
+//! Finds sounds online on MyInstants. It has no API, so this reads its search page, and the page
+//! of each sound found for its likes. Only the words someone searches for go out, and only when
+//! they search.
 
 use std::time::Duration;
 
@@ -14,6 +15,8 @@ pub struct Found {
     pub url: String,
     /// File type: mp3, ogg, flac or wav.
     pub ext: String,
+    /// Its own page on MyInstants, which shows the likes.
+    pub page: Option<String>,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -66,6 +69,9 @@ fn parse(page: &str) -> Vec<Found> {
         let Some(path) = between(block, "play('", "'") else { continue };
         let Some(link) = block.find("instant-link") else { continue };
         let Some(title) = between(&block[link..], ">", "</a>") else { continue };
+        let page = between(block, "<a href=\"", "\"")
+            .filter(|p| p.starts_with("/en/instant/") && !p.contains("..") && !p.contains(['?', '#']))
+            .map(|p| format!("{SITE}{p}"));
         let Some(ext) = path.rsplit_once('.').map(|(_, e)| e.to_lowercase()) else { continue };
         if !path.starts_with("/media/sounds/")
             || path.contains("..")
@@ -77,7 +83,7 @@ fn parse(page: &str) -> Vec<Found> {
         if found.iter().any(|f| f.url == url) {
             continue;
         }
-        found.push(Found { title: clean_title(&unescape(title)), url, ext });
+        found.push(Found { title: clean_title(&unescape(title)), url, ext, page });
     }
     found
 }
@@ -96,6 +102,22 @@ fn unescape(s: &str) -> String {
         .replace("&lt;", "<")
         .replace("&gt;", ">")
         .replace("&amp;", "&")
+}
+
+/// How many people liked a sound on MyInstants. Blocks: call it off the main thread.
+pub fn likes(found: &Found) -> Result<u32, Error> {
+    let Some(page) = found.page.as_ref().filter(|p| from_myinstants(p)) else { return Err(Error::Failed) };
+    let page = agent().get(page).call().map_err(error)?.body_mut().read_to_string().map_err(error)?;
+    Ok(parse_likes(&page))
+}
+
+/// The likes on the page of a sound: "<b>3,276 users</b> favorited this sound button". None
+/// there yet is 0.
+fn parse_likes(page: &str) -> u32 {
+    let Some(at) = page.find("id=\"instant-page-likes\"") else { return 0 };
+    let Some(count) = between(&page[at..], "<b>", "</b>") else { return 0 };
+    let digits: String = count.chars().take_while(|c| !c.is_whitespace()).filter(char::is_ascii_digit).collect();
+    digits.parse().unwrap_or(0)
 }
 
 /// The audio file of a sound. Blocks: call it off the main thread.
@@ -167,6 +189,18 @@ mod tests {
         assert_eq!(found[0].url, "https://www.myinstants.com/media/sounds/vine-boom.mp3");
         assert_eq!(found[0].ext, "mp3");
         assert_eq!(found[1].title, "Tom & Jerry's bruh");
+        assert_eq!(found[0].page.as_deref(), Some("https://www.myinstants.com/en/instant/vine-boom-sound-70972/"));
+    }
+
+    #[test]
+    fn reads_the_likes() {
+        let page = r#"<div id="instant-page-likes">
+      <img src="/media/images/icons/favorite-red.svg" alt="Favorites">
+      <b>3,276 users</b>
+      favorited this sound button</div>"#;
+        assert_eq!(parse_likes(page), 3276);
+        assert_eq!(parse_likes(&page.replace("3,276", "1")), 1);
+        assert_eq!(parse_likes("<html>no likes yet</html>"), 0);
     }
 
     #[test]
@@ -196,6 +230,7 @@ mod tests {
         let _ = env_logger::builder().is_test(true).try_init();
         let found = search("vine boom").unwrap();
         assert!(!found.is_empty());
+        assert!(likes(&found[0]).unwrap() > 0);
         let bytes = download(&found[0]).unwrap();
         assert!(super::super::decode_bytes(bytes, &found[0].ext).is_ok());
         assert!(search("qwxzzk").unwrap().is_empty());

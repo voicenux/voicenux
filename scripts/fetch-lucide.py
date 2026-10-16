@@ -19,7 +19,7 @@ PACKAGE = f"https://registry.npmjs.org/lucide-static/-/lucide-static-{VERSION}.t
 # The icons the app uses. Find more at https://lucide.dev/icons.
 NAMES = """
     bug coffee flask-conical globe headphones keyboard mic mic-vocal plug scissors settings
-    sparkles volume-2 zap
+    heart sparkles volume-2 zap
 """.split()
 NUM = r"[-+]?(?:\d+\.?\d*|\.\d+)(?:[eE][-+]?\d+)?"
 

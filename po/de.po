@@ -1765,3 +1765,6 @@ msgstr "Keine App verbunden"
 
 msgid "Apps connected: {}"
 msgstr "Verbundene Apps: {}"
+
+msgid "{} people like this on MyInstants"
+msgstr "{} Leuten gefällt das auf MyInstants"

@@ -2,7 +2,7 @@
 //! Listening plays them in the headphones only.
 
 use std::cell::{Cell, RefCell};
-use std::collections::HashMap;
+use std::collections::{HashMap, VecDeque};
 use std::rc::Rc;
 use std::sync::Arc;
 use std::time::Duration;
@@ -10,7 +10,7 @@ use std::time::Duration;
 use adw::prelude::*;
 use gtk::glib;
 
-use super::{clear, label, smooth_scroll};
+use super::{clear, label, line_icon, smooth_scroll};
 use crate::i18n::{fill, t};
 use crate::soundboard::online::{self, Found};
 use crate::soundboard::{RATE, SoundData, decode_bytes};
@@ -29,6 +29,8 @@ struct Finder {
     search_no: Cell<u32>,
     results: RefCell<HashMap<String, Vec<Found>>>,
     audio: RefCell<HashMap<String, Audio>>,
+    /// Likes of the sounds by their file, once their pages are read.
+    likes: RefCell<HashMap<String, u32>>,
     /// The play button of the sound you hear, and which listen it is.
     playing: RefCell<Option<gtk::Button>>,
     listen_no: Cell<u32>,
@@ -99,6 +101,7 @@ pub fn panel(st: &St) -> (gtk::Box, gtk::SearchEntry) {
         search_no: Cell::new(0),
         results: RefCell::default(),
         audio: RefCell::default(),
+        likes: RefCell::default(),
         playing: RefCell::default(),
         listen_no: Cell::new(0),
     });
@@ -162,13 +165,47 @@ impl Finder {
             self.say(t("No sounds found. Try other words."));
             return;
         }
+        let mut waiting = VecDeque::new();
         for f in found {
-            self.list.append(&self.row(f));
+            let likes = likes_badge();
+            self.list.append(&self.row(&f, &likes));
+            match self.likes.borrow().get(&f.url) {
+                Some(n) => show_likes(&likes, *n),
+                None => waiting.push_back((f, likes)),
+            }
         }
         self.stack.set_visible_child_name("results");
+        // Each like count is a page of its own: read a few at a time, top first.
+        let waiting = Rc::new(RefCell::new(waiting));
+        for _ in 0..3 {
+            self.next_likes(self.search_no.get(), waiting.clone());
+        }
     }
 
-    fn row(self: &Rc<Self>, f: Found) -> gtk::ListBoxRow {
+    /// Reads the likes of the next sound in `waiting`, then goes on, until a new search starts.
+    fn next_likes(self: &Rc<Self>, no: u32, waiting: Rc<RefCell<VecDeque<(Found, gtk::Box)>>>) {
+        if self.search_no.get() != no {
+            return;
+        }
+        let Some((found, badge)) = waiting.borrow_mut().pop_front() else { return };
+        let me = self.clone();
+        let url = found.url.clone();
+        off_thread(
+            move || online::likes(&found),
+            move |r| match r {
+                Ok(n) => {
+                    me.likes.borrow_mut().insert(url, n);
+                    show_likes(&badge, n);
+                    me.next_likes(no, waiting);
+                }
+                // MyInstants wants a break: the rest stays without likes.
+                Err(online::Error::TooMany) => waiting.borrow_mut().clear(),
+                Err(_) => me.next_likes(no, waiting),
+            },
+        );
+    }
+
+    fn row(self: &Rc<Self>, f: &Found, likes: &gtk::Box) -> gtk::ListBoxRow {
         let play = gtk::Button::from_icon_name("media-playback-start-symbolic");
         play.add_css_class("flat");
         play.add_css_class("circular");
@@ -191,12 +228,13 @@ impl Finder {
         b.add_css_class("vn-find-row");
         b.append(&play);
         b.append(&title);
+        b.append(likes);
         b.append(&add);
         let row = gtk::ListBoxRow::new();
         row.set_activatable(false);
         row.set_child(Some(&b));
 
-        let f = Rc::new(f);
+        let f = Rc::new(f.clone());
         play.connect_clicked({
             let (me, f) = (self.clone(), f.clone());
             move |b| me.listen(&f, b)
@@ -304,6 +342,44 @@ impl Finder {
     }
 }
 
+/// A heart with the likes of a sound, hidden until they are known.
+fn likes_badge() -> gtk::Box {
+    let b = gtk::Box::new(gtk::Orientation::Horizontal, 4);
+    b.add_css_class("vn-find-likes");
+    b.set_valign(gtk::Align::Center);
+    b.append(&line_icon("heart", 14));
+    b.append(&gtk::Label::new(None));
+    b.set_visible(false);
+    b
+}
+
+fn show_likes(badge: &gtk::Box, n: u32) {
+    if let Some(l) = badge.last_child().and_downcast::<gtk::Label>() {
+        l.set_label(&short_count(n));
+    }
+    badge.set_tooltip_text(Some(&fill(t("{} people like this on MyInstants"), &[&n.to_string()])));
+    badge.set_visible(true);
+}
+
+/// A count in few letters: 950, 3.2K, 12K, 1.2M. German writes a comma.
+fn short_count(n: u32) -> String {
+    let text = short_count_en(n);
+    if crate::i18n::language() == "de" { text.replace('.', ",") } else { text }
+}
+
+fn short_count_en(n: u32) -> String {
+    let short = |v: f64, unit: &str| {
+        // Cut, never rounded up: 999,999 is 999K, not 1000K.
+        let text = if v < 10.0 { format!("{v:.1}") } else { format!("{}", v.floor()) };
+        format!("{}{unit}", text.strip_suffix(".0").unwrap_or(&text))
+    };
+    match n {
+        0..1000 => n.to_string(),
+        1000..1_000_000 => short((n / 100) as f64 / 10.0, "K"),
+        _ => short((n / 100_000) as f64 / 10.0, "M"),
+    }
+}
+
 fn error_text(e: online::Error) -> &'static str {
     match e {
         online::Error::Offline => t("Could not reach the sound search. Are you online?"),
@@ -325,4 +401,19 @@ fn off_thread<T: Send + 'static>(
     glib::spawn_future_local(async move {
         done(rx.recv().await.unwrap_or(Err(online::Error::Failed)));
     });
+}
+
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn counts_get_short() {
+        let short = super::short_count_en;
+        assert_eq!(short(0), "0");
+        assert_eq!(short(950), "950");
+        assert_eq!(short(1000), "1K");
+        assert_eq!(short(3276), "3.2K");
+        assert_eq!(short(12_345), "12K");
+        assert_eq!(short(999_999), "999K");
+        assert_eq!(short(1_250_000), "1.2M");
+    }
 }

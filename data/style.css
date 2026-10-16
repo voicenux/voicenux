@@ -742,6 +742,18 @@ floating-sheet > sheet.vn-nudge-b {
   font-weight: 700;
 }
 
+/* Likes on MyInstants: a red heart and the count. */
+.vn-find-likes {
+  font-size: 12px;
+  font-weight: 650;
+  font-feature-settings: "tnum";
+  opacity: 0.75;
+}
+
+.vn-find-likes image {
+  color: #ff4d6d;
+}
+
 button.vn-added {
   background-image: none;
   background-color: #2fbf7a;
