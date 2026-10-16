@@ -54,8 +54,9 @@
   (voices, effects, sounds) go through `t_dyn()`. `make check` fails when a German text is missing.
   Use "du" in German.
 - Pictures are Fluent Emoji 3D (MIT) in `data/icons`. Add new ones to `scripts/fetch-icons.sh` and
-  run `make icons`. Never draw own pictures for voices or sounds. All other emoji are in
-  `data/emoji`, small, for the picture picker; `data/emoji.tsv` has their English and German
+  run `make icons`. Never draw own pictures for voices or sounds. The AI voices have Fluent
+  pictures in the colors of the character, made by `scripts/character-icons.py`. All other emoji
+  are in `data/emoji`, small, for the picture picker; `data/emoji.tsv` has their English and German
   names for the search. `make emoji` makes both again; run it after `make icons`.
 - The sidebar, the settings and the list of keys use Lucide icons (ISC) instead: plain lines in
   the text color, made by `ui::line_icon`. Colored tiles behind them were tried and dropped. They

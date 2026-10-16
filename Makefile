@@ -39,9 +39,11 @@ uninstall:
 	rm -f $(DESTDIR)$(PREFIX)/share/icons/hicolor/symbolic/apps/$(APP_ID)-symbolic.svg
 	rm -rf $(DESTDIR)$(PREFIX)/share/licenses/voicenux
 
-# Downloads missing Fluent Emoji pictures listed in the script.
+# Downloads missing Fluent Emoji pictures listed in the script, and makes the pictures of the AI
+# voices from them. Needs Pillow and NumPy.
 icons:
 	scripts/fetch-icons.sh
+	python3 -I scripts/character-icons.py
 
 # Downloads all other Fluent Emoji for the picture picker, small, and their names. Needs Pillow.
 emoji:

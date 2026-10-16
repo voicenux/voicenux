@@ -868,7 +868,7 @@ blocks = [
 [[voice]]
 id = "ai-spongebob"
 name = "SpongeBob"
-icon = "sponge"
+icon = "spongebob"
 category = "ai"
 description = "The cheerful fry cook from under the sea."
 blocks = [{ effect = "ai", model = "SpongeBob" }]
@@ -876,7 +876,7 @@ blocks = [{ effect = "ai", model = "SpongeBob" }]
 [[voice]]
 id = "ai-patrick"
 name = "Patrick"
-icon = "star"
+icon = "patrick"
 category = "ai"
 description = "His best friend, a slow pink star."
 blocks = [{ effect = "ai", model = "Patrick" }]
@@ -884,7 +884,7 @@ blocks = [{ effect = "ai", model = "Patrick" }]
 [[voice]]
 id = "ai-squidward"
 name = "Squidward"
-icon = "octopus"
+icon = "squidward"
 category = "ai"
 description = "Grumpy neighbor with a clarinet."
 blocks = [{ effect = "ai", model = "Squidward" }]
@@ -900,7 +900,7 @@ blocks = [{ effect = "ai", model = "Plankton" }]
 [[voice]]
 id = "ai-vader"
 name = "Darth Vader"
-icon = "crossed-swords"
+icon = "darth-vader"
 category = "ai"
 description = "Deep breaths behind the mask."
 blocks = [{ effect = "ai", model = "Darth Vader" }]
@@ -908,7 +908,7 @@ blocks = [{ effect = "ai", model = "Darth Vader" }]
 [[voice]]
 id = "ai-yoda"
 name = "Yoda"
-icon = "lizard"
+icon = "yoda"
 category = "ai"
 description = "Old and wise, the little green master is."
 blocks = [{ effect = "ai", model = "Yoda" }]
@@ -916,7 +916,7 @@ blocks = [{ effect = "ai", model = "Yoda" }]
 [[voice]]
 id = "ai-optimus"
 name = "Optimus Prime"
-icon = "articulated-lorry"
+icon = "optimus-prime"
 category = "ai"
 description = "Leader of the robots in disguise."
 blocks = [{ effect = "ai", model = "Optimus Prime" }]
@@ -924,7 +924,7 @@ blocks = [{ effect = "ai", model = "Optimus Prime" }]
 [[voice]]
 id = "ai-glados"
 name = "GLaDOS"
-icon = "test-tube"
+icon = "glados"
 category = "ai"
 description = "The calm AI that runs the tests."
 blocks = [{ effect = "ai", model = "GLaDOS" }]
@@ -932,7 +932,7 @@ blocks = [{ effect = "ai", model = "GLaDOS" }]
 [[voice]]
 id = "ai-rick"
 name = "Rick Sanchez"
-icon = "cucumber"
+icon = "rick-sanchez"
 category = "ai"
 description = "Genius scientist with a portal gun."
 blocks = [{ effect = "ai", model = "Rick Sanchez" }]
@@ -940,7 +940,7 @@ blocks = [{ effect = "ai", model = "Rick Sanchez" }]
 [[voice]]
 id = "ai-homer"
 name = "Homer Simpson"
-icon = "doughnut"
+icon = "homer-simpson"
 category = "ai"
 description = "Loves doughnuts and his couch."
 blocks = [{ effect = "ai", model = "Homer Simpson" }]

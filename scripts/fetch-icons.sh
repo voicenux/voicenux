@@ -137,13 +137,4 @@ star-struck|Star-struck/3D/star-struck_3d.png
 face-screaming-in-fear|Face screaming in fear/3D/face_screaming_in_fear_3d.png
 speech-balloon|Speech balloon/3D/speech_balloon_3d.png
 pile-of-poo|Pile of poo/3D/pile_of_poo_3d.png
-sponge|Sponge/3D/sponge_3d.png
-star|Star/3D/star_3d.png
-octopus|Octopus/3D/octopus_3d.png
-crossed-swords|Crossed swords/3D/crossed_swords_3d.png
-lizard|Lizard/3D/lizard_3d.png
-articulated-lorry|Articulated lorry/3D/articulated_lorry_3d.png
-test-tube|Test tube/3D/test_tube_3d.png
-cucumber|Cucumber/3D/cucumber_3d.png
-doughnut|Doughnut/3D/doughnut_3d.png
 LIST
