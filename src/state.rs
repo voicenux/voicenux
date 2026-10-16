@@ -2,7 +2,7 @@
 //! subscribe to changes.
 
 use std::cell::{Cell, RefCell};
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::rc::Rc;
 use std::sync::Arc;
 
@@ -89,6 +89,8 @@ pub struct State {
     pub error: RefCell<Option<String>>,
     listeners: RefCell<Vec<Listener>>,
     sounds: RefCell<HashMap<String, Arc<SoundData>>>,
+    /// Sounds that decode on a thread of their own, to play when they are done.
+    loading: RefCell<HashSet<String>>,
     sound_ids: RefCell<HashMap<String, u32>>,
     /// Removed sounds and where they were, kept for Undo. Their files go when the note goes.
     trash: RefCell<Vec<(usize, soundboard::Sound)>>,
@@ -132,6 +134,7 @@ impl State {
             error: RefCell::default(),
             listeners: RefCell::default(),
             sounds: RefCell::default(),
+            loading: RefCell::default(),
             sound_ids: RefCell::default(),
             trash: RefCell::default(),
             save_source: RefCell::default(),
@@ -592,37 +595,66 @@ impl State {
         self.sound_ids.borrow().iter().find(|(_, v)| **v == rt).map(|(k, _)| k.clone())
     }
 
-    fn sound_data(self: &Rc<Self>, id: &str) -> Option<Arc<SoundData>> {
-        if let Some(d) = self.sounds.borrow().get(id) {
-            return Some(d.clone());
+    /// Decodes a sound on a thread of its own and plays it when it is done. Decoding takes a
+    /// moment, and on the main thread the window would stutter.
+    fn load_and_play(self: &Rc<Self>, sound: soundboard::Sound) {
+        if !self.loading.borrow_mut().insert(sound.id.clone()) {
+            return;
         }
-        let sound = self.library.borrow().find(id)?.clone();
-        match soundboard::load(&sound) {
-            Ok(d) => {
-                let d = if sound.is_trimmed() { Arc::new(soundboard::trim(&d, sound.start, sound.end)) } else { d };
-                self.sounds.borrow_mut().insert(id.to_string(), d.clone());
-                Some(d)
+        let (tx, rx) = async_channel::bounded(1);
+        std::thread::spawn({
+            let sound = sound.clone();
+            move || {
+                let data = soundboard::load(&sound).map(|d| {
+                    if sound.is_trimmed() { Arc::new(soundboard::trim(&d, sound.start, sound.end)) } else { d }
+                });
+                let _ = tx.send_blocking(data);
             }
-            Err(e) => {
-                log::warn!("could not load sound {id}: {e}");
-                let name = crate::i18n::t_dyn(&sound.name);
-                let waits =
-                    sound.builtin.as_deref().and_then(soundboard::starter::find).is_some_and(|b| !b.downloaded());
-                let text = if waits {
-                    let failed = self.starters_failed.get();
-                    self.fetch_starters();
-                    if failed {
-                        crate::i18n::t("{} is not downloaded yet. Are you online?")
-                    } else {
-                        crate::i18n::t("{} is still downloading. Try again in a moment.")
-                    }
-                } else {
-                    crate::i18n::t("Could not play {}")
-                };
-                self.notify(Change::Notice(crate::i18n::fill(text, &[&name])));
-                None
+        });
+        let weak = Rc::downgrade(self);
+        glib::spawn_future_local(async move {
+            let Ok(data) = rx.recv().await else { return };
+            let Some(st) = weak.upgrade() else { return };
+            st.loading.borrow_mut().remove(&sound.id);
+            let data = match data {
+                Ok(d) => d,
+                Err(e) => return st.sound_failed(&sound, e),
+            };
+            // Removed or cut again while it decoded: this audio is not the sound any more.
+            let now = st.library.borrow().find(&sound.id).cloned();
+            let Some(now) = now.filter(|n| (n.start, n.end) == (sound.start, sound.end)) else { return };
+            st.sounds.borrow_mut().insert(now.id.clone(), data.clone());
+            st.start_sound(&now, data);
+        });
+    }
+
+    fn sound_failed(self: &Rc<Self>, sound: &soundboard::Sound, e: anyhow::Error) {
+        log::warn!("could not load sound {}: {e}", sound.id);
+        let name = crate::i18n::t_dyn(&sound.name);
+        let waits = sound.builtin.as_deref().and_then(soundboard::starter::find).is_some_and(|b| !b.downloaded());
+        let text = if waits {
+            let failed = self.starters_failed.get();
+            self.fetch_starters();
+            if failed {
+                crate::i18n::t("{} is not downloaded yet. Are you online?")
+            } else {
+                crate::i18n::t("{} is still downloading. Try again in a moment.")
             }
-        }
+        } else {
+            crate::i18n::t("Could not play {}")
+        };
+        self.notify(Change::Notice(crate::i18n::fill(text, &[&name])));
+    }
+
+    fn start_sound(&self, sound: &soundboard::Sound, data: Arc<SoundData>) {
+        self.engine.rt(RtCmd::Play {
+            id: self.sound_rt_id(&sound.id),
+            data,
+            volume: sound.volume,
+            looped: sound.mode == PlayMode::Loop,
+            restart: sound.mode != PlayMode::Overlap,
+            preview: false,
+        });
     }
 
     pub fn is_playing(&self, id: &str) -> bool {
@@ -638,15 +670,11 @@ impl State {
             self.engine.rt(RtCmd::Stop(rt));
             return;
         }
-        let Some(data) = self.sound_data(id) else { return };
-        self.engine.rt(RtCmd::Play {
-            id: rt,
-            data,
-            volume: sound.volume,
-            looped: sound.mode == PlayMode::Loop,
-            restart: sound.mode != PlayMode::Overlap,
-            preview: false,
-        });
+        let cached = self.sounds.borrow().get(id).cloned();
+        match cached {
+            Some(data) => self.start_sound(&sound, data),
+            None => self.load_and_play(sound),
+        }
     }
 
     pub fn stop_sounds(&self) {
