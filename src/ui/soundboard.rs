@@ -676,31 +676,35 @@ fn pad(st: &St, s: &Sound) -> Pad {
     let child = gtk::FlowBoxChild::new();
     child.set_child(Some(&overlay));
 
-    // The editor hangs on the grid cell, which never lifts or squishes, so it stays still.
-    let editor = editor(st, s);
-    editor.set_parent(&child);
-    popup::keep_clicks(&editor);
-    child.connect_destroy({
-        let editor = editor.clone();
-        move |_| editor.unparent()
-    });
+    // The editor is made when it first opens: the grid builds again after every change, and most
+    // pads never open it. It hangs on the grid cell, which never lifts or squishes.
+    let made: Rc<std::cell::OnceCell<gtk::Popover>> = Rc::default();
+    let open_editor = {
+        let (st, s, child) = (st.clone(), s.clone(), child.downgrade());
+        Rc::new(move |at: gdk::Rectangle| {
+            let Some(child) = child.upgrade() else { return };
+            let e = made.get_or_init(|| {
+                let e = editor(&st, &s);
+                e.set_parent(&child);
+                popup::keep_clicks(&e);
+                child.connect_destroy({
+                    let e = e.clone();
+                    move |_| e.unparent()
+                });
+                e
+            });
+            e.set_pointing_to(Some(&at));
+            e.popup();
+        })
+    };
     menu.connect_clicked({
-        let (editor, child) = (editor.clone(), child.clone());
+        let (open_editor, child) = (open_editor.clone(), child.downgrade());
         move |b| {
-            if let Some(r) = b.compute_bounds(&child) {
-                let (x, y, w, h) = (r.x() as i32, r.y() as i32, r.width() as i32, r.height() as i32);
-                editor.set_pointing_to(Some(&gdk::Rectangle::new(x, y, w, h)));
-            }
-            editor.popup();
+            let Some(r) = child.upgrade().and_then(|c| b.compute_bounds(&c)) else { return };
+            open_editor(gdk::Rectangle::new(r.x() as i32, r.y() as i32, r.width() as i32, r.height() as i32));
         }
     });
-    popup::context(&child, {
-        let editor = editor.clone();
-        move |x, y| {
-            editor.set_pointing_to(Some(&gdk::Rectangle::new(x as i32, y as i32, 1, 1)));
-            editor.popup();
-        }
-    });
+    popup::context(&child, move |x, y| open_editor(gdk::Rectangle::new(x as i32, y as i32, 1, 1)));
     reorder(st, &child, &pad, &s.id);
     Pad { child, pad, progress, ring, keys }
 }
