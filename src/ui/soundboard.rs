@@ -26,7 +26,7 @@ pub struct SoundboardPage {
     pub widget: adw::ToolbarView,
     pub search: gtk::SearchEntry,
     /// Opens the file chooser to add sounds.
-    pub add: gtk::Button,
+    pub add: Rc<dyn Fn()>,
     /// Header buttons that drop their text in a narrow window.
     pub shrink: Vec<adw::ButtonContent>,
     /// The text of the play mode button, which goes first when the header gets full.
@@ -43,25 +43,39 @@ pub fn build(st: &St) -> SoundboardPage {
     search_box.set_margin_start(12);
     header.pack_start(&search_box);
     let content = |icon: &str, text: &str| adw::ButtonContent::builder().icon_name(icon).label(text).build();
-    let (add_content, find_content, stop_content) = (
-        content("list-add-symbolic", t("Add sounds")),
-        content("system-search-symbolic", t("Find sounds")),
-        content("media-playback-stop-symbolic", t("Stop all")),
-    );
-    let add = gtk::Button::new();
-    add.set_child(Some(&add_content));
-    add.add_css_class("suggested-action");
-    add.set_tooltip_text(Some(&super::with_key(t("Add audio files"), "O")));
-    header.pack_start(&add);
+    let (find_content, stop_content) =
+        (content("system-search-symbolic", t("Find sounds")), content("media-playback-stop-symbolic", t("Stop all")));
+    // MyInstants has all the sounds people want, so finding them is the main thing here. Own
+    // files are in the More menu, and can be dropped on the page.
     let find = gtk::ToggleButton::new();
     find.set_child(Some(&find_content));
+    find.add_css_class("suggested-action");
     find.set_tooltip_text(Some(t("Find sounds on MyInstants")));
     header.pack_start(&find);
+    let add: Rc<dyn Fn()> = Rc::new({
+        let (st, header) = (st.clone(), header.downgrade());
+        move || {
+            let filter = gtk::FileFilter::new();
+            filter.set_name(Some(t("Audio files")));
+            filter.add_mime_type("audio/*");
+            let filters = gio::ListStore::new::<gtk::FileFilter>();
+            filters.append(&filter);
+            let dialog = gtk::FileDialog::builder().title(t("Add sounds")).filters(&filters).modal(true).build();
+            let st = st.clone();
+            let parent = header.upgrade().and_then(|h| h.root()).and_downcast::<gtk::Window>();
+            dialog.open_multiple(parent.as_ref(), None::<&gio::Cancellable>, move |res| {
+                if let Ok(files) = res {
+                    let paths: Vec<_> = files.iter::<gio::File>().flatten().filter_map(|f| f.path()).collect();
+                    import(&st, &paths);
+                }
+            });
+        }
+    });
     let stop = gtk::Button::new();
     stop.set_child(Some(&stop_content));
     stop.set_tooltip_text(Some(t("Stop all sounds (Esc)")));
     header.pack_end(&stop);
-    header.pack_end(&more_button(st));
+    header.pack_end(&more_button(st, add.clone()));
     header.pack_end(&volume_button(st));
     let (mode, mode_label) = mode_button(st);
     header.pack_end(&mode);
@@ -314,27 +328,6 @@ pub fn build(st: &St) -> SoundboardPage {
         }
     });
 
-    let window_of = |w: &gtk::Widget| w.root().and_downcast::<gtk::Window>();
-    add.connect_clicked({
-        let st = st.clone();
-        move |b| {
-            let filter = gtk::FileFilter::new();
-            filter.set_name(Some(t("Audio files")));
-            filter.add_mime_type("audio/*");
-            let filters = gio::ListStore::new::<gtk::FileFilter>();
-            filters.append(&filter);
-            let dialog = gtk::FileDialog::builder().title(t("Add sounds")).filters(&filters).modal(true).build();
-            let st = st.clone();
-            let parent = window_of(b.upcast_ref());
-            dialog.open_multiple(parent.as_ref(), None::<&gio::Cancellable>, move |res| {
-                if let Ok(files) = res {
-                    let paths: Vec<_> = files.iter::<gio::File>().flatten().filter_map(|f| f.path()).collect();
-                    import(&st, &paths);
-                }
-            });
-        }
-    });
-
     let drop = gtk::DropTarget::new(gdk::FileList::static_type(), gdk::DragAction::COPY);
     drop.connect_drop({
         let st = st.clone();
@@ -395,7 +388,7 @@ pub fn build(st: &St) -> SoundboardPage {
             online.set_text(text);
         }
     });
-    SoundboardPage { widget: view, search, add, shrink: vec![add_content, find_content, stop_content], mode_label, find_online }
+    SoundboardPage { widget: view, search, add, shrink: vec![find_content, stop_content], mode_label, find_online }
 }
 
 /// What a click on a sound does, for all sounds at once. Sounds with a mode of their own keep it.
@@ -435,13 +428,14 @@ fn mode_button(st: &St) -> (gtk::MenuButton, gtk::Label) {
     (b, text)
 }
 
-/// More: sort the sounds, or bring back the starter sounds.
-fn more_button(st: &St) -> gtk::MenuButton {
+/// More: add own files, sort the sounds, or bring back the starter sounds.
+fn more_button(st: &St, add: Rc<dyn Fn()>) -> gtk::MenuButton {
     let b = gtk::MenuButton::new();
     b.set_icon_name("view-more-symbolic");
     b.set_tooltip_text(Some(t("More")));
     let (st1, st2) = (st.clone(), st.clone());
     b.set_popover(Some(&popup::list(vec![
+        popup::Item::new("list-add-symbolic", t("Add audio files"), move || add()),
         popup::Item::new("view-sort-ascending-symbolic", t("Sort by name"), move || st1.sort_sounds()),
         popup::Item::new("edit-undo-symbolic", t("Bring back the starter sounds"), move || st2.restore_starter_sounds()),
     ])));

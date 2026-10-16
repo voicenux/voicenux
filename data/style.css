@@ -890,7 +890,7 @@ dropdown > button,
 headerbar button.text-button:not(.suggested-action):not(.destructive-action),
 headerbar button.image-text-button:not(.suggested-action):not(.destructive-action),
 headerbar menubutton > button,
-headerbar button.toggle {
+headerbar button.toggle:not(.suggested-action) {
   background-color: var(--vn-raised);
   background-image: var(--vn-sheen);
   box-shadow: inset 0 1px 0 var(--vn-glass-edge), inset 0 0 0 1px var(--vn-line), 0 1px 2px var(--vn-shadow);
@@ -902,7 +902,7 @@ dropdown > button:hover,
 headerbar button.text-button:not(.suggested-action):not(.destructive-action):hover,
 headerbar button.image-text-button:not(.suggested-action):not(.destructive-action):hover,
 headerbar menubutton > button:hover,
-headerbar button.toggle:hover {
+headerbar button.toggle:not(.suggested-action):hover {
   background-color: var(--vn-raised-hover);
   box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent-bg-color) 35%, transparent), 0 2px 8px var(--vn-shadow);
 }
@@ -914,7 +914,7 @@ menubutton.flat > button:hover {
   box-shadow: none;
 }
 
-headerbar button.toggle:checked,
+headerbar button.toggle:checked:not(.suggested-action),
 headerbar menubutton > button:checked {
   background-color: color-mix(in srgb, var(--accent-bg-color) 22%, transparent);
   color: var(--accent-color);
@@ -949,6 +949,13 @@ button.suggested-action:hover {
 
 button.suggested-action:active {
   filter: brightness(0.94);
+}
+
+/* Find sounds stays pressed while its panel is open: a bit darker, sunk in, and still white. */
+button.suggested-action:checked {
+  color: #ffffff;
+  filter: brightness(0.93);
+  box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.28), 0 6px 18px -8px var(--vn-glow);
 }
 
 button.destructive-action {

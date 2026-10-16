@@ -18,7 +18,7 @@ pub struct Window {
     lab: voicelab::Lab,
     voice_search: gtk::SearchEntry,
     sound_search: gtk::SearchEntry,
-    add_sounds: gtk::Button,
+    add_sounds: Rc<dyn Fn()>,
     pub find_online: Rc<dyn Fn(&str)>,
     st: St,
 }
@@ -100,7 +100,7 @@ impl Window {
             }
             gdk::Key::o => {
                 self.show_page("soundboard");
-                self.add_sounds.emit_clicked();
+                (self.add_sounds)();
             }
             gdk::Key::n => {
                 self.show_page("voicelab");
