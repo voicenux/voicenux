@@ -126,4 +126,15 @@ lady-beetle|Lady beetle/3D/lady_beetle_3d.png
 hot-beverage|Hot beverage/3D/hot_beverage_3d.png
 scissors|Scissors/3D/scissors_3d.png
 speaker-high-volume|Speaker high volume/3D/speaker_high_volume_3d.png
+unamused-face|Unamused face/3D/unamused_face_3d.png
+broken-heart|Broken heart/3D/broken_heart_3d.png
+warning|Warning/3D/warning_3d.png
+face-with-hand-over-mouth|Face with hand over mouth/3D/face_with_hand_over_mouth_3d.png
+violin|Violin/3D/violin_3d.png
+nut-and-bolt|Nut and bolt/3D/nut_and_bolt_3d.png
+smirking-face|Smirking face/3D/smirking_face_3d.png
+star-struck|Star-struck/3D/star-struck_3d.png
+face-screaming-in-fear|Face screaming in fear/3D/face_screaming_in_fear_3d.png
+speech-balloon|Speech balloon/3D/speech_balloon_3d.png
+pile-of-poo|Pile of poo/3D/pile_of_poo_3d.png
 LIST

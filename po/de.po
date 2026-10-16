@@ -1768,3 +1768,48 @@ msgstr "Verbundene Apps: {}"
 
 msgid "{} people like this on MyInstants"
 msgstr "{} Leuten gefällt das auf MyInstants"
+
+msgid "{} is still downloading. Try again in a moment."
+msgstr "{} lädt noch. Versuch es gleich noch mal."
+
+msgid "Vine Boom"
+msgstr "Vine Boom"
+
+msgid "Bruh"
+msgstr "Bruh"
+
+msgid "Emotional Damage"
+msgstr "Emotional Damage"
+
+msgid "Sad Violin"
+msgstr "Traurige Geige"
+
+msgid "Metal Pipe"
+msgstr "Metallrohr"
+
+msgid "Windows Error"
+msgstr "Windows-Fehler"
+
+msgid "Oh No No No"
+msgstr "Oh No No No"
+
+msgid "Rizz"
+msgstr "Rizz"
+
+msgid "Anime Wow"
+msgstr "Anime Wow"
+
+msgid "Among Us"
+msgstr "Among Us"
+
+msgid "Dun Dun Dun"
+msgstr "Dun Dun Dun"
+
+msgid "Discord Ping"
+msgstr "Discord-Ping"
+
+msgid "Fart"
+msgstr "Furz"
+
+msgid "{} is not downloaded yet. Are you online?"
+msgstr "{} ist noch nicht heruntergeladen. Bist du online?"

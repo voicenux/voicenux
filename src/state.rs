@@ -79,6 +79,10 @@ pub struct State {
     pub ready: Cell<bool>,
     /// A tray icon is there to bring the window back.
     pub tray: Cell<bool>,
+    /// Starter sounds are downloading.
+    fetching: Cell<bool>,
+    /// The last try to download them left some out, likely for being offline.
+    starters_failed: Cell<bool>,
     pub api: RefCell<ApiStatus>,
     pub error: RefCell<Option<String>>,
     listeners: RefCell<Vec<Listener>>,
@@ -115,6 +119,8 @@ impl State {
             muted: Cell::new(false),
             ready: Cell::new(false),
             tray: Cell::new(false),
+            fetching: Cell::new(false),
+            starters_failed: Cell::new(false),
             api: RefCell::default(),
             error: RefCell::default(),
             listeners: RefCell::default(),
@@ -559,7 +565,7 @@ impl State {
         self.sound_ids.borrow().iter().find(|(_, v)| **v == rt).map(|(k, _)| k.clone())
     }
 
-    fn sound_data(&self, id: &str) -> Option<Arc<SoundData>> {
+    fn sound_data(self: &Rc<Self>, id: &str) -> Option<Arc<SoundData>> {
         if let Some(d) = self.sounds.borrow().get(id) {
             return Some(d.clone());
         }
@@ -572,7 +578,21 @@ impl State {
             }
             Err(e) => {
                 log::warn!("could not load sound {id}: {e}");
-                self.notify(Change::Notice(crate::i18n::fill(crate::i18n::t("Could not play {}"), &[&sound.name])));
+                let name = crate::i18n::t_dyn(&sound.name);
+                let waits =
+                    sound.builtin.as_deref().and_then(soundboard::starter::find).is_some_and(|b| !b.downloaded());
+                let text = if waits {
+                    let failed = self.starters_failed.get();
+                    self.fetch_starters();
+                    if failed {
+                        crate::i18n::t("{} is not downloaded yet. Are you online?")
+                    } else {
+                        crate::i18n::t("{} is still downloading. Try again in a moment.")
+                    }
+                } else {
+                    crate::i18n::t("Could not play {}")
+                };
+                self.notify(Change::Notice(crate::i18n::fill(text, &[&name])));
                 None
             }
         }
@@ -583,7 +603,7 @@ impl State {
         rt.is_some_and(|rt| self.engine.meters.playing().iter().any(|(p, _)| *p == rt))
     }
 
-    pub fn play_sound(&self, id: &str) {
+    pub fn play_sound(self: &Rc<Self>, id: &str) {
         let Some(sound) = self.library.borrow().find(id).cloned() else { return };
         let rt = self.sound_rt_id(id);
         let playing = self.is_playing(id);
@@ -792,7 +812,7 @@ impl State {
         self.notify(Change::Sounds);
     }
 
-    pub fn restore_starter_sounds(&self) {
+    pub fn restore_starter_sounds(self: &Rc<Self>) {
         {
             let mut lib = self.library.borrow_mut();
             for s in Library::starter().sound {
@@ -803,5 +823,51 @@ impl State {
             lib.save();
         }
         self.notify(Change::Sounds);
+        self.fetch_starters();
+    }
+
+    /// Downloads the starter sounds on the soundboard that this computer does not have yet, a
+    /// few at a time. Offline it tries again at the next start, or when one is played.
+    pub fn fetch_starters(self: &Rc<Self>) {
+        if self.fetching.get() {
+            return;
+        }
+        let lib = self.library.borrow();
+        let missing: Vec<&'static soundboard::starter::Builtin> = lib
+            .sound
+            .iter()
+            .filter_map(|s| s.builtin.as_deref().and_then(soundboard::starter::find))
+            .filter(|b| !b.downloaded())
+            .collect();
+        if missing.is_empty() {
+            return;
+        }
+        self.fetching.set(true);
+        let queue = Arc::new(std::sync::Mutex::new(missing));
+        let (tx, rx) = async_channel::unbounded::<bool>();
+        for _ in 0..4 {
+            let (queue, tx) = (queue.clone(), tx.clone());
+            std::thread::spawn(move || {
+                loop {
+                    let Some(b) = queue.lock().ok().and_then(|mut q| q.pop()) else { break };
+                    let _ = tx.send_blocking(b.fetch().is_ok());
+                }
+            });
+        }
+        drop(tx);
+        let weak = Rc::downgrade(self);
+        glib::spawn_future_local(async move {
+            let (mut got, mut failed) = (0, 0);
+            while let Ok(ok) = rx.recv().await {
+                if ok { got += 1 } else { failed += 1 }
+            }
+            let Some(st) = weak.upgrade() else { return };
+            st.fetching.set(false);
+            st.starters_failed.set(failed > 0);
+            log::info!("downloaded {got} starter sounds, {failed} failed");
+            if got > 0 {
+                st.notify(Change::Sounds);
+            }
+        });
     }
 }

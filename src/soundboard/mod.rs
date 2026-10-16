@@ -1,4 +1,4 @@
-//! Soundboard: the list of sounds, loading audio files and the built-in sounds.
+//! Soundboard: the list of sounds, loading audio files and the starter sounds.
 
 pub mod online;
 pub mod starter;
@@ -57,7 +57,7 @@ pub struct Sound {
     /// File in the soundboard folder, for imported sounds.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub file: Option<String>,
-    /// Name of a built-in sound from [`starter`].
+    /// Id of a starter sound from [`starter`]. Its audio is a download of its own.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub builtin: Option<String>,
     #[serde(default = "full")]
@@ -88,8 +88,16 @@ impl Sound {
 
 #[derive(Clone, Debug, Default, Serialize, Deserialize)]
 pub struct Library {
+    /// The starter pack this soundboard has seen, see [`starter::PACK`]. Soundboards from before
+    /// the field had the first one.
+    #[serde(default = "first_pack")]
+    pub starter: u32,
     #[serde(default)]
     pub sound: Vec<Sound>,
+}
+
+fn first_pack() -> u32 {
+    1
 }
 
 pub fn dir() -> PathBuf {
@@ -101,34 +109,49 @@ fn library_path() -> PathBuf {
 }
 
 impl Library {
-    /// The saved soundboard, or the built-in starter pack on first start.
+    /// The saved soundboard, or the starter pack on first start.
     pub fn load() -> Self {
         match std::fs::read_to_string(library_path()) {
-            Ok(text) => toml::from_str(&text).unwrap_or_else(|e| {
-                log::warn!("soundboard.toml is broken: {e}");
-                Self::starter()
-            }),
+            Ok(text) => match toml::from_str::<Self>(&text) {
+                Ok(mut lib) => {
+                    if lib.upgrade() {
+                        lib.save();
+                    }
+                    lib
+                }
+                Err(e) => {
+                    log::warn!("soundboard.toml is broken: {e}");
+                    Self::starter()
+                }
+            },
             Err(_) => Self::starter(),
         }
     }
 
-    pub fn starter() -> Self {
-        Self {
-            sound: starter::BUILTIN
-                .iter()
-                .map(|b| Sound {
-                    id: b.id.to_string(),
-                    name: b.name.to_string(),
-                    icon: b.icon.to_string(),
-                    file: None,
-                    builtin: Some(b.id.to_string()),
-                    volume: 1.0,
-                    mode: PlayMode::Restart,
-                    start: 0.0,
-                    end: None,
-                })
-                .collect(),
+    /// Brings a soundboard from an older starter pack up to date: the sounds that are new join
+    /// at the end. Returns whether something changed.
+    fn upgrade(&mut self) -> bool {
+        if self.starter >= starter::PACK {
+            return false;
         }
+        // Pack 2 has other audio for the old ids, so their cuts no longer fit.
+        if self.starter < 2 {
+            for s in self.sound.iter_mut().filter(|s| s.builtin.is_some()) {
+                s.start = 0.0;
+                s.end = None;
+            }
+        }
+        for b in starter::BUILTIN.iter().filter(|b| b.since > self.starter) {
+            if self.find(b.id).is_none() {
+                self.sound.push(starter_sound(b));
+            }
+        }
+        self.starter = starter::PACK;
+        true
+    }
+
+    pub fn starter() -> Self {
+        Self { starter: starter::PACK, sound: starter::BUILTIN.iter().map(starter_sound).collect() }
     }
 
     pub fn save(&self) {
@@ -226,7 +249,21 @@ impl Library {
     }
 }
 
-/// Deletes the file of a removed sound. Built-in sounds have none.
+fn starter_sound(b: &starter::Builtin) -> Sound {
+    Sound {
+        id: b.id.to_string(),
+        name: b.name.to_string(),
+        icon: b.icon.to_string(),
+        file: None,
+        builtin: Some(b.id.to_string()),
+        volume: 1.0,
+        mode: PlayMode::Restart,
+        start: 0.0,
+        end: None,
+    }
+}
+
+/// Deletes the file of a removed sound. Starter sounds keep theirs, for when they come back.
 pub fn delete_file(sound: &Sound) {
     if let Some(file) = &sound.file {
         let _ = std::fs::remove_file(dir().join(file));
@@ -250,7 +287,7 @@ fn free_path(dir: &Path, stem: &str, ext: &str) -> PathBuf {
 /// Loads the audio of a sound.
 pub fn load(sound: &Sound) -> anyhow::Result<Arc<SoundData>> {
     if let Some(b) = &sound.builtin {
-        return starter::load(b).map(Arc::new).ok_or_else(|| anyhow::anyhow!("unknown sound {b}"));
+        return starter::load(b).map(Arc::new).ok_or_else(|| anyhow::anyhow!("{b} is not downloaded yet"));
     }
     let file = sound.file.as_ref().ok_or_else(|| anyhow::anyhow!("sound has no file"))?;
     decode(&dir().join(file)).map(Arc::new)
@@ -296,7 +333,7 @@ pub fn decode(path: &Path) -> anyhow::Result<SoundData> {
     decode_source(Box::new(file), path.extension().and_then(|e| e.to_str()))
 }
 
-/// The same for audio that is in memory already, like the starter sounds.
+/// The same for audio that is in memory already, like a download.
 pub fn decode_bytes(data: Vec<u8>, ext: &str) -> anyhow::Result<SoundData> {
     decode_source(Box::new(std::io::Cursor::new(data)), Some(ext))
 }
@@ -410,9 +447,41 @@ mod tests {
     }
 
     #[test]
+    fn old_soundboards_get_the_new_pack() {
+        let text = r#"
+            [[sound]]
+            id = "drumroll"
+            name = "Drum Roll"
+            icon = "drum"
+            builtin = "drumroll"
+            start = 0.8
+            end = 5.2
+
+            [[sound]]
+            id = "sound-15"
+            name = "Mine"
+            icon = "loudspeaker"
+            file = "mine.mp3"
+            start = 1.0
+        "#;
+        let mut lib: Library = toml::from_str(text).unwrap();
+        assert_eq!(lib.starter, 1);
+        assert!(lib.upgrade());
+        // The old cut does not fit the new audio. Own sounds keep theirs.
+        assert!(!lib.find("drumroll").unwrap().is_trimmed());
+        assert_eq!(lib.find("sound-15").unwrap().start, 1.0);
+        // The memes come, a classic that was removed stays away.
+        assert!(lib.find("vine-boom").is_some());
+        assert!(lib.find("airhorn").is_none());
+        assert!(!lib.upgrade());
+        let saved: Library = toml::from_str(&toml::to_string_pretty(&lib).unwrap()).unwrap();
+        assert_eq!(saved.starter, starter::PACK);
+    }
+
+    #[test]
     fn sounds_move_next_to_others() {
         let mut lib = Library::starter();
-        lib.sound.truncate(4);
+        lib.sound.retain(|s| ["airhorn", "sad-trombone", "rimshot", "drumroll"].contains(&s.id.as_str()));
         assert_eq!(ids(&lib), ["airhorn", "sad-trombone", "rimshot", "drumroll"]);
         lib.move_next_to("airhorn", "rimshot", true);
         assert_eq!(ids(&lib), ["sad-trombone", "rimshot", "airhorn", "drumroll"]);

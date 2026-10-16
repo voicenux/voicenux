@@ -279,6 +279,9 @@ pub fn run() -> glib::ExitCode {
                 hold: RefCell::default(),
                 welcomed: Default::default(),
             });
+            // The starter sounds, on the first start that is online.
+            st.fetch_starters();
+
             // Tray.
             let (tx, rx) = async_channel::unbounded();
             *c.tray.borrow_mut() = tray::spawn(tx, c.snapshot());

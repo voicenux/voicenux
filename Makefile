@@ -3,7 +3,7 @@ DESTDIR ?=
 APP_ID = io.github.voicenux.Voicenux
 BIN = target/release/voicenux
 
-.PHONY: all build check e2e run install uninstall icons emoji lucide sounds clean
+.PHONY: all build check e2e run install uninstall icons emoji lucide clean
 
 all: build
 
@@ -48,10 +48,6 @@ emoji:
 # Downloads the Lucide icons of the sidebar and the settings, listed in the script.
 lucide:
 	python3 -I scripts/fetch-lucide.py
-
-# Downloads the CC0 starter sounds from Freesound and levels them. Needs ffmpeg.
-sounds:
-	scripts/fetch-sounds.py
 
 clean:
 	cargo clean

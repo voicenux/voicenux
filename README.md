@@ -126,7 +126,7 @@ Inside the app, F1 shows all keys. Ctrl+F searches, Ctrl+1 to 4 switch pages, Ct
 | Music | Auto-Tune, Angel Choir, Magic Chords, Talk Box, Duet |
 | Funny | Chipmunk, Mouse, Helium, Drunk, Dizzy, Whisper, Kitty, Frog, Duck |
 
-Many of them come with a background sound: rain, bubbles, a campfire, a stadium crowd, wind, a heartbeat and more. All background sounds are made in code. The starter soundboard uses CC0 recordings from Freesound.
+Many of them come with a background sound: rain, bubbles, a campfire, a stadium crowd, wind, a heartbeat and more. All background sounds are made in code. The starter soundboard has well-known sounds and memes from MyInstants, downloaded on the first start.
 
 </details>
 
