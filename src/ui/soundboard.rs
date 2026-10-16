@@ -35,9 +35,11 @@ pub struct SoundboardPage {
 
 pub fn build(st: &St) -> SoundboardPage {
     let header = adw::HeaderBar::new();
-    // No title: the buttons fill the bar, and the gap between them is for dragging the window.
+    // The tools sit on the left, in line with the page, and the rest of the bar is for dragging.
     header.set_show_title(false);
     let (search_box, search) = super::search_field(t("Search sounds"));
+    search_box.set_margin_start(12);
+    header.pack_start(&search_box);
     let content = |icon: &str, text: &str| adw::ButtonContent::builder().icon_name(icon).label(text).build();
     let (add_content, find_content, stop_content) = (
         content("list-add-symbolic", t("Add sounds")),
@@ -59,7 +61,6 @@ pub fn build(st: &St) -> SoundboardPage {
     header.pack_end(&stop);
     header.pack_end(&more_button(st));
     header.pack_end(&volume_button(st));
-    header.pack_end(&search_box);
     stop.connect_clicked({
         let st = st.clone();
         move |_| st.stop_sounds()

@@ -34,12 +34,16 @@ pub type OpenLab = Rc<dyn Fn(&str)>;
 
 pub fn build(st: &St, open_lab: OpenLab) -> VoicesPage {
     let header = adw::HeaderBar::new();
-    header.set_title_widget(Some(&adw::WindowTitle::new(t("Voices"), "")));
+    // The tools sit on the left, in line with the page. The rest of the bar is for dragging.
+    header.set_show_title(false);
     let (search_box, search) = super::search_field(t("Search voices"));
-    let random = gtk::Button::from_icon_name("media-playlist-shuffle-symbolic");
+    search_box.set_margin_start(12);
+    header.pack_start(&search_box);
+    let random_content =
+        adw::ButtonContent::builder().icon_name("media-playlist-shuffle-symbolic").label(t("Random voice")).build();
+    let random = gtk::Button::builder().child(&random_content).build();
     random.set_tooltip_text(Some(&super::with_key(t("Random voice"), "R")));
-    header.pack_end(&random);
-    header.pack_end(&search_box);
+    header.pack_start(&random);
     random.connect_clicked({
         let st = st.clone();
         move |_| st.random_voice()

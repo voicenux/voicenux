@@ -163,11 +163,11 @@ pub fn fold(s: &str) -> String {
 }
 
 /// A search field with a little "Ctrl F" key cap at its end while it is empty and not focused.
-/// Escape empties it, a second Escape leaves it. It goes at the end of a header bar: in the
-/// middle it would leave no room to drag the window.
+/// Escape empties it, a second Escape leaves it. It goes at the start of a header bar, in line
+/// with the page below. In the middle it would leave no room to drag the window.
 pub fn search_field(placeholder: &str) -> (gtk::Overlay, gtk::SearchEntry) {
     // Narrow when the window is, wider when there is room.
-    let entry = gtk::SearchEntry::builder().placeholder_text(placeholder).width_chars(10).max_width_chars(17).build();
+    let entry = gtk::SearchEntry::builder().placeholder_text(placeholder).width_chars(10).max_width_chars(26).build();
     entry.add_css_class("vn-search");
     entry.add_css_class("vn-capped");
     let caps = gtk::Box::new(gtk::Orientation::Horizontal, 3);

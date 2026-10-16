@@ -58,6 +58,9 @@
   shadow can overshoot to a negative blur and GTK crashes.
 - Rings and glows of tiles that move (voice cards, sound pads) stay inside the tile: use `inset`
   shadows. Shadows that reach out of a moving tile left broken bits on NVIDIA at 130 % scale.
+- Header bars keep their middle free, so the window can be dragged there. Page tools like the
+  search (`ui::search_field`) sit at the start, in line with the page below; a tool is a button
+  with a label, not a bare icon, where there is room.
 - Every popover goes through `popup::menu`: it bounces open, and a click next to it still does
   what it hits, like on other desktops. Right-click menus use `popup::context`. A click next to a
   dialog closes it; a dialog that would lose something sets `can_close` to false or `vn-stay`.
