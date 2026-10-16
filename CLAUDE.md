@@ -90,9 +90,11 @@
 
 1. Read `git log <last tag>..HEAD` and pick the version: only fixes → patch, something new → minor,
    something that breaks or needs the user to act → major.
-2. Bump `version` in `Cargo.toml`, add the release to `data/io.github.voicenux.Voicenux.metainfo.xml`
+2. Take the README screenshots again of every screen that changed since the last tag, and add
+   ones for new UI (`docs: new screenshots`).
+3. Bump `version` in `Cargo.toml`, add the release to `data/io.github.voicenux.Voicenux.metainfo.xml`
    and the entry at the top of `CHANGELOG.md`, in one commit (`chore: 0.2.0`).
-3. Push, then push the tag: `git tag v0.2.0 && git push origin main v0.2.0`.
+4. Push, then push the tag: `git tag v0.2.0 && git push origin main v0.2.0`.
 
 A minor or major release starts with a welcome sentence and has a `### Highlights` list. A patch
 release is just a sentence or two. Write for users: what they notice, not how the code does it.
@@ -101,5 +103,6 @@ release is just a sentence or two. Write for users: what they notice, not how th
 
 - New UI (a page, a dialog) gets a screenshot in the README, next to the text about it. A real
   screenshot of it running, in English, in dark mode.
-- When a screen changes, take its screenshot again. The README never shows an old one.
+- Screenshots are only made right before a release (see Releases), not after each change. So a
+  release never shows an old one.
 - Keep the voice list in the README in step with `data/voices.toml`.
