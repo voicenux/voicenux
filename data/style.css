@@ -523,6 +523,70 @@ flowboxchild:hover .sound-pad {
   box-shadow: inset 0 1px 0 var(--vn-glass-edge), inset 0 0 0 1px color-mix(in srgb, var(--accent-bg-color) 45%, transparent), inset 0 0 0 0 transparent;
 }
 
+/* Picked for Delete or Move: a ring, a tint and a check in the corner. */
+.sound-pad.vn-selected {
+  background-color: color-mix(in srgb, var(--accent-bg-color) 18%, var(--vn-card));
+  box-shadow: inset 0 1px 0 var(--vn-glass-edge), inset 0 0 0 2px var(--accent-bg-color), inset 0 0 0 0 transparent;
+}
+
+.vn-pad-check {
+  min-width: 22px;
+  min-height: 22px;
+  border-radius: 99px;
+  background-color: var(--accent-bg-color);
+  color: #ffffff;
+  -gtk-icon-size: 14px;
+}
+
+/* Folders on the soundboard: a glass folder, the pictures of its sounds peeking out and
+   showing through the front. On hover the front dips a little, and it opens for a drop. */
+.vn-folder-front {
+  transition: transform 260ms cubic-bezier(.2, .9, .3, 1.4);
+}
+
+flowboxchild:hover .vn-folder .vn-folder-front {
+  transform: translateY(3px);
+}
+
+.vn-folder.vn-drop-into .vn-folder-front {
+  transform: translateY(8px);
+}
+
+.vn-peek-left {
+  transform: rotate(-14deg);
+}
+
+.vn-peek-right {
+  transform: rotate(14deg);
+}
+
+/* GTK frames a drop target while something is dragged over it. The soundboard shows itself
+   where a sound lands: a bar between pads, an opening folder, or All sounds lit up. */
+stack.vn-pad-area:drop(active),
+flowbox.vn-pads > flowboxchild:drop(active),
+button.vn-up:drop(active) {
+  box-shadow: none;
+}
+
+button.vn-up:drop(active) {
+  color: inherit;
+}
+
+/* All sounds, while a sound is held over it: it goes back up in a moment. */
+button.vn-up.vn-drop-into {
+  background-color: color-mix(in srgb, var(--accent-bg-color) 20%, transparent);
+  box-shadow: inset 0 0 0 2px var(--accent-bg-color);
+}
+
+.sound-pad.vn-drop-into {
+  box-shadow: inset 0 1px 0 var(--vn-glass-edge), inset 0 0 0 2px var(--accent-bg-color), inset 0 0 22px -4px var(--vn-glow);
+}
+
+.vn-folder-title {
+  font-weight: 800;
+  font-size: 15px;
+}
+
 /* The first match of a search: Enter plays it. */
 .sound-pad.vn-first {
   box-shadow: inset 0 1px 0 var(--vn-glass-edge), inset 0 0 0 2px color-mix(in srgb, var(--accent-bg-color) 75%, transparent), inset 0 0 0 0 transparent;

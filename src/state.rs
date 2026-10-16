@@ -31,8 +31,8 @@ pub enum Change {
     Devices,
     Users,
     Sounds,
-    /// A sound was removed. It can come back until its note is gone.
-    SoundRemoved { id: String, name: String },
+    /// Sounds were removed, with the text for the note. They can come back until it is gone.
+    SoundRemoved { ids: Vec<String>, title: String },
     Settings,
     /// The engine is up, or failed with a message.
     Engine(Option<String>),
@@ -807,20 +807,78 @@ impl State {
 
     /// Removes a sound. [`State::undo_remove`] brings it back, until [`State::forget_removed`].
     pub fn remove_sound(&self, id: &str) {
-        let rt = self.sound_rt_id(id);
-        self.engine.rt(RtCmd::Stop(rt));
-        self.sounds.borrow_mut().remove(id);
-        let taken = {
+        self.remove_sounds(&[id.to_string()]);
+    }
+
+    /// Removes sounds with one note for all of them. Undo brings them all back.
+    pub fn remove_sounds(&self, ids: &[String]) {
+        let mut gone = Vec::new();
+        {
             let mut lib = self.library.borrow_mut();
-            let taken = lib.take(id);
+            for id in ids {
+                self.engine.rt(RtCmd::Stop(self.sound_rt_id(id)));
+                self.sounds.borrow_mut().remove(id);
+                if let Some((pos, sound)) = lib.take(id) {
+                    gone.push((id.clone(), crate::i18n::t_dyn(&sound.name)));
+                    self.trash.borrow_mut().push((pos, sound));
+                }
+            }
             lib.save();
-            taken
+        }
+        let title = match gone.as_slice() {
+            [] => return,
+            [(_, name)] => crate::i18n::fill(crate::i18n::t("Removed {}"), &[name]),
+            _ => crate::i18n::fill(crate::i18n::t("Removed {} sounds"), &[&gone.len().to_string()]),
         };
-        let Some((pos, sound)) = taken else { return };
-        let name = crate::i18n::t_dyn(&sound.name);
-        self.trash.borrow_mut().push((pos, sound));
         self.notify(Change::Sounds);
-        self.notify(Change::SoundRemoved { id: id.to_string(), name });
+        self.notify(Change::SoundRemoved { ids: gone.into_iter().map(|(id, _)| id).collect(), title });
+    }
+
+    /// Makes a folder, with a number after the name when it is taken. Gives back its name.
+    pub fn add_folder(&self, name: &str) -> String {
+        let name = {
+            let mut lib = self.library.borrow_mut();
+            let name = lib.free_folder_name(name);
+            lib.folders.push(name.clone());
+            lib.save();
+            name
+        };
+        self.notify(Change::Sounds);
+        name
+    }
+
+    /// False when the new name is empty or another folder has it.
+    pub fn rename_folder(&self, old: &str, new: &str) -> bool {
+        let done = {
+            let mut lib = self.library.borrow_mut();
+            let done = lib.rename_folder(old, new);
+            lib.save();
+            done
+        };
+        self.notify(Change::Sounds);
+        done
+    }
+
+    /// Removes a folder. Its sounds stay on the soundboard.
+    pub fn remove_folder(&self, name: &str) {
+        {
+            let mut lib = self.library.borrow_mut();
+            lib.remove_folder(name);
+            lib.save();
+        }
+        self.notify(Change::Sounds);
+    }
+
+    /// Puts sounds in a folder, or in none.
+    pub fn move_to_folder(&self, ids: &[String], folder: Option<&str>) {
+        {
+            let mut lib = self.library.borrow_mut();
+            for s in lib.sound.iter_mut().filter(|s| ids.contains(&s.id)) {
+                s.folder = folder.map(String::from);
+            }
+            lib.save();
+        }
+        self.notify(Change::Sounds);
     }
 
     pub fn undo_remove(&self, id: &str) {
@@ -872,6 +930,16 @@ impl State {
         {
             let mut lib = self.library.borrow_mut();
             lib.move_next_to(id, target, after);
+            lib.save();
+        }
+        self.notify(Change::Sounds);
+    }
+
+    /// Moves sounds next to another one, together and in the order they had.
+    pub fn move_sounds(&self, ids: &[String], target: &str, after: bool) {
+        {
+            let mut lib = self.library.borrow_mut();
+            lib.move_group(ids, target, after);
             lib.save();
         }
         self.notify(Change::Sounds);

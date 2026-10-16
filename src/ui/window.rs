@@ -342,19 +342,24 @@ pub fn build(app: &adw::Application, st: &St) -> Window {
                     win.toast(text);
                 }
             }
-            Change::SoundRemoved { id, name } => {
-                let toast = adw::Toast::builder()
-                    .title(crate::i18n::fill(t("Removed {}"), &[name]))
-                    .button_label(t("Undo"))
-                    .timeout(6)
-                    .build();
+            Change::SoundRemoved { ids, title } => {
+                let toast = adw::Toast::builder().title(title).button_label(t("Undo")).timeout(6).build();
+                // Back in the other order, so each one finds its old place again.
                 toast.connect_button_clicked({
-                    let (st, id) = (win.st.clone(), id.clone());
-                    move |_| st.undo_remove(&id)
+                    let (st, ids) = (win.st.clone(), ids.clone());
+                    move |_| {
+                        for id in ids.iter().rev() {
+                            st.undo_remove(id);
+                        }
+                    }
                 });
                 toast.connect_dismissed({
-                    let (st, id) = (win.st.clone(), id.clone());
-                    move |_| st.forget_removed(&id)
+                    let (st, ids) = (win.st.clone(), ids.clone());
+                    move |_| {
+                        for id in &ids {
+                            st.forget_removed(id);
+                        }
+                    }
                 });
                 win.toast.add_toast(toast);
             }

@@ -2026,3 +2026,69 @@ msgstr "Macht aus deiner Stimme eine Figur, mit einem KI-Modell. Braucht eine NV
 
 msgid "Character"
 msgstr "Figur"
+
+msgid "Done"
+msgstr "Fertig"
+
+msgid "Stop selecting (Esc)"
+msgstr "Auswahl beenden (Esc)"
+
+msgid "Move to folder"
+msgstr "In Ordner verschieben"
+
+msgid "Select all"
+msgstr "Alle auswählen"
+
+msgid "{} selected"
+msgstr "{} ausgewählt"
+
+msgid "Nothing in this folder yet"
+msgstr "Noch nichts in diesem Ordner"
+
+msgid "Drag sounds onto the folder, or pick some with Ctrl+click and move them here."
+msgstr "Zieh Sounds auf den Ordner, oder wähle welche mit Strg+Klick aus und verschiebe sie hierher."
+
+msgid "No folder"
+msgstr "Kein Ordner"
+
+msgid "New folder"
+msgstr "Neuer Ordner"
+
+msgid "Create"
+msgstr "Erstellen"
+
+msgid "Rename"
+msgstr "Umbenennen"
+
+msgid "Rename folder"
+msgstr "Ordner umbenennen"
+
+msgid "There is a folder called “{}” already"
+msgstr "Es gibt schon einen Ordner namens „{}“"
+
+msgid "Delete folder"
+msgstr "Ordner löschen"
+
+msgid "Folder name"
+msgstr "Name des Ordners"
+
+msgid "Removed {} sounds"
+msgstr "{} Sounds entfernt"
+
+msgid "Deselect all"
+msgstr "Auswahl aufheben"
+
+msgid "All sounds"
+msgstr "Alle Sounds"
+
+msgid "Back to all sounds (Backspace)"
+msgstr "Zurück zu allen Sounds (Rücktaste)"
+
+msgid "1 sound"
+msgstr "1 Sound"
+
+msgid "Open"
+msgstr "Öffnen"
+
+msgid "Empty"
+msgstr "Leer"

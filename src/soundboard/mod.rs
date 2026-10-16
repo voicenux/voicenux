@@ -82,6 +82,9 @@ pub struct Sound {
     /// Where playing ends, in seconds. None plays to the end.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub end: Option<f32>,
+    /// The folder it is in, by name. None for none.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub folder: Option<String>,
 }
 
 fn full() -> f32 {
@@ -109,6 +112,9 @@ pub struct Library {
     /// the field had the first one.
     #[serde(default = "first_pack")]
     pub starter: u32,
+    /// Folders by name, in the order of their tabs.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub folders: Vec<String>,
     #[serde(default)]
     pub sound: Vec<Sound>,
     /// The modes in this file are ones people picked. Older soundboards wrote "restart" for every
@@ -179,7 +185,12 @@ impl Library {
     }
 
     pub fn starter() -> Self {
-        Self { starter: starter::PACK, sound: starter::BUILTIN.iter().map(starter_sound).collect(), own_modes: true }
+        Self {
+            starter: starter::PACK,
+            folders: Vec::new(),
+            sound: starter::BUILTIN.iter().map(starter_sound).collect(),
+            own_modes: true,
+        }
     }
 
     pub fn save(&self) {
@@ -221,6 +232,7 @@ impl Library {
             mode: None,
             start: 0.0,
             end: None,
+            folder: None,
         };
         self.sound.push(sound.clone());
         sound
@@ -238,6 +250,35 @@ impl Library {
         Ok(self.add_file(target.file_name().unwrap().to_string_lossy().to_string(), name, icon))
     }
 
+    /// `name`, or with a number after it when a folder has that name already.
+    pub fn free_folder_name(&self, name: &str) -> String {
+        let name = name.trim();
+        (1..).map(|i| if i == 1 { name.to_string() } else { format!("{name} {i}") }).find(|n| !self.folders.contains(n)).unwrap()
+    }
+
+    /// Renames a folder, and moves its sounds along. False when the name is empty or taken.
+    pub fn rename_folder(&mut self, old: &str, new: &str) -> bool {
+        let new = new.trim();
+        if new.is_empty() || (new != old && self.folders.iter().any(|f| f == new)) {
+            return false;
+        }
+        for f in self.folders.iter_mut().filter(|f| *f == old) {
+            *f = new.to_string();
+        }
+        for s in self.sound.iter_mut().filter(|s| s.folder.as_deref() == Some(old)) {
+            s.folder = Some(new.to_string());
+        }
+        true
+    }
+
+    /// Removes a folder. Its sounds stay, in no folder.
+    pub fn remove_folder(&mut self, name: &str) {
+        self.folders.retain(|f| f != name);
+        for s in self.sound.iter_mut().filter(|s| s.folder.as_deref() == Some(name)) {
+            s.folder = None;
+        }
+    }
+
     /// Takes a sound out of the list, with where it was. Its file stays, for Undo.
     pub fn take(&mut self, id: &str) -> Option<(usize, Sound)> {
         let pos = self.sound.iter().position(|s| s.id == id)?;
@@ -253,6 +294,22 @@ impl Library {
         let to = self.sound.iter().position(|s| s.id == target).map(|p| p + after as usize).unwrap_or(self.sound.len());
         self.sound.insert(to, s);
     }
+
+    /// Moves sounds next to `target`, before or after it, in the order they had. The target may
+    /// be one of them: then they go where it was.
+    pub fn move_group(&mut self, ids: &[String], target: &str, after: bool) {
+        let Some(at) = self.sound.iter().position(|s| s.id == target) else { return };
+        let moving = |s: &Sound| ids.contains(&s.id);
+        // The place counts only the sounds that stay.
+        let mut to = self.sound[..at].iter().filter(|s| !moving(s)).count();
+        if after && !moving(&self.sound[at]) {
+            to += 1;
+        }
+        let (group, rest): (Vec<Sound>, Vec<Sound>) = std::mem::take(&mut self.sound).into_iter().partition(|s| moving(s));
+        self.sound = rest;
+        let to = to.min(self.sound.len());
+        self.sound.splice(to..to, group);
+    }
 }
 
 fn starter_sound(b: &starter::Builtin) -> Sound {
@@ -266,6 +323,7 @@ fn starter_sound(b: &starter::Builtin) -> Sound {
         mode: None,
         start: 0.0,
         end: None,
+        folder: None,
     }
 }
 
@@ -618,6 +676,45 @@ mod tests {
         // Out of range or the wrong way round gives a short or empty sound, never a crash.
         assert!(trim(&data, 5.0, Some(9.0)).frames.is_empty());
         assert!(trim(&data, 1.5, Some(0.5)).frames.is_empty());
+    }
+
+    #[test]
+    fn groups_move_together() {
+        let order = |lib: &Library| lib.sound.iter().map(|s| s.id.clone()).collect::<Vec<_>>().join(" ");
+        let mut lib = Library::starter();
+        lib.sound.retain(|s| ["airhorn", "sad-trombone", "rimshot", "drumroll", "applause"].contains(&s.id.as_str()));
+        let ids = |v: &[&str]| v.iter().map(|s| s.to_string()).collect::<Vec<_>>();
+        assert_eq!(order(&lib), "airhorn sad-trombone rimshot drumroll applause");
+        // To the end, behind the last one, in the order they had.
+        lib.move_group(&ids(&["drumroll", "sad-trombone"]), "applause", true);
+        assert_eq!(order(&lib), "airhorn rimshot applause sad-trombone drumroll");
+        lib.move_group(&ids(&["drumroll", "sad-trombone"]), "airhorn", false);
+        assert_eq!(order(&lib), "sad-trombone drumroll airhorn rimshot applause");
+        // Dropped on one of themselves: they stay where they are.
+        lib.move_group(&ids(&["sad-trombone", "drumroll"]), "drumroll", true);
+        assert_eq!(order(&lib), "sad-trombone drumroll airhorn rimshot applause");
+    }
+
+    #[test]
+    fn folders_keep_their_sounds() {
+        let mut lib = Library::starter();
+        let name = lib.free_folder_name("Memes");
+        lib.folders.push(name.clone());
+        assert_eq!(lib.free_folder_name("Memes"), "Memes 2");
+        lib.sound[0].folder = Some(name.clone());
+        assert!(lib.rename_folder("Memes", "Best"));
+        assert_eq!(lib.sound[0].folder.as_deref(), Some("Best"));
+        lib.folders.push("Other".into());
+        assert!(!lib.rename_folder("Best", "Other"), "two folders with one name");
+        assert!(!lib.rename_folder("Best", "  "));
+        let saved: Library = toml::from_str(&toml::to_string_pretty(&lib).unwrap()).unwrap();
+        assert_eq!(saved.folders, ["Best", "Other"]);
+        assert_eq!(saved.sound[0].folder.as_deref(), Some("Best"));
+        // Removing a folder keeps its sounds, in no folder.
+        lib.remove_folder("Best");
+        assert_eq!(lib.folders, ["Other"]);
+        assert_eq!(lib.sound[0].folder, None);
+        assert_eq!(lib.sound.len(), Library::starter().sound.len());
     }
 
     #[test]
