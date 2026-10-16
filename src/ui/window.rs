@@ -24,11 +24,11 @@ pub struct Window {
 }
 
 /// The pages: id, Lucide icon, title and the color of the icon's tile.
-pub const PAGES: &[(&str, &str, &str, &str)] = &[
-    ("voices", "mic", "Voices", "blue"),
-    ("soundboard", "volume-2", "Soundboard", "pink"),
-    ("voicelab", "flask-conical", "Voicelab", "green"),
-    ("settings", "settings", "Settings", "gray"),
+pub const PAGES: &[(&str, &str, &str)] = &[
+    ("voices", "mic", "Voices"),
+    ("soundboard", "volume-2", "Soundboard"),
+    ("voicelab", "flask-conical", "Voicelab"),
+    ("settings", "settings", "Settings"),
 ];
 
 impl Window {
@@ -182,15 +182,9 @@ pub fn build(app: &adw::Application, st: &St) -> Window {
     let nav = gtk::ListBox::new();
     nav.add_css_class("navigation-sidebar");
     nav.add_css_class("vn-nav");
-    for (i, (_, pic, title, tint)) in PAGES.iter().enumerate() {
+    for (i, (_, pic, title)) in PAGES.iter().enumerate() {
         let row = gtk::Box::new(gtk::Orientation::Horizontal, 12);
-        // The tile grows on hover, so its glow sits on a box behind it that stays still.
-        let glow = gtk::Box::new(gtk::Orientation::Horizontal, 0);
-        glow.add_css_class("vn-tile-glow");
-        glow.add_css_class(&format!("vn-tint-{tint}"));
-        glow.set_valign(gtk::Align::Center);
-        glow.append(&super::tinted(pic, 32, tint));
-        row.append(&glow);
+        row.append(&super::line_icon(pic, 20));
         row.append(&gtk::Label::new(Some(t_dyn(title).as_str())));
         nav.append(&row);
         if let Some(r) = nav.row_at_index(i as i32) {

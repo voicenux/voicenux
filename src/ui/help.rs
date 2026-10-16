@@ -2,18 +2,17 @@
 
 use adw::prelude::*;
 
-use super::{label, tinted};
+use super::{label, line_icon};
 use crate::i18n::{t, t_dyn};
 
-/// A part of the list: its icon and tile color, its title, and its keys with what they do.
-type Section = (&'static str, &'static str, &'static str, Vec<(&'static str, &'static str)>);
+/// A part of the list: its icon, its title, and its keys with what they do.
+type Section = (&'static str, &'static str, Vec<(&'static str, &'static str)>);
 
 /// The keys of the app, by where they work. A key like "Ctrl+T" shows as two key caps.
 fn sections() -> Vec<Section> {
     vec![
         (
             "keyboard",
-            "violet",
             t("Everywhere"),
             vec![
                 ("Ctrl+F", t("Search")),
@@ -31,7 +30,6 @@ fn sections() -> Vec<Section> {
         ),
         (
             "mic",
-            "blue",
             t("Voices"),
             vec![
                 ("↑ ↓ ← →", t("Move between voices")),
@@ -42,7 +40,6 @@ fn sections() -> Vec<Section> {
         ),
         (
             "volume-2",
-            "pink",
             t("Soundboard"),
             vec![
                 ("Enter", t("Play the sound")),
@@ -54,7 +51,6 @@ fn sections() -> Vec<Section> {
         ),
         (
             "scissors",
-            "orange",
             t("Trim sound"),
             vec![
                 ("Spacebar", t("Listen or pause")),
@@ -114,11 +110,11 @@ pub fn show(parent: &impl IsA<gtk::Widget>) {
         c.set_valign(gtk::Align::Start);
         grid.append(c);
     }
-    for (i, (pic, tint, title, keys)) in sections().into_iter().enumerate() {
+    for (i, (pic, title, keys)) in sections().into_iter().enumerate() {
         let card = gtk::Box::new(gtk::Orientation::Vertical, 7);
         card.add_css_class("vn-keys-card");
         let head = gtk::Box::new(gtk::Orientation::Horizontal, 10);
-        head.append(&tinted(pic, 30, tint));
+        head.append(&line_icon(pic, 20));
         head.append(&label(title, &["vn-keys-title"]));
         card.append(&head);
         for (k, what) in keys {

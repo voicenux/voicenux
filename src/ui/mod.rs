@@ -61,33 +61,12 @@ pub fn icon(name: &str, size: i32) -> gtk::Image {
     img
 }
 
-/// A Lucide icon (see `glyph`) in the CSS `color`, with lines `weight` wide (Lucide uses 2).
-pub fn line_icon(name: &str, size: i32, weight: f32) -> gtk::Image {
-    let img = gtk::Image::from_paintable(Some(&glyph::glyph(name, weight)));
+/// A Lucide icon (see `glyph`) in the CSS `color`. The sidebar, the settings and the list of keys
+/// use these, voices and sounds their emoji.
+pub fn line_icon(name: &str, size: i32) -> gtk::Image {
+    let img = gtk::Image::from_paintable(Some(&glyph::glyph(name)));
     img.set_pixel_size(size);
     img
-}
-
-/// A Lucide icon in white on a rounded tile of a `.vn-tint-*` color of the style, like "blue".
-/// The sidebar and the settings use these, voices and sounds their emoji.
-pub fn tinted(name: &str, size: i32, tint: &str) -> gtk::Box {
-    // Bolder lines than Lucide's, so they look chunky like the 3D emoji next to them.
-    let img = line_icon(name, (size as f32 * 0.5).round() as i32, 2.5);
-    img.set_hexpand(true);
-    img.set_halign(gtk::Align::Center);
-    img.set_valign(gtk::Align::Center);
-    let tile = gtk::Box::new(gtk::Orientation::Horizontal, 0);
-    tile.add_css_class("vn-tile");
-    tile.add_css_class(&format!("vn-tint-{tint}"));
-    tile.set_size_request(size, size);
-    tile.set_halign(gtk::Align::Center);
-    tile.set_valign(gtk::Align::Center);
-    // The icon expands inside the tile, the tile itself keeps its size.
-    tile.set_hexpand(false);
-    tile.set_vexpand(false);
-    tile.set_overflow(gtk::Overflow::Hidden);
-    tile.append(&img);
-    tile
 }
 
 pub fn logo(size: i32) -> gtk::Image {
