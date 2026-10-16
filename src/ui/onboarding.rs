@@ -1,4 +1,4 @@
-//! First start: four short pages that get the microphone and apps set up.
+//! First start: short pages that get the microphone and apps set up.
 
 use std::rc::Rc;
 
@@ -88,6 +88,28 @@ pub fn show(st: &St, parent: &adw::ApplicationWindow) {
     default.append(&sw);
     apps.append(&default);
     carousel.append(&apps);
+
+    // Only for people who have EasyEffects: what the switch does, and what to pick in Discord.
+    if st.easyeffects.get() != crate::audio::easyeffects::Use::Missing || crate::audio::easyeffects::installed() {
+        let ee = page(
+            icon("control-knobs", 96).upcast(),
+            t("Do you use EasyEffects?"),
+            t("Then keep this on: your EasyEffects microphone effects, like noise reduction, run before the voice. In Discord, still pick “Voicenux Microphone”, not “Easy Effects Source”. Only that one has your new voice."),
+        );
+        let row = gtk::Box::new(gtk::Orientation::Horizontal, 12);
+        row.set_halign(gtk::Align::Center);
+        row.set_margin_top(10);
+        let on = gtk::Switch::new();
+        on.set_active(st.config.borrow().easyeffects);
+        on.connect_active_notify({
+            let st = st.clone();
+            move |s| st.update(|c| c.easyeffects = s.is_active())
+        });
+        row.append(&label(t("Use EasyEffects"), &["heading"]));
+        row.append(&on);
+        ee.append(&row);
+        carousel.append(&ee);
+    }
 
     let try_it = page(
         icon("sparkles", 96).upcast(),

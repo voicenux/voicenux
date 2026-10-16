@@ -1472,17 +1472,23 @@ msgstr "Braucht einen Bereich für Tray-Symbole. Installier unter GNOME die AppI
 msgid "Use EasyEffects"
 msgstr "EasyEffects nutzen"
 
-msgid "EasyEffects works on the Voicenux Microphone, so its effects come after the voice."
-msgstr "EasyEffects bearbeitet das Voicenux-Mikrofon, seine Effekte kommen also nach der Stimme."
+msgid "EasyEffects works on the Voicenux Microphone, so its effects come after the voice. In Discord and other apps, pick “Easy Effects Source”."
+msgstr "EasyEffects bearbeitet das Voicenux-Mikrofon, seine Effekte kommen also nach der Stimme. Wähle in Discord und anderen Apps „Easy Effects Source“."
 
-msgid "Your EasyEffects microphone effects, like noise reduction, come before the voice."
-msgstr "Deine Mikrofon-Effekte aus EasyEffects, etwa die Rauschunterdrückung, kommen vor der Stimme."
+msgid "Your EasyEffects microphone effects, like noise reduction, come before the voice. In Discord and other apps, still pick “Voicenux Microphone”, not “Easy Effects Source”."
+msgstr "Deine Mikrofon-Effekte aus EasyEffects, etwa die Rauschunterdrückung, kommen vor der Stimme. Wähle in Discord und anderen Apps trotzdem „Voicenux Microphone“, nicht „Easy Effects Source“."
 
-msgid "Run your EasyEffects microphone effects, like noise reduction, before the voice."
-msgstr "Lass deine Mikrofon-Effekte aus EasyEffects, etwa die Rauschunterdrückung, vor der Stimme laufen."
+msgid "Run your EasyEffects microphone effects, like noise reduction, before the voice. Pick your real microphone above, not EasyEffects."
+msgstr "Lass deine Mikrofon-Effekte aus EasyEffects, etwa die Rauschunterdrückung, vor der Stimme laufen. Wähle oben dein echtes Mikrofon, nicht EasyEffects."
 
-msgid "Not in use: EasyEffects works on another microphone."
-msgstr "Nicht aktiv: EasyEffects bearbeitet ein anderes Mikrofon."
+msgid "Not in use: EasyEffects works on another microphone. Pick the same one above as in EasyEffects."
+msgstr "Nicht aktiv: EasyEffects bearbeitet ein anderes Mikrofon. Wähle oben dasselbe wie in EasyEffects."
+
+msgid "Do you use EasyEffects?"
+msgstr "Nutzt du EasyEffects?"
+
+msgid "Then keep this on: your EasyEffects microphone effects, like noise reduction, run before the voice. In Discord, still pick “Voicenux Microphone”, not “Easy Effects Source”. Only that one has your new voice."
+msgstr "Dann lass das hier an: Deine Mikrofon-Effekte aus EasyEffects, etwa die Rauschunterdrückung, laufen vor der Stimme. Wähle in Discord trotzdem „Voicenux Microphone“, nicht „Easy Effects Source“. Nur dort ist deine neue Stimme drauf."
 
 msgid "Find sounds"
 msgstr "Sounds finden"

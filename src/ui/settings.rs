@@ -170,10 +170,10 @@ fn easyeffects_row(st: &St) -> adw::SwitchRow {
             let u = st.easyeffects.get();
             row.set_visible(u != EasyEffects::Missing);
             row.set_subtitle(match u {
-                EasyEffects::After => t("EasyEffects works on the Voicenux Microphone, so its effects come after the voice."),
-                EasyEffects::Before => t("Your EasyEffects microphone effects, like noise reduction, come before the voice."),
-                _ if !row.is_active() => t("Run your EasyEffects microphone effects, like noise reduction, before the voice."),
-                _ => t("Not in use: EasyEffects works on another microphone."),
+                EasyEffects::After => t("EasyEffects works on the Voicenux Microphone, so its effects come after the voice. In Discord and other apps, pick “Easy Effects Source”."),
+                EasyEffects::Before => t("Your EasyEffects microphone effects, like noise reduction, come before the voice. In Discord and other apps, still pick “Voicenux Microphone”, not “Easy Effects Source”."),
+                _ if !row.is_active() => t("Run your EasyEffects microphone effects, like noise reduction, before the voice. Pick your real microphone above, not EasyEffects."),
+                _ => t("Not in use: EasyEffects works on another microphone. Pick the same one above as in EasyEffects."),
             });
         }
     };

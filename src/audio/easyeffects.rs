@@ -28,13 +28,21 @@ pub fn is_mic_pipeline(name: &str) -> bool {
     name.starts_with("ee_sie_")
 }
 
-/// The microphone EasyEffects is set to, from its settings. None when it follows the default.
-pub fn configured_input() -> Option<String> {
-    let paths = [
+fn settings_files() -> [Option<std::path::PathBuf>; 2] {
+    [
         dirs::config_dir().map(|d| d.join("easyeffects/db/easyeffectsrc")),
         dirs::home_dir().map(|h| h.join(".var/app/com.github.wwmm.easyeffects/config/easyeffects/db/easyeffectsrc")),
-    ];
-    let text = paths.iter().flatten().find_map(|p| std::fs::read_to_string(p).ok())?;
+    ]
+}
+
+/// EasyEffects has run on this computer once, as a package or a Flatpak.
+pub fn installed() -> bool {
+    settings_files().iter().flatten().any(|p| p.exists())
+}
+
+/// The microphone EasyEffects is set to, from its settings. None when it follows the default.
+pub fn configured_input() -> Option<String> {
+    let text = settings_files().iter().flatten().find_map(|p| std::fs::read_to_string(p).ok())?;
     parse_input(&text)
 }
 
