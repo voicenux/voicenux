@@ -523,6 +523,11 @@ flowboxchild:hover .sound-pad {
   box-shadow: inset 0 1px 0 var(--vn-glass-edge), inset 0 0 0 1px color-mix(in srgb, var(--accent-bg-color) 45%, transparent), inset 0 0 0 0 transparent;
 }
 
+/* The first match of a search: Enter plays it. */
+.sound-pad.vn-first {
+  box-shadow: inset 0 1px 0 var(--vn-glass-edge), inset 0 0 0 2px color-mix(in srgb, var(--accent-bg-color) 75%, transparent), inset 0 0 0 0 transparent;
+}
+
 .sound-pad.playing,
 flowboxchild:hover .sound-pad.playing {
   box-shadow: inset 0 1px 0 var(--vn-glass-edge), inset 0 0 0 2px var(--accent-bg-color), inset 0 0 22px -4px var(--vn-glow);

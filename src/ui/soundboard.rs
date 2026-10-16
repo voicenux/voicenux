@@ -201,11 +201,14 @@ pub fn build(st: &St) -> SoundboardPage {
     view.set_content(Some(&content));
 
     let pads: Rc<RefCell<HashMap<String, Pad>>> = Rc::default();
+    // The first pad that matches the search, top left: Enter in the search plays it.
+    let first: Rc<RefCell<Option<String>>> = Rc::default();
 
     // Shows the pads whose name has all words of the search.
     let refilter = {
         let (st, pads, stack, search, none, ask_online) =
             (st.clone(), pads.clone(), stack.clone(), search.clone(), none.clone(), ask_online.clone());
+        let (grid, first) = (grid.clone(), first.clone());
         Rc::new(move || {
             let query = search.text().trim().to_string();
             let words: Vec<String> = super::fold(&query).split_whitespace().map(String::from).collect();
@@ -218,6 +221,22 @@ pub fn build(st: &St) -> SoundboardPage {
                 p.set_visible(visible);
                 shown += visible as usize;
             }
+            let mut top = None;
+            let mut child = grid.first_child();
+            while let Some(c) = child {
+                if top.is_none() && c.is_visible() && !words.is_empty() {
+                    top = pads.borrow().iter().find(|(_, p)| p.child == c).map(|(id, _)| id.clone());
+                }
+                child = c.next_sibling();
+            }
+            for (id, p) in pads.borrow().iter() {
+                if top.as_ref() == Some(id) {
+                    p.pad.add_css_class("vn-first");
+                } else {
+                    p.pad.remove_css_class("vn-first");
+                }
+            }
+            *first.borrow_mut() = top;
             none.set_description(Some(&fill(t("Nothing on your soundboard is called “{}”."), &[&query])));
             ask_online.set_label(&fill(t("Search MyInstants for “{}”"), &[&query]));
             stack.set_visible_child_name(if lib.sound.is_empty() {
@@ -264,6 +283,38 @@ pub fn build(st: &St) -> SoundboardPage {
         let refilter = refilter.clone();
         move |_| refilter()
     });
+    // Enter plays the first match and leaves the search as it is, for the next one. Down goes
+    // to the matches, to pick another one with the arrows.
+    // Nothing on the soundboard: Enter asks MyInstants, like the button on the empty page.
+    search.connect_activate({
+        let (st, first, ask_online) = (st.clone(), first.clone(), ask_online.clone());
+        move |e| {
+            let id = first.borrow().clone();
+            match id {
+                Some(id) => st.play_sound(&id),
+                None if ask_online.is_mapped() && !e.text().trim().is_empty() => ask_online.emit_clicked(),
+                None => {}
+            }
+        }
+    });
+    let down = gtk::EventControllerKey::new();
+    down.connect_key_pressed({
+        let (pads, first) = (pads.clone(), first.clone());
+        move |_, key, _, _| {
+            if !matches!(key, gdk::Key::Down | gdk::Key::KP_Down) {
+                return glib::Propagation::Proceed;
+            }
+            let child = first.borrow().as_ref().and_then(|id| pads.borrow().get(id).map(|p| p.child.clone()));
+            match child {
+                Some(c) => {
+                    c.grab_focus();
+                    glib::Propagation::Stop
+                }
+                None => glib::Propagation::Proceed,
+            }
+        }
+    });
+    search.add_controller(down);
 
     // Delete removes the focused sound, Alt with the arrows moves it. Only when the pad itself has
     // the focus: keys in its menu, like Delete in the name field, belong to the menu.
