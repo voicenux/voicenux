@@ -221,6 +221,12 @@ msgstr "Klicke, um einen Wert einzutippen"
 msgid "When pressed"
 msgstr "Beim Drücken"
 
+msgid "Like the soundboard"
+msgstr "Wie das Soundboard"
+
+msgid "What a click on a sound does"
+msgstr "Was ein Klick auf einen Sound macht"
+
 msgid "Remove"
 msgstr "Entfernen"
 

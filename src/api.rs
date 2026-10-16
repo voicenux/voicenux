@@ -494,7 +494,7 @@ fn sounds(st: &St) -> Value {
                 "id": s.id,
                 "name": t_dyn(&s.name),
                 "icon": s.icon,
-                "mode": s.mode,
+                "mode": st.sound_mode(s),
                 "volume": (s.volume * 100.0).round() as i64,
             })
         })

@@ -29,6 +29,8 @@ pub struct SoundboardPage {
     pub add: gtk::Button,
     /// Header buttons that drop their text in a narrow window.
     pub shrink: Vec<adw::ButtonContent>,
+    /// The text of the play mode button, which goes first when the header gets full.
+    pub mode_label: gtk::Label,
     /// Opens the MyInstants search with some words.
     pub find_online: Rc<dyn Fn(&str)>,
 }
@@ -61,6 +63,8 @@ pub fn build(st: &St) -> SoundboardPage {
     header.pack_end(&stop);
     header.pack_end(&more_button(st));
     header.pack_end(&volume_button(st));
+    let (mode, mode_label) = mode_button(st);
+    header.pack_end(&mode);
     stop.connect_clicked({
         let st = st.clone();
         move |_| st.stop_sounds()
@@ -391,7 +395,44 @@ pub fn build(st: &St) -> SoundboardPage {
             online.set_text(text);
         }
     });
-    SoundboardPage { widget: view, search, add, shrink: vec![add_content, find_content, stop_content], find_online }
+    SoundboardPage { widget: view, search, add, shrink: vec![add_content, find_content, stop_content], mode_label, find_online }
+}
+
+/// What a click on a sound does, for all sounds at once. Sounds with a mode of their own keep it.
+fn mode_button(st: &St) -> (gtk::MenuButton, gtk::Label) {
+    // An icon and a label of its own, not a ButtonContent: a narrow window hides the label, and
+    // a new mode only changes its text.
+    let (icon, text) = (gtk::Image::new(), gtk::Label::new(None));
+    let content = gtk::Box::new(gtk::Orientation::Horizontal, 6);
+    content.append(&icon);
+    content.append(&text);
+    let b = gtk::MenuButton::new();
+    b.set_child(Some(&content));
+    b.set_always_show_arrow(true);
+    b.set_tooltip_text(Some(t("What a click on a sound does")));
+    let items = PlayMode::BOARD
+        .iter()
+        .map(|&m| {
+            let st = st.clone();
+            popup::Item::new(m.icon(), t_dyn(m.label()), move || st.set_sound_mode(m))
+        })
+        .collect();
+    b.set_popover(Some(&popup::list(items)));
+    let sync = {
+        let (st, icon, text) = (st.clone(), icon.clone(), text.clone());
+        move || {
+            let m = st.config.borrow().sound_mode;
+            icon.set_icon_name(Some(m.icon()));
+            text.set_label(&t_dyn(m.label()));
+        }
+    };
+    sync();
+    st.subscribe(move |c| {
+        if matches!(c, Change::Settings) {
+            sync();
+        }
+    });
+    (b, text)
 }
 
 /// More: sort the sounds, or bring back the starter sounds.
@@ -540,13 +581,12 @@ fn pad(st: &St, s: &Sound) -> Pad {
     badges.set_valign(gtk::Align::Start);
     badges.set_margin_top(8);
     badges.set_margin_start(8);
-    let mode_icon = match s.mode {
-        PlayMode::Loop => Some("media-playlist-repeat-symbolic"),
-        PlayMode::Overlap => Some("view-dual-symbolic"),
-        PlayMode::Toggle => Some("media-playback-stop-symbolic"),
-        PlayMode::Restart => None,
-    };
-    let marks = [(mode_icon, t_dyn(s.mode.label())), (s.is_trimmed().then_some("edit-cut-symbolic"), t("Trimmed").to_string())];
+    // Only a mode of its own shows: the soundboard button says how the others play.
+    let own = s.mode.filter(|m| *m != st.config.borrow().sound_mode);
+    let marks = [
+        (own.map(PlayMode::icon), own.map(|m| t_dyn(m.label())).unwrap_or_default()),
+        (s.is_trimmed().then_some("edit-cut-symbolic"), t("Trimmed").to_string()),
+    ];
     for (name, tip) in marks {
         if let Some(name) = name {
             let img = gtk::Image::from_icon_name(name);
@@ -740,16 +780,19 @@ fn editor(st: &St, s: &Sound) -> gtk::Popover {
     let mode_label = label(t("When pressed"), &["caption-heading"]);
     mode_label.set_xalign(0.0);
     b.append(&mode_label);
-    let names: Vec<String> = PlayMode::ALL.iter().map(|m| t_dyn(m.label())).collect();
+    // First "like the soundboard", then the modes.
+    let mut names: Vec<String> = vec![t("Like the soundboard").into()];
+    names.extend(PlayMode::ALL.iter().map(|m| t_dyn(m.label())));
     let names: Vec<&str> = names.iter().map(String::as_str).collect();
     let mode = gtk::DropDown::from_strings(&names);
-    mode.set_selected(PlayMode::ALL.iter().position(|m| *m == s.mode).unwrap_or(0) as u32);
+    let own = s.mode.and_then(|m| PlayMode::ALL.iter().position(|a| *a == m));
+    mode.set_selected(own.map_or(0, |i| i as u32 + 1));
     popup::menus_in(&mode);
     mode.connect_selected_notify({
         let sound = sound.clone();
         let save = save.clone();
         move |d| {
-            sound.borrow_mut().mode = PlayMode::ALL[d.selected() as usize];
+            sound.borrow_mut().mode = (d.selected() as usize).checked_sub(1).map(|i| PlayMode::ALL[i]);
             save();
         }
     });

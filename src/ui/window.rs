@@ -256,7 +256,12 @@ pub fn build(app: &adw::Application, st: &St) -> Window {
     toast.set_child(Some(&layer));
     window.set_content(Some(&toast));
 
+    // The soundboard header gets full first: there the play mode drops its text.
+    let medium = adw::Breakpoint::new(adw::BreakpointCondition::parse("max-width: 1300sp").expect("a condition"));
+    medium.add_setter(&sounds_page.mode_label, "visible", Some(&false.to_value()));
+    window.add_breakpoint(medium);
     // In a narrow window the bottom bar drops its texts, so the switches still fit in the middle.
+    // Only one breakpoint applies at a time, so this one hides the mode text again.
     let narrow = adw::Breakpoint::new(adw::BreakpointCondition::parse("max-width: 1060sp").expect("a condition"));
     for w in &bar_texts {
         narrow.add_setter(w, "visible", Some(&false.to_value()));
@@ -264,6 +269,7 @@ pub fn build(app: &adw::Application, st: &St) -> Window {
     for c in &sounds_page.shrink {
         narrow.add_setter(c, "label", Some(&"".to_value()));
     }
+    narrow.add_setter(&sounds_page.mode_label, "visible", Some(&false.to_value()));
     window.add_breakpoint(narrow);
 
     super::popup::watch(&window);

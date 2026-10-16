@@ -645,14 +645,26 @@ impl State {
     }
 
     fn start_sound(&self, sound: &soundboard::Sound, data: Arc<SoundData>) {
+        let mode = self.sound_mode(sound);
         self.engine.rt(RtCmd::Play {
             id: self.sound_rt_id(&sound.id),
             data,
             volume: sound.volume,
-            looped: sound.mode == PlayMode::Loop,
-            restart: sound.mode != PlayMode::Overlap,
+            looped: mode == PlayMode::Loop,
+            restart: mode != PlayMode::Overlap,
             preview: false,
         });
+    }
+
+    /// How a sound plays: its own mode, or the one of the soundboard.
+    pub fn sound_mode(&self, sound: &soundboard::Sound) -> PlayMode {
+        sound.mode_on(self.config.borrow().sound_mode)
+    }
+
+    /// What a click does for every sound without a mode of its own.
+    pub fn set_sound_mode(self: &Rc<Self>, mode: PlayMode) {
+        self.update(|c| c.sound_mode = mode);
+        self.notify(Change::Sounds);
     }
 
     pub fn is_playing(&self, id: &str) -> bool {
@@ -664,7 +676,7 @@ impl State {
         let Some(sound) = self.library.borrow().find(id).cloned() else { return };
         let rt = self.sound_rt_id(id);
         let playing = self.is_playing(id);
-        if playing && matches!(sound.mode, PlayMode::Toggle | PlayMode::Loop) {
+        if playing && matches!(self.sound_mode(&sound), PlayMode::Toggle | PlayMode::Loop) {
             self.engine.rt(RtCmd::Stop(rt));
             return;
         }
