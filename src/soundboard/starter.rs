@@ -83,6 +83,7 @@ impl Builtin {
             url: format!("https://www.myinstants.com/media/sounds/{}", self.file),
             ext: self.ext().into(),
             page: None,
+            id: 0,
         };
         let bytes = online::download(&found)?;
         decode_bytes(bytes.clone(), self.ext()).map_err(|e| {
@@ -181,6 +182,7 @@ mod tests {
                 url: format!("https://www.myinstants.com/media/sounds/{}", b.file),
                 ext: b.ext().into(),
                 page: None,
+                id: 0,
             };
             let bytes = online::download(&found).unwrap_or_else(|e| panic!("{}: {e:?}", b.id));
             let d = level(decode_bytes(bytes, b.ext()).unwrap());

@@ -59,6 +59,8 @@ pub struct Config {
     pub maximized: bool,
     /// The page the window showed last.
     pub page: String,
+    /// How Find sounds sorts: "suggested", "views", "likes", "newest" or "az".
+    pub sound_sort: String,
     /// Other apps on this computer may control Voicenux, see `src/api.rs`.
     pub api: bool,
 }
@@ -98,6 +100,7 @@ impl Default for Config {
             height: 760,
             maximized: false,
             page: "voices".into(),
+            sound_sort: "suggested".into(),
             api: false,
         }
     }

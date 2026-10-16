@@ -1,6 +1,6 @@
-//! Finds sounds online on MyInstants. It has no API, so this reads its search page, and the page
-//! of each sound found for its likes. Only the words someone searches for go out, and only when
-//! they search.
+//! Finds sounds online on MyInstants. It has no API, so this reads its front page and its search
+//! page, and the page of each sound for its likes and views. Nothing goes out before you open Find
+//! sounds; then only your country for the front page and the words you search for.
 
 use std::time::Duration;
 
@@ -15,8 +15,19 @@ pub struct Found {
     pub url: String,
     /// File type: mp3, ogg, flac or wav.
     pub ext: String,
-    /// Its own page on MyInstants, which shows the likes.
+    /// Its own page on MyInstants, which shows the likes and views.
     pub page: Option<String>,
+    /// MyInstants numbers sounds as they come in: a higher one is newer. 0 when unknown.
+    pub id: u32,
+}
+
+/// What MyInstants shows on the page of a sound.
+#[derive(Clone, Copy, Debug, Default, PartialEq)]
+pub struct Stats {
+    /// People who liked it.
+    pub likes: u32,
+    /// How often its page was opened. MyInstants counts no downloads, this is the closest.
+    pub views: u32,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -61,6 +72,35 @@ pub fn search(query: &str) -> Result<Vec<Found>, Error> {
     Ok(found)
 }
 
+/// The sounds on the front page of MyInstants for your country, most played first. Blocks: call
+/// it off the main thread.
+pub fn popular() -> Result<Vec<Found>, Error> {
+    let mut last = Ok(Vec::new());
+    for region in [region(), "us".into()] {
+        last = agent()
+            .get(format!("{SITE}/en/index/{region}/"))
+            .call()
+            .map_err(error)
+            .and_then(|mut r| r.body_mut().read_to_string().map_err(error))
+            .map(|page| parse(&page));
+        if last.as_ref().is_ok_and(|f| !f.is_empty()) {
+            break;
+        }
+    }
+    last
+}
+
+/// The country of the system language, like "de" for de_DE.UTF-8. MyInstants has a front page
+/// for each.
+fn region() -> String {
+    let lang = ["LC_ALL", "LC_MESSAGES", "LANG"].iter().filter_map(|k| std::env::var(k).ok()).find(|v| !v.is_empty());
+    lang.and_then(|l| {
+        let country = l.split(['.', '@']).next()?.split_once('_')?.1.to_lowercase();
+        (country.len() == 2 && country.chars().all(|c| c.is_ascii_lowercase())).then_some(country)
+    })
+    .unwrap_or_else(|| "us".into())
+}
+
 /// The sounds on a search page. Each sits in a `<div class="instant">` with a play button that
 /// names the file, and a link with the title.
 fn parse(page: &str) -> Vec<Found> {
@@ -83,7 +123,8 @@ fn parse(page: &str) -> Vec<Found> {
         if found.iter().any(|f| f.url == url) {
             continue;
         }
-        found.push(Found { title: clean_title(&unescape(title)), url, ext, page });
+        let id = between(block, "'loader-", "'").and_then(|n| n.parse().ok()).unwrap_or(0);
+        found.push(Found { title: clean_title(&unescape(title)), url, ext, page, id });
     }
     found
 }
@@ -104,11 +145,20 @@ fn unescape(s: &str) -> String {
         .replace("&amp;", "&")
 }
 
-/// How many people liked a sound on MyInstants. Blocks: call it off the main thread.
-pub fn likes(found: &Found) -> Result<u32, Error> {
+/// The likes and views of a sound on MyInstants. Blocks: call it off the main thread.
+pub fn stats(found: &Found) -> Result<Stats, Error> {
     let Some(page) = found.page.as_ref().filter(|p| from_myinstants(p)) else { return Err(Error::Failed) };
     let page = agent().get(page).call().map_err(error)?.body_mut().read_to_string().map_err(error)?;
-    Ok(parse_likes(&page))
+    Ok(Stats { likes: parse_likes(&page), views: parse_views(&page) })
+}
+
+/// The views on the page of a sound: "<div>11,659,629 views</div>". None there is 0.
+fn parse_views(page: &str) -> u32 {
+    let Some(end) = page.find(" views</div>") else { return 0 };
+    let start = page[..end].rfind('>').map_or(0, |i| i + 1);
+    let digits: String = page[start..end].chars().filter(char::is_ascii_digit).collect();
+    // More than u32 holds: as many as it can.
+    if digits.is_empty() { 0 } else { digits.parse().unwrap_or(u32::MAX) }
 }
 
 /// The likes on the page of a sound: "<b>3,276 users</b> favorited this sound button". None
@@ -190,6 +240,8 @@ mod tests {
         assert_eq!(found[0].ext, "mp3");
         assert_eq!(found[1].title, "Tom & Jerry's bruh");
         assert_eq!(found[0].page.as_deref(), Some("https://www.myinstants.com/en/instant/vine-boom-sound-70972/"));
+        assert_eq!(found[0].id, 81126);
+        assert_eq!(found[1].id, 2);
     }
 
     #[test]
@@ -201,6 +253,14 @@ mod tests {
         assert_eq!(parse_likes(page), 3276);
         assert_eq!(parse_likes(&page.replace("3,276", "1")), 1);
         assert_eq!(parse_likes("<html>no likes yet</html>"), 0);
+    }
+
+    #[test]
+    fn reads_the_views() {
+        let page = r#"favorited this sound button </div> <div>11,659,629 views</div> <div id="x">"#;
+        assert_eq!(parse_views(page), 11_659_629);
+        assert_eq!(parse_views("<div>1 views</div>"), 1);
+        assert_eq!(parse_views("<html>new sound</html>"), 0);
     }
 
     #[test]
@@ -230,7 +290,9 @@ mod tests {
         let _ = env_logger::builder().is_test(true).try_init();
         let found = search("vine boom").unwrap();
         assert!(!found.is_empty());
-        assert!(likes(&found[0]).unwrap() > 0);
+        let stats = stats(&found[0]).unwrap();
+        assert!(stats.likes > 0 && stats.views > stats.likes);
+        assert!(popular().unwrap().len() > 10);
         let bytes = download(&found[0]).unwrap();
         assert!(super::super::decode_bytes(bytes, &found[0].ext).is_ok());
         assert!(search("qwxzzk").unwrap().is_empty());

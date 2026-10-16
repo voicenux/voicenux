@@ -761,9 +761,20 @@ floating-sheet > sheet.vn-nudge-b {
   font-weight: 700;
 }
 
-/* Likes on MyInstants: a red heart and the count. */
-.vn-find-likes {
-  font-size: 12px;
+/* Above the found sounds: what they are, and how they are sorted. */
+.vn-find-bar {
+  margin: 2px 14px 6px 18px;
+}
+
+.vn-find-heading {
+  font-size: 13px;
+  font-weight: 750;
+  opacity: 0.8;
+}
+
+/* Likes and views on MyInstants, under the title: a red heart, an eye and their counts. */
+.vn-find-stats {
+  font-size: 11px;
   font-weight: 650;
   font-feature-settings: "tnum";
   opacity: 0.75;
@@ -771,6 +782,10 @@ floating-sheet > sheet.vn-nudge-b {
 
 .vn-find-likes image {
   color: #ff4d6d;
+}
+
+.vn-find-views image {
+  color: var(--accent-color);
 }
 
 button.vn-added {

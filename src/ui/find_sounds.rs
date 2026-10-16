@@ -1,5 +1,5 @@
-//! Finds sounds on MyInstants and adds them with one click.
-//! Listening plays them in the headphones only.
+//! Finds sounds on MyInstants and adds them with one click. Before a search it shows the popular
+//! ones. Listening plays them in the headphones only.
 
 use std::cell::{Cell, RefCell};
 use std::collections::{HashMap, VecDeque};
@@ -12,25 +12,36 @@ use gtk::glib;
 
 use super::{clear, label, line_icon, smooth_scroll};
 use crate::i18n::{fill, t};
-use crate::soundboard::online::{self, Found};
+use crate::soundboard::online::{self, Found, Stats};
 use crate::soundboard::{RATE, SoundData, decode_bytes};
 use crate::state::{Change, St};
 
 /// A downloaded sound: the file to keep and the audio to play.
 type Audio = Rc<(Vec<u8>, Arc<SoundData>)>;
 
+/// The ways to sort, with their names in the config.
+const SORTS: [(&str, &str); 5] =
+    [("suggested", "Suggested"), ("views", "Most views"), ("likes", "Most likes"), ("newest", "Newest"), ("az", "A to Z")];
+
 struct Finder {
     st: St,
     list: gtk::ListBox,
     stack: gtk::Stack,
     message: gtk::Label,
+    heading: gtk::Label,
     last: RefCell<String>,
     /// Counts searches, so an answer that comes late is dropped.
     search_no: Cell<u32>,
+    /// Found sounds by search words. The popular ones are under "".
     results: RefCell<HashMap<String, Vec<Found>>>,
     audio: RefCell<HashMap<String, Audio>>,
-    /// Likes of the sounds by their file, once their pages are read.
-    likes: RefCell<HashMap<String, u32>>,
+    /// Likes and views of the sounds by their file, once their pages are read.
+    stats: RefCell<HashMap<String, Stats>>,
+    /// The rows shown, with their place in the order MyInstants gave.
+    rows: RefCell<HashMap<gtk::ListBoxRow, (usize, Rc<Found>)>>,
+    /// An index into [`SORTS`].
+    sort: Cell<usize>,
+    resort_soon: Cell<bool>,
     /// The play button of the sound you hear, and which listen it is.
     playing: RefCell<Option<gtk::Button>>,
     listen_no: Cell<u32>,
@@ -53,17 +64,11 @@ pub fn panel(st: &St) -> (gtk::Box, gtk::SearchEntry) {
     let scroll = gtk::ScrolledWindow::builder().hscrollbar_policy(gtk::PolicyType::Never).vexpand(true).child(&list).build();
     smooth_scroll(&scroll);
 
-    let hint = label(
-        t("Search sounds on MyInstants, listen, and add one with a click."),
-        &["dim-label"],
-    );
     let message = label("", &["dim-label"]);
-    for l in [&hint, &message] {
-        l.set_wrap(true);
-        l.set_justify(gtk::Justification::Center);
-        l.set_margin_start(24);
-        l.set_margin_end(24);
-    }
+    message.set_wrap(true);
+    message.set_justify(gtk::Justification::Center);
+    message.set_margin_start(24);
+    message.set_margin_end(24);
     let spinner = adw::Spinner::new();
     spinner.set_size_request(32, 32);
     let searching = label(t("Searching MyInstants…"), &["dim-label"]);
@@ -75,7 +80,6 @@ pub fn panel(st: &St) -> (gtk::Box, gtk::SearchEntry) {
     let stack = gtk::Stack::new();
     stack.set_transition_type(gtk::StackTransitionType::Crossfade);
     stack.set_vexpand(true);
-    stack.add_named(&hint, Some("hint"));
     stack.add_named(&loading, Some("loading"));
     stack.add_named(&scroll, Some("results"));
     stack.add_named(&message, Some("message"));
@@ -84,11 +88,28 @@ pub fn panel(st: &St) -> (gtk::Box, gtk::SearchEntry) {
     credit.set_margin_top(6);
     credit.set_margin_bottom(10);
 
+    // What the list shows, and how it is sorted.
+    let heading = label("", &["vn-find-heading"]);
+    heading.set_xalign(0.0);
+    heading.set_hexpand(true);
+    heading.set_ellipsize(gtk::pango::EllipsizeMode::End);
+    let names: Vec<&str> = SORTS.iter().map(|(_, name)| t(name)).collect();
+    let sort = gtk::DropDown::from_strings(&names);
+    sort.set_tooltip_text(Some(t("Sort")));
+    sort.set_valign(gtk::Align::Center);
+    let chosen = SORTS.iter().position(|(id, _)| *id == st.config.borrow().sound_sort).unwrap_or(0);
+    sort.set_selected(chosen as u32);
+    let bar = gtk::Box::new(gtk::Orientation::Horizontal, 8);
+    bar.add_css_class("vn-find-bar");
+    bar.append(&heading);
+    bar.append(&sort);
+
     let panel = gtk::Box::new(gtk::Orientation::Vertical, 0);
     panel.add_css_class("vn-detail");
     panel.add_css_class("vn-find");
     panel.set_width_request(340);
     panel.append(&search);
+    panel.append(&bar);
     panel.append(&stack);
     panel.append(&credit);
 
@@ -97,13 +118,37 @@ pub fn panel(st: &St) -> (gtk::Box, gtk::SearchEntry) {
         list,
         stack,
         message,
-        last: RefCell::default(),
+        heading,
+        // Not a search anyone types, so the first one always runs.
+        last: RefCell::new("\u{0}".into()),
         search_no: Cell::new(0),
         results: RefCell::default(),
         audio: RefCell::default(),
-        likes: RefCell::default(),
+        stats: RefCell::default(),
+        rows: RefCell::default(),
+        sort: Cell::new(chosen),
+        resort_soon: Cell::new(false),
         playing: RefCell::default(),
         listen_no: Cell::new(0),
+    });
+    finder.list.set_sort_func({
+        let finder = Rc::downgrade(&finder);
+        move |a, b| finder.upgrade().map_or(std::cmp::Ordering::Equal, |f| f.order(a, b)).into()
+    });
+    sort.connect_selected_notify({
+        let finder = finder.clone();
+        move |d| {
+            let i = (d.selected() as usize).min(SORTS.len() - 1);
+            finder.sort.set(i);
+            finder.st.config.borrow_mut().sound_sort = SORTS[i].0.into();
+            finder.st.save_later();
+            finder.list.invalidate_sort();
+        }
+    });
+    // The popular sounds load when the panel opens the first time, not when the app starts.
+    panel.connect_map({
+        let (finder, search) = (finder.clone(), search.clone());
+        move |_| finder.search(&search.text())
     });
     search.connect_search_changed({
         let finder = finder.clone();
@@ -122,27 +167,25 @@ impl Finder {
         self.last.replace(query.clone());
         let no = self.search_no.get() + 1;
         self.search_no.set(no);
-        if query.chars().count() < 2 {
-            self.stack.set_visible_child_name("hint");
-            return;
-        }
+        // Without a search: the popular sounds.
+        let query = if query.chars().count() < 2 { String::new() } else { query };
         if let Some(found) = self.results.borrow().get(&query).cloned() {
-            self.show(found);
+            self.show(&query, found);
             return;
         }
         self.stack.set_visible_child_name("loading");
         let me = self.clone();
         let q = query.clone();
         off_thread(
-            move || online::search(&q),
+            move || if q.is_empty() { online::popular() } else { online::search(&q) },
             move |r| {
                 if me.search_no.get() != no {
                     return;
                 }
                 match r {
                     Ok(found) => {
-                        me.results.borrow_mut().insert(query, found.clone());
-                        me.show(found);
+                        me.results.borrow_mut().insert(query.clone(), found.clone());
+                        me.show(&query, found);
                     }
                     Err(e) => {
                         // So the same words can be tried again.
@@ -159,53 +202,97 @@ impl Finder {
         self.stack.set_visible_child_name("message");
     }
 
-    fn show(self: &Rc<Self>, found: Vec<Found>) {
+    fn show(self: &Rc<Self>, query: &str, found: Vec<Found>) {
         clear(&self.list);
+        self.rows.borrow_mut().clear();
         if found.is_empty() {
+            self.heading.set_label("");
             self.say(t("No sounds found. Try other words."));
             return;
         }
+        let heading = if query.is_empty() {
+            t("Popular on MyInstants").to_string()
+        } else {
+            fill(t("{} sounds"), &[&found.len().to_string()])
+        };
+        self.heading.set_label(&heading);
         let mut waiting = VecDeque::new();
-        for f in found {
-            let likes = likes_badge();
-            self.list.append(&self.row(&f, &likes));
-            match self.likes.borrow().get(&f.url) {
-                Some(n) => show_likes(&likes, *n),
-                None => waiting.push_back((f, likes)),
+        for (i, f) in found.into_iter().enumerate() {
+            let line = stats_line();
+            let row = self.row(&f, &line);
+            self.list.append(&row);
+            let f = Rc::new(f);
+            self.rows.borrow_mut().insert(row, (i, f.clone()));
+            match self.stats.borrow().get(&f.url) {
+                Some(s) => show_stats(&line, *s),
+                None => waiting.push_back((f, line)),
             }
         }
+        self.list.invalidate_sort();
         self.stack.set_visible_child_name("results");
-        // Each like count is a page of its own: read a few at a time, top first.
+        // Each sound's numbers are a page of their own: read a few at a time, top first.
         let waiting = Rc::new(RefCell::new(waiting));
         for _ in 0..3 {
-            self.next_likes(self.search_no.get(), waiting.clone());
+            self.next_stats(self.search_no.get(), waiting.clone());
         }
     }
 
-    /// Reads the likes of the next sound in `waiting`, then goes on, until a new search starts.
-    fn next_likes(self: &Rc<Self>, no: u32, waiting: Rc<RefCell<VecDeque<(Found, gtk::Box)>>>) {
+    /// Reads the numbers of the next sound in `waiting`, then goes on, until a new search starts.
+    fn next_stats(self: &Rc<Self>, no: u32, waiting: Rc<RefCell<VecDeque<(Rc<Found>, gtk::Box)>>>) {
         if self.search_no.get() != no {
             return;
         }
-        let Some((found, badge)) = waiting.borrow_mut().pop_front() else { return };
+        let Some((found, line)) = waiting.borrow_mut().pop_front() else { return };
         let me = self.clone();
-        let url = found.url.clone();
+        let sent = (*found).clone();
         off_thread(
-            move || online::likes(&found),
+            move || online::stats(&sent),
             move |r| match r {
-                Ok(n) => {
-                    me.likes.borrow_mut().insert(url, n);
-                    show_likes(&badge, n);
-                    me.next_likes(no, waiting);
+                Ok(s) => {
+                    me.stats.borrow_mut().insert(found.url.clone(), s);
+                    show_stats(&line, s);
+                    me.resort();
+                    me.next_stats(no, waiting);
                 }
-                // MyInstants wants a break: the rest stays without likes.
+                // MyInstants wants a break: the rest stays without numbers.
                 Err(online::Error::TooMany) => waiting.borrow_mut().clear(),
-                Err(_) => me.next_likes(no, waiting),
+                Err(_) => me.next_stats(no, waiting),
             },
         );
     }
 
-    fn row(self: &Rc<Self>, f: &Found, likes: &gtk::Box) -> gtk::ListBoxRow {
+    /// Sorts again for numbers that came in, at most a few times a second, so rows do not jump
+    /// with every single one.
+    fn resort(self: &Rc<Self>) {
+        if !matches!(SORTS[self.sort.get()].0, "views" | "likes") || self.resort_soon.replace(true) {
+            return;
+        }
+        let me = self.clone();
+        glib::timeout_add_local_once(Duration::from_millis(300), move || {
+            me.resort_soon.set(false);
+            me.list.invalidate_sort();
+        });
+    }
+
+    /// The order of two rows. Sounds without numbers yet go after those with, and the order
+    /// MyInstants gave settles the rest.
+    fn order(&self, a: &gtk::ListBoxRow, b: &gtk::ListBoxRow) -> std::cmp::Ordering {
+        use std::cmp::Ordering::Equal;
+        let rows = self.rows.borrow();
+        let (Some((ia, fa)), Some((ib, fb))) = (rows.get(a), rows.get(b)) else { return Equal };
+        let stats = self.stats.borrow();
+        let most = |of: fn(&Stats) -> u32| stats.get(&fb.url).map(of).cmp(&stats.get(&fa.url).map(of));
+        let by = match SORTS[self.sort.get()].0 {
+            "views" => most(|s| s.views),
+            "likes" => most(|s| s.likes),
+            "newest" => fb.id.cmp(&fa.id),
+            "az" => fa.title.to_lowercase().cmp(&fb.title.to_lowercase()),
+            _ => Equal,
+        };
+        by.then(ia.cmp(ib))
+    }
+
+    fn row(self: &Rc<Self>, f: &Found, stats: &gtk::Box) -> gtk::ListBoxRow {
         let play = gtk::Button::from_icon_name("media-playback-start-symbolic");
         play.add_css_class("flat");
         play.add_css_class("circular");
@@ -214,9 +301,13 @@ impl Finder {
 
         let title = label(&f.title, &["vn-find-title"]);
         title.set_xalign(0.0);
-        title.set_hexpand(true);
         title.set_ellipsize(gtk::pango::EllipsizeMode::End);
         title.set_tooltip_text(Some(&f.title));
+        let text = gtk::Box::new(gtk::Orientation::Vertical, 2);
+        text.set_hexpand(true);
+        text.set_valign(gtk::Align::Center);
+        text.append(&title);
+        text.append(stats);
 
         let add = gtk::Button::from_icon_name("list-add-symbolic");
         add.add_css_class("suggested-action");
@@ -227,8 +318,7 @@ impl Finder {
         let b = gtk::Box::new(gtk::Orientation::Horizontal, 10);
         b.add_css_class("vn-find-row");
         b.append(&play);
-        b.append(&title);
-        b.append(likes);
+        b.append(&text);
         b.append(&add);
         let row = gtk::ListBoxRow::new();
         row.set_activatable(false);
@@ -342,23 +432,37 @@ impl Finder {
     }
 }
 
-/// A heart with the likes of a sound, hidden until they are known.
-fn likes_badge() -> gtk::Box {
-    let b = gtk::Box::new(gtk::Orientation::Horizontal, 4);
-    b.add_css_class("vn-find-likes");
-    b.set_valign(gtk::Align::Center);
-    b.append(&line_icon("heart", 14));
-    b.append(&gtk::Label::new(None));
-    b.set_visible(false);
-    b
+/// The likes and views of a sound under its title: a heart and an eye with their counts. Hidden
+/// until they are known.
+fn stats_line() -> gtk::Box {
+    let line = gtk::Box::new(gtk::Orientation::Horizontal, 12);
+    line.add_css_class("vn-find-stats");
+    for (class, icon) in [("vn-find-likes", "heart"), ("vn-find-views", "eye")] {
+        let b = gtk::Box::new(gtk::Orientation::Horizontal, 4);
+        b.add_css_class(class);
+        b.append(&line_icon(icon, 13));
+        b.append(&gtk::Label::new(None));
+        line.append(&b);
+    }
+    line.set_visible(false);
+    line
 }
 
-fn show_likes(badge: &gtk::Box, n: u32) {
-    if let Some(l) = badge.last_child().and_downcast::<gtk::Label>() {
-        l.set_label(&short_count(n));
+fn show_stats(line: &gtk::Box, s: Stats) {
+    let parts = [
+        (s.likes, t("{} people like this on MyInstants")),
+        (s.views, t("{} views on MyInstants")),
+    ];
+    let mut child = line.first_child();
+    for (n, tip) in parts {
+        let Some(b) = child else { break };
+        if let Some(l) = b.last_child().and_downcast::<gtk::Label>() {
+            l.set_label(&short_count(n));
+        }
+        b.set_tooltip_text(Some(&fill(tip, &[&n.to_string()])));
+        child = b.next_sibling();
     }
-    badge.set_tooltip_text(Some(&fill(t("{} people like this on MyInstants"), &[&n.to_string()])));
-    badge.set_visible(true);
+    line.set_visible(true);
 }
 
 /// A count in few letters: 950, 3.2K, 12K, 1.2M. German writes a comma.

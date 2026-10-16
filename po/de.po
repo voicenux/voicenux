@@ -1505,8 +1505,32 @@ msgstr "Zu viele Suchen. Warte eine Minute und versuch es dann noch mal."
 msgid "Search sounds"
 msgstr "Sounds suchen"
 
-msgid "Search sounds on MyInstants, listen, and add one with a click."
-msgstr "Such Sounds auf MyInstants, hör rein und füg einen mit einem Klick hinzu."
+msgid "Popular on MyInstants"
+msgstr "Beliebt auf MyInstants"
+
+msgid "{} sounds"
+msgstr "{} Sounds"
+
+msgid "Sort"
+msgstr "Sortieren"
+
+msgid "Suggested"
+msgstr "Empfohlen"
+
+msgid "Most views"
+msgstr "Meiste Aufrufe"
+
+msgid "Most likes"
+msgstr "Meiste Likes"
+
+msgid "Newest"
+msgstr "Neueste"
+
+msgid "A to Z"
+msgstr "A bis Z"
+
+msgid "{} views on MyInstants"
+msgstr "{} Aufrufe auf MyInstants"
 
 msgid "Sounds from MyInstants"
 msgstr "Sounds von MyInstants"
