@@ -361,6 +361,9 @@ pub fn run() -> glib::ExitCode {
         let ctx = ctx.clone();
         move |_| {
             if let Some(c) = ctx.borrow_mut().take() {
+                if let Some(w) = c.window.borrow().as_ref() {
+                    crate::ui::window::remember_size(&w.window, &c.st);
+                }
                 c.st.save_now();
                 c.st.empty_trash();
             }

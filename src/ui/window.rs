@@ -143,6 +143,7 @@ pub fn build(app: &adw::Application, st: &St) -> Window {
         .default_height(h)
         .width_request(980)
         .height_request(620)
+        .maximized(st.config.borrow().maximized)
         .build();
 
     let stack = gtk::Stack::new();
@@ -332,12 +333,7 @@ pub fn build(app: &adw::Application, st: &St) -> Window {
     window.connect_close_request({
         let st = st.clone();
         move |w| {
-            let (width, height) = (w.width(), w.height());
-            {
-                let mut c = st.config.borrow_mut();
-                c.width = width;
-                c.height = height;
-            }
+            remember_size(w, &st);
             st.save_now();
             if st.runs_in_tray() {
                 w.set_visible(false);
@@ -450,6 +446,18 @@ fn history(win: &Window) {
         }
     });
     window.add_controller(click);
+}
+
+/// Keeps the size of the window for the next start: its size when not maximized, and whether it
+/// is. Every way to quit calls this, not only closing the window.
+pub fn remember_size(w: &impl IsA<gtk::Window>, st: &St) {
+    let (width, height) = w.default_size();
+    let mut c = st.config.borrow_mut();
+    if width > 0 && height > 0 {
+        c.width = width;
+        c.height = height;
+    }
+    c.maximized = w.is_maximized();
 }
 
 /// The current voice, small, at the bottom of the sidebar. Gone while the voice changer is off.
