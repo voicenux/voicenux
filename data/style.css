@@ -31,6 +31,10 @@
   --vn-ambient-b: rgba(34, 211, 238, 0.1);
   --vn-ambient-c: rgba(124, 92, 255, 0.08);
   --cat-color: #3b82f6;
+  /* Out of focus the window keeps its colors instead of turning gray. */
+  --sidebar-backdrop-color: var(--sidebar-bg-color);
+  --secondary-sidebar-backdrop-color: var(--secondary-sidebar-bg-color);
+  --headerbar-backdrop-color: var(--headerbar-bg-color);
 }
 
 /* Category colors, also used by chips and the detail panel. */
