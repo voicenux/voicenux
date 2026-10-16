@@ -405,29 +405,51 @@ pub fn resample(input: &[[f32; 2]], from: u32, to: u32) -> Vec<[f32; 2]> {
         return input.to_vec();
     }
     const HALF: i64 = 24;
+    const TAPS: usize = 2 * HALF as usize;
     let ratio = to as f64 / from as f64;
     let cutoff = ratio.min(1.0) * 0.94;
     let out_len = (input.len() as f64 * ratio).ceil() as usize;
+    // Output j sits at j * down / up in the input, so its fraction takes one of `up` values. The
+    // filter for each one is worked out once: working it out for every sample took half a second
+    // for a ten-second clip. Odd rates with very many fractions round to the nearest of 4096.
+    let g = gcd(from, to);
+    let (up, down) = ((to / g) as u64, (from / g) as u64);
+    let phases = up.min(4096);
+    let table: Vec<[f64; TAPS]> = (0..phases)
+        .map(|p| {
+            let frac = p as f64 / phases as f64;
+            std::array::from_fn(|t| {
+                let x = (t as i64 - HALF + 1) as f64 - frac;
+                let sinc = if x.abs() < 1e-9 {
+                    cutoff
+                } else {
+                    (std::f64::consts::PI * x * cutoff).sin() / (std::f64::consts::PI * x)
+                };
+                let w = 0.42
+                    + 0.5 * (std::f64::consts::PI * x / HALF as f64).cos()
+                    + 0.08 * (2.0 * std::f64::consts::PI * x / HALF as f64).cos();
+                sinc * w
+            })
+        })
+        .collect();
     let mut out = Vec::with_capacity(out_len);
-    for j in 0..out_len {
-        let center = j as f64 / ratio;
-        let base = center.floor() as i64;
+    for j in 0..out_len as u64 {
+        let (mut base, mut phase) = ((j * down / up) as i64, j * down % up);
+        if phases < up {
+            phase = (phase * phases + up / 2) / up;
+            if phase == phases {
+                base += 1;
+                phase = 0;
+            }
+        }
+        let coeffs = &table[phase as usize];
         let mut acc = [0.0f64; 2];
         let mut norm = 0.0f64;
-        for k in base - HALF + 1..=base + HALF {
+        for (t, c) in coeffs.iter().enumerate() {
+            let k = base - HALF + 1 + t as i64;
             if k < 0 || k as usize >= input.len() {
                 continue;
             }
-            let x = k as f64 - center;
-            let sinc = if x.abs() < 1e-9 {
-                cutoff
-            } else {
-                (std::f64::consts::PI * x * cutoff).sin() / (std::f64::consts::PI * x)
-            };
-            let w = 0.42
-                + 0.5 * (std::f64::consts::PI * x / HALF as f64).cos()
-                + 0.08 * (2.0 * std::f64::consts::PI * x / HALF as f64).cos();
-            let c = sinc * w;
             norm += c;
             acc[0] += input[k as usize][0] as f64 * c;
             acc[1] += input[k as usize][1] as f64 * c;
@@ -436,6 +458,10 @@ pub fn resample(input: &[[f32; 2]], from: u32, to: u32) -> Vec<[f32; 2]> {
         out.push([(acc[0] / norm) as f32, (acc[1] / norm) as f32]);
     }
     out
+}
+
+fn gcd(a: u32, b: u32) -> u32 {
+    if b == 0 { a } else { gcd(b, a % b) }
 }
 
 #[cfg(test)]
