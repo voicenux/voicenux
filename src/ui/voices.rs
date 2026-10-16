@@ -188,6 +188,9 @@ pub fn build(st: &St, open_lab: OpenLab) -> VoicesPage {
             }
             let current = filter.borrow().0.clone();
             let mut first: Option<gtk::ToggleButton> = None;
+            // A click on the category you are in goes back to All. A click that picks a category
+            // toggles it first, so this tells the two apart.
+            let picked = Rc::new(Cell::new(false));
             for (id, name) in list {
                 let b = gtk::ToggleButton::new();
                 let inner = gtk::Box::new(gtk::Orientation::Horizontal, 7);
@@ -213,10 +216,26 @@ pub fn build(st: &St, open_lab: OpenLab) -> VoicesPage {
                 let filter = filter.clone();
                 let refilter = refilter.clone();
                 let id = id.to_string();
-                b.connect_toggled(move |b| {
-                    if b.is_active() {
-                        filter.borrow_mut().0 = id.clone();
-                        refilter(true);
+                b.connect_toggled({
+                    let picked = picked.clone();
+                    move |b| {
+                        if b.is_active() {
+                            picked.set(true);
+                            filter.borrow_mut().0 = id.clone();
+                            refilter(true);
+                        }
+                    }
+                });
+                b.connect_clicked({
+                    let (picked, first) = (picked.clone(), first.clone());
+                    move |b| {
+                        if !picked.replace(false)
+                            && b.is_active()
+                            && let Some(all) = first.as_ref().filter(|all| *all != b)
+                        {
+                            all.set_active(true);
+                            picked.set(false);
+                        }
                     }
                 });
                 chips.append(&b);
