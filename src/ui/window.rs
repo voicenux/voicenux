@@ -1,5 +1,6 @@
 //! The main window: sidebar, pages and the bottom bar.
 
+use std::cell::Cell;
 use std::rc::Rc;
 
 use adw::prelude::*;
@@ -191,12 +192,31 @@ pub fn build(app: &adw::Application, st: &St) -> Window {
             r.set_tooltip_text(Some(&format!("{} ({}+{})", t_dyn(title), t("Ctrl"), i + 1)));
         }
     }
+    // The icon of the page jumps when you pick it, also by a key, and on a click on the page you
+    // are on. A new animation name starts it again, the same name would not.
+    let jump = |row: &gtk::ListBoxRow| {
+        let a = !row.has_css_class("vn-pick-a");
+        row.remove_css_class(if a { "vn-pick-b" } else { "vn-pick-a" });
+        row.add_css_class(if a { "vn-pick-a" } else { "vn-pick-b" });
+    };
+    // A click selects and then activates: it should jump only once.
+    let picked = Rc::new(Cell::new(false));
     nav.connect_row_selected({
         let stack = stack.clone();
+        let picked = picked.clone();
         move |_, row| {
             if let Some(row) = row {
                 stack.set_visible_child_name(PAGES[row.index() as usize].0);
+                jump(row);
+                picked.set(true);
+                let picked = picked.clone();
+                glib::idle_add_local_once(move || picked.set(false));
             }
+        }
+    });
+    nav.connect_row_activated(move |_, row| {
+        if !picked.replace(false) {
+            jump(row);
         }
     });
 

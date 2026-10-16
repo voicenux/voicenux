@@ -97,12 +97,24 @@ window.background {
   font-weight: 750;
 }
 
-/* The icon of the page you pick jumps once. */
-.vn-nav row:selected image {
-  animation: vn-nav-pick 520ms ease-out;
+/* The icon of the page you pick jumps, on every click. Two names, because only a new name starts
+   it again. */
+.vn-nav row.vn-pick-a image {
+  animation: vn-nav-pick-a 520ms ease-out;
 }
 
-@keyframes vn-nav-pick {
+.vn-nav row.vn-pick-b image {
+  animation: vn-nav-pick-b 520ms ease-out;
+}
+
+@keyframes vn-nav-pick-a {
+  0% { transform: scale(1); }
+  40% { transform: scale(1.28); }
+  70% { transform: scale(0.94); }
+  100% { transform: scale(1); }
+}
+
+@keyframes vn-nav-pick-b {
   0% { transform: scale(1); }
   40% { transform: scale(1.28); }
   70% { transform: scale(0.94); }
