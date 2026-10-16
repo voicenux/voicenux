@@ -20,9 +20,10 @@ pub struct Model {
     commit: &'static str,
     /// The character's typical pitch in Hz. The helper moves your typical pitch there.
     pub pitch: f32,
-    /// Whether to get the index too. Only where it made the voice clearly more like the
-    /// character: some are hundreds of MB.
-    index: bool,
+    /// The model's file in the repo, and its index if we get that too. Only where the index made
+    /// the voice clearly more like the character: some are hundreds of MB.
+    pth: &'static str,
+    index: Option<&'static str>,
     /// About how big the download is, in MB.
     pub mb: u32,
 }
@@ -38,7 +39,9 @@ pub static MODELS: &[Model] = &[
     m("optimus", "Optimus Prime", "binant/optimus_prime-male", "85285365c4a2b44e84adfb3b538e516bc333da03", 105.0, false, 55),
     m("glados", "GLaDOS", "binant/glados_portal", "ff48705119ea34456ea243fbbe09c368ecaf0e98", 178.0, false, 55),
     m("rick", "Rick Sanchez", "binant/rick_sanchez", "3744d2e1f1438c4acd81bfe6f2dadf0c6cf198b1", 135.0, false, 55),
-    m("homer", "Homer Simpson", "binant/HomerSimpson2333333", "2ce40c1dd16db07c1cffc314a43a5542af93aa3f", 125.0, true, 75),
+    // Other Homer models only reach 3.4 kHz, like a telephone.
+    m("homer", "Homer Simpson", "Sunwest/Homer_Simpson_300", "dceff7b632f95613e8e5beed01af753bb112b8a4", 125.0, true, 100)
+        .files("homer.pth", "added_IVF342_Flat_nprobe_1_homer_v2.index"),
 ];
 
 /// The names of [`MODELS`] in the same order, for the choice in Voicelab.
@@ -64,7 +67,8 @@ const fn m(
     index: bool,
     mb: u32,
 ) -> Model {
-    Model { id, name, repo, commit, pitch, index, mb }
+    let index = if index { Some("model.index") } else { None };
+    Model { id, name, repo, commit, pitch, pth: "model.pth", index, mb }
 }
 
 /// The folder of everything AI: Python, PyTorch, the base models and the voices. Several GB, so
@@ -92,6 +96,13 @@ pub fn usable() -> bool {
 }
 
 impl Model {
+    /// For a repo whose files are not called model.pth and model.index.
+    const fn files(mut self, pth: &'static str, index: &'static str) -> Self {
+        self.pth = pth;
+        self.index = Some(index);
+        self
+    }
+
     /// The files carry the commit, so a voice that moves to another model downloads again.
     fn file(&self, ext: &str) -> PathBuf {
         dir().join("voices").join(format!("{}-{}.{ext}", self.id, &self.commit[..8]))
@@ -105,7 +116,7 @@ impl Model {
     /// Speech features from the character's recordings, if the model uses them. They make it
     /// sound more like the character.
     pub fn index(&self) -> Option<PathBuf> {
-        self.index.then(|| self.file("index"))
+        self.index.map(|_| self.file("index"))
     }
 
     pub fn downloaded(&self) -> bool {
@@ -138,7 +149,7 @@ mod tests {
             assert_eq!(NAMES[i], m.name);
             assert!(MODELS[..i].iter().all(|o| o.id != m.id), "{} twice", m.id);
             assert!(m.commit.len() == 40 && m.commit.chars().all(|c| c.is_ascii_hexdigit()), "{}", m.id);
-            assert!(m.url("model.pth").starts_with("https://huggingface.co/"));
+            assert!(m.url(m.pth).starts_with("https://huggingface.co/"));
         }
     }
 }

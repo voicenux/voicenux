@@ -192,7 +192,10 @@ pub fn install_engine(step: &dyn Fn(usize)) -> anyhow::Result<()> {
 pub fn download_model(model: &Model, progress: &dyn Fn(f32)) -> anyhow::Result<()> {
     // PyTorch files are zip archives, Faiss indexes start with an I.
     let share = if model.index().is_some() { 55.0 / model.mb as f32 } else { 1.0 };
-    let files = [(Some(model.path()), "model.pth", &b"PK"[..], 0.0, share), (model.index(), "model.index", &b"I"[..], share, 1.0 - share)];
+    let files = [
+        (Some(model.path()), model.pth, &b"PK"[..], 0.0, share),
+        (model.index(), model.index.unwrap_or_default(), &b"I"[..], share, 1.0 - share),
+    ];
     for (path, name, magic, start, share) in files {
         let Some(path) = path.filter(|p| !p.is_file()) else { continue };
         download(&model.url(name), &path, MAX_MODEL, &|f| progress(start + share * f))?;
