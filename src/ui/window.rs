@@ -184,7 +184,13 @@ pub fn build(app: &adw::Application, st: &St) -> Window {
     nav.add_css_class("vn-nav");
     for (i, (_, pic, title, tint)) in PAGES.iter().enumerate() {
         let row = gtk::Box::new(gtk::Orientation::Horizontal, 12);
-        row.append(&super::tinted(pic, 28, tint));
+        // The tile grows on hover, so its glow sits on a box behind it that stays still.
+        let glow = gtk::Box::new(gtk::Orientation::Horizontal, 0);
+        glow.add_css_class("vn-tile-glow");
+        glow.add_css_class(&format!("vn-tint-{tint}"));
+        glow.set_valign(gtk::Align::Center);
+        glow.append(&super::tinted(pic, 32, tint));
+        row.append(&glow);
         row.append(&gtk::Label::new(Some(t_dyn(title).as_str())));
         nav.append(&row);
         if let Some(r) = nav.row_at_index(i as i32) {

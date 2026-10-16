@@ -45,27 +45,40 @@
 .cat-favorites { --cat-color: #ffc83d; }
 .cat-all { --cat-color: #3b82f6; }
 
-/* Tile colors of the icons in the sidebar and the settings. */
-.vn-tint-blue { --cat-color: #3b82f6; }
-.vn-tint-cyan { --cat-color: #22c3e6; }
-.vn-tint-green { --cat-color: #3ccf8e; }
-.vn-tint-orange { --cat-color: #ff8a5c; }
-.vn-tint-pink { --cat-color: #f45cc4; }
-.vn-tint-violet { --cat-color: #a67cff; }
-.vn-tint-yellow { --cat-color: #f5a524; }
-.vn-tint-gray { --cat-color: #64748b; }
+/* Tile colors of the icons in the sidebar and the settings: a light and a deep shade for the
+   gradient, and the one between for the glow. */
+.vn-tint-blue { --cat-color: #3b82f6; --tile-hi: #4fd2ff; --tile-lo: #1d4fe0; }
+.vn-tint-cyan { --cat-color: #22c3e6; --tile-hi: #7af2ff; --tile-lo: #0a8cc0; }
+.vn-tint-green { --cat-color: #3ccf8e; --tile-hi: #8af5b8; --tile-lo: #0b9467; }
+.vn-tint-orange { --cat-color: #ff8a5c; --tile-hi: #ffc35e; --tile-lo: #ec4b36; }
+.vn-tint-pink { --cat-color: #f45cc4; --tile-hi: #ff9ad6; --tile-lo: #d11f86; }
+.vn-tint-violet { --cat-color: #a67cff; --tile-hi: #d0b6ff; --tile-lo: #6a3ff0; }
+.vn-tint-yellow { --cat-color: #f5a524; --tile-hi: #ffe36a; --tile-lo: #ee8306; }
+.vn-tint-gray { --cat-color: #7d8ba1; --tile-hi: #b4c0d2; --tile-lo: #4a586d; }
 
-/* Icons of the sidebar and the settings: white Lucide lines on a colored tile, like app icons. */
+/* Icons of the sidebar and the settings: white Lucide lines on a glossy tile, like app icons.
+   The layers: a shine that sweeps over when the tile gets picked, the gloss, the gradient. */
 .vn-tile {
   border-radius: 28%;
-  background-color: var(--cat-color);
-  background-image: linear-gradient(180deg, rgba(255, 255, 255, 0.24), rgba(255, 255, 255, 0) 60%);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.38), inset 0 -2px 0 rgba(0, 0, 0, 0.16);
+  background-color: var(--tile-lo);
+  background-image: linear-gradient(110deg, rgba(255, 255, 255, 0) 38%, rgba(255, 255, 255, 0.6) 50%, rgba(255, 255, 255, 0) 62%),
+    radial-gradient(ellipse 95% 60% at 50% 0%, rgba(255, 255, 255, 0.45), rgba(255, 255, 255, 0)),
+    linear-gradient(155deg, var(--tile-hi), var(--tile-lo) 85%);
+  background-size: 300% 100%, 100% 100%, 100% 100%;
+  background-position: 0% 0%, 0% 0%, 0% 0%;
+  background-repeat: no-repeat;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.55), inset 0 0 0 1px rgba(255, 255, 255, 0.16),
+    inset 0 -3px 6px -2px rgba(0, 0, 0, 0.3);
   color: #ffffff;
 }
 
 .vn-tile image {
-  -gtk-icon-shadow: 0 1px 2px rgba(0, 0, 0, 0.22);
+  -gtk-icon-shadow: 0 1px 2px color-mix(in srgb, var(--tile-lo), black 45%);
+}
+
+@keyframes vn-tile-shine {
+  0% { background-position: 100% 0%, 0% 0%, 0% 0%; }
+  100% { background-position: 0% 0%, 0% 0%, 0% 0%; }
 }
 
 /* Soft light falls into the window from three sides. The glass panes over it pick it up. */
@@ -120,8 +133,31 @@ window.background {
   transform: scale(1.08);
 }
 
+/* The page you pick: its tile jumps, a shine runs over it, and it glows in its color. */
 .vn-nav row:selected .vn-tile {
   transform: scale(1.12);
+  animation: vn-tile-pick 560ms ease-out, vn-tile-shine 760ms ease-out 140ms both;
+}
+
+@keyframes vn-tile-pick {
+  0% { transform: scale(1.08); }
+  40% { transform: scale(1.26); }
+  70% { transform: scale(1.06); }
+  100% { transform: scale(1.12); }
+}
+
+.vn-tile-glow {
+  border-radius: 28%;
+  box-shadow: 0 4px 14px -4px transparent, 0 0 20px -6px transparent;
+  transition: box-shadow 320ms ease;
+}
+
+.vn-nav row:hover .vn-tile-glow {
+  box-shadow: 0 4px 14px -4px color-mix(in srgb, var(--cat-color) 75%, transparent), 0 0 20px -6px transparent;
+}
+
+.vn-nav row:selected .vn-tile-glow {
+  box-shadow: 0 5px 16px -3px var(--cat-color), 0 0 24px -4px color-mix(in srgb, var(--tile-hi) 80%, transparent);
 }
 
 button.vn-now-button {

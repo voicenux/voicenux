@@ -623,7 +623,7 @@ pub fn about_dialog() -> adw::Dialog {
         ("coffee", t("Buy me a coffee"), "https://ko-fi.com/felitendo"),
     ] {
         let row = gtk::Box::new(gtk::Orientation::Horizontal, 8);
-        row.append(&line_icon(pic, 18));
+        row.append(&line_icon(pic, 18, 2.0));
         row.append(&label(text, &[]));
         let b = gtk::Button::builder().child(&row).css_classes(["pill"]).tooltip_text(url).build();
         b.connect_clicked(move |b| {

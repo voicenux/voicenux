@@ -61,9 +61,9 @@ pub fn icon(name: &str, size: i32) -> gtk::Image {
     img
 }
 
-/// A Lucide icon (see `glyph`) in the CSS `color`.
-pub fn line_icon(name: &str, size: i32) -> gtk::Image {
-    let img = gtk::Image::from_paintable(Some(&glyph::glyph(name)));
+/// A Lucide icon (see `glyph`) in the CSS `color`, with lines `weight` wide (Lucide uses 2).
+pub fn line_icon(name: &str, size: i32, weight: f32) -> gtk::Image {
+    let img = gtk::Image::from_paintable(Some(&glyph::glyph(name, weight)));
     img.set_pixel_size(size);
     img
 }
@@ -71,7 +71,8 @@ pub fn line_icon(name: &str, size: i32) -> gtk::Image {
 /// A Lucide icon in white on a rounded tile of a `.vn-tint-*` color of the style, like "blue".
 /// The sidebar and the settings use these, voices and sounds their emoji.
 pub fn tinted(name: &str, size: i32, tint: &str) -> gtk::Box {
-    let img = line_icon(name, (size as f32 * 0.5).round() as i32);
+    // Bolder lines than Lucide's, so they look chunky like the 3D emoji next to them.
+    let img = line_icon(name, (size as f32 * 0.5).round() as i32, 2.5);
     img.set_hexpand(true);
     img.set_halign(gtk::Align::Center);
     img.set_valign(gtk::Align::Center);

@@ -1,6 +1,7 @@
 //! Lucide icons (ISC) as paintables, for the sidebar and the settings. Each is SVG path data on
-//! a 24 × 24 grid in `data/lucide/icons.tsv`, made by `scripts/fetch-lucide.py`, drawn with 2 px
-//! lines. So they stay sharp at every size and take the CSS `color` of the image that shows them.
+//! a 24 × 24 grid in `data/lucide/icons.tsv`, made by `scripts/fetch-lucide.py`, drawn with lines
+//! of a given weight. So they stay sharp at every size and take the CSS `color` of the image that
+//! shows them.
 
 use std::cell::RefCell;
 use std::collections::HashMap;
@@ -29,6 +30,7 @@ mod imp {
     pub struct Glyph {
         pub stroke: OnceCell<gsk::Path>,
         pub fill: OnceCell<Option<gsk::Path>>,
+        pub weight: OnceCell<f32>,
     }
 
     #[glib::object_subclass]
@@ -74,7 +76,7 @@ mod imp {
             if let Some(Some(fill)) = self.fill.get() {
                 s.append_fill(fill, gsk::FillRule::Winding, color);
             }
-            let line = gsk::Stroke::new(2.0);
+            let line = gsk::Stroke::new(self.weight.get().copied().unwrap_or(2.0));
             line.set_line_cap(gsk::LineCap::Round);
             line.set_line_join(gsk::LineJoin::Round);
             s.append_stroke(stroke, &line, color);
@@ -91,18 +93,20 @@ thread_local! {
     static GLYPHS: RefCell<HashMap<String, Glyph>> = RefCell::new(HashMap::new());
 }
 
-/// The icon `name`, or sparkles when there is none of that name. Made once, then shared.
-pub fn glyph(name: &str) -> Glyph {
+/// The icon `name`, or sparkles when there is none of that name, with lines `weight` wide on the
+/// 24 × 24 grid. Lucide draws them 2 wide. Made once, then shared.
+pub fn glyph(name: &str, weight: f32) -> Glyph {
     let name = if find(name).is_some() { name } else { FALLBACK };
     GLYPHS.with(|g| {
         g.borrow_mut()
-            .entry(name.to_string())
+            .entry(format!("{name} {weight}"))
             .or_insert_with(|| {
                 let (stroke, fill) = find(name).expect("the fallback is an icon");
                 let glyph: Glyph = glib::Object::new();
                 let imp = glyph.imp();
                 let _ = imp.stroke.set(gsk::Path::parse(stroke).expect("icons.tsv has good paths"));
                 let _ = imp.fill.set((!fill.is_empty()).then(|| gsk::Path::parse(fill).expect("icons.tsv has good paths")));
+                let _ = imp.weight.set(weight);
                 glyph
             })
             .clone()
