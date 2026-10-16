@@ -151,10 +151,27 @@ pub fn show_list(parent: &impl IsA<gtk::Widget>, x: f64, y: f64, items: Vec<Item
     p.set_position(gtk::PositionType::Bottom);
     p.set_parent(parent);
     p.set_pointing_to(Some(&gdk::Rectangle::new(x as i32, y as i32, 1, 1)));
+    // An item can remove what the menu hangs on, like Duplicate in Voicelab, which builds the list
+    // again. GTK frees that widget with the menu still in it, so let go of it right then.
+    let weak = p.downgrade();
+    let on_destroy = parent.as_ref().connect_destroy(move |_| {
+        if let Some(p) = weak.upgrade() {
+            p.unparent();
+        }
+    });
+    let on_destroy = Cell::new(Some(on_destroy));
     // Later: the closed handler of `menu` still asks what it hangs on.
-    p.connect_closed(|p| {
+    p.connect_closed(move |p| {
         let p = p.clone();
-        glib::idle_add_local_once(move || p.unparent());
+        let on_destroy = on_destroy.take();
+        glib::idle_add_local_once(move || {
+            if let Some(parent) = p.parent() {
+                if let Some(id) = on_destroy {
+                    parent.disconnect(id);
+                }
+                p.unparent();
+            }
+        });
     });
     p.popup();
 }
