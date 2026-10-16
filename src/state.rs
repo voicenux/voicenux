@@ -100,12 +100,16 @@ type Listener = Rc<dyn Fn(&Change)>;
 
 impl State {
     pub fn new() -> St {
-        let config = Config::load();
+        let mut config = Config::load();
         crate::ai::set_cpu(config.ai_cpu);
         let (tx, rx) = async_channel::unbounded();
         let engine = Engine::start(tx, config.low_latency);
         let mut voices = voice::builtin();
         voices.extend(voice::load_custom(&voice::custom_dir()));
+        // A voice can go away in an update: then start with the first one.
+        if !voices.iter().any(|v| v.id == config.voice) {
+            config.voice = voices[0].id.clone();
+        }
         let st = Rc::new(State {
             keys: Rc::default(),
             levels: Cell::default(),

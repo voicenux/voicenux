@@ -7,7 +7,7 @@
 <h3 align="center">The voice changer for Linux.</h3>
 
 <p align="center">
-  Change your voice in real time in Discord, games, OBS and any other app. 68 voices, a soundboard and a lab to build your own. Made for PipeWire.
+  Change your voice in real time in Discord, games, OBS and any other app. 69 voices, a soundboard and a lab to build your own. Made for PipeWire.
 </p>
 
 <h5 align="center">
@@ -114,17 +114,17 @@ Inside the app, F1 shows all keys. Ctrl+F searches, Ctrl+1 to 4 switch pages, Ct
 ## Voices
 
 <details>
-<summary>All 78 voices</summary>
+<summary>All 69 voices</summary>
 
 | Category | Voices |
 |---|---|
-| Characters | Baby, Kid, Girl, Deep Voice, Elderly, Granny, Titan, Troll, Santa, Pirate, Wizard, Fairy, Genie, Hero, Announcer, Movie Trailer, Noir Detective |
-| Horror | Demon, Monster, Zombie, Ghost, Vampire, Witch, Dragon, Goblin, Possessed, Dark Lord, Creepy Clown |
+| Characters | Baby, Girl, Deep Voice, Elderly, Granny, Titan, Santa, Pirate, Fairy, Genie, Announcer, Movie Trailer |
+| Horror | Demon, Monster, Zombie, Ghost, Vampire, Witch, Dragon, Goblin, Dark Lord, Creepy Clown |
 | Sci-fi | Robot, Alien, Cyborg, Invader, Astronaut, Glitch, Hologram |
 | Places | Echo, Cave, Cathedral, Shower, Stadium, Underwater, Deep Space, Storm, Campfire, Forest |
-| Devices | Radio, Telephone, Walkie-Talkie, Megaphone, Pilot, 1920s Film, Potato Mic, 8-Bit, Fan |
+| Devices | Radio, Telephone, Walkie-Talkie, Megaphone, 1920s Film, Potato Mic, 8-Bit, Fan |
 | Music | Auto-Tune, Angel Choir, Magic Chords, Talk Box, Duet |
-| Funny | Chipmunk, Mouse, Helium, Drunk, Dizzy, Whisper, Kitty, Frog, Duck |
+| Funny | Chipmunk, Helium, Drunk, Dizzy, Whisper, Frog, Duck |
 | AI | SpongeBob, Patrick, Squidward, Plankton, Darth Vader, Yoda, Optimus Prime, GLaDOS, Rick Sanchez, Homer Simpson |
 
 Many of them come with a background sound: rain, bubbles, a campfire, a stadium crowd, wind, a heartbeat and more. All background sounds are made in code. The starter soundboard has well-known sounds and memes from MyInstants, downloaded on the first start.

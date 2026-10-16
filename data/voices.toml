@@ -19,16 +19,6 @@ blocks = [
 ]
 
 [[voice]]
-id = "kid"
-name = "Kid"
-icon = "kid"
-category = "characters"
-description = "Sounds like a ten year old."
-blocks = [
-  { effect = "pitch", semitones = 5, formant = 4 },
-]
-
-[[voice]]
 id = "girl"
 name = "Girl"
 icon = "woman"
@@ -91,19 +81,6 @@ blocks = [
 ]
 
 [[voice]]
-id = "troll"
-name = "Troll"
-icon = "troll"
-category = "characters"
-description = "Slow, low and grumpy, from under the bridge."
-blocks = [
-  { effect = "pitch", semitones = -7, formant = -4 },
-  { effect = "filter", type = "Low pass", freq = 3200 },
-  { effect = "distortion", drive = 6, mix = 0.25 },
-  { effect = "reverb", size = 0.5, mix = 0.15 },
-]
-
-[[voice]]
 id = "santa"
 name = "Santa"
 icon = "santa"
@@ -126,18 +103,6 @@ blocks = [
   { effect = "pitch", semitones = -2, formant = -1 },
   { effect = "distortion", drive = 10, mix = 0.35, tone = 4000 },
   { effect = "ambience", type = "Ocean", level = -18 },
-]
-
-[[voice]]
-id = "wizard"
-name = "Wizard"
-icon = "mage"
-category = "characters"
-description = "Speaks from a tall stone tower."
-blocks = [
-  { effect = "pitch", semitones = -3, formant = -2 },
-  { effect = "echo", time = 280, feedback = 0.2, mix = 0.15 },
-  { effect = "reverb", size = 0.85, mix = 0.35, predelay = 40 },
 ]
 
 [[voice]]
@@ -167,19 +132,6 @@ blocks = [
 ]
 
 [[voice]]
-id = "hero"
-name = "Hero"
-icon = "superhero"
-category = "characters"
-description = "Deep, firm and ready to save the day."
-blocks = [
-  { effect = "pitch", semitones = -3, formant = -1 },
-  { effect = "compressor", threshold = -26, ratio = 4, makeup = 5 },
-  { effect = "echo", time = 120, feedback = 0.1, mix = 0.15 },
-  { effect = "reverb", size = 0.3, mix = 0.1 },
-]
-
-[[voice]]
 id = "announcer"
 name = "Announcer"
 icon = "studio-microphone"
@@ -204,19 +156,6 @@ blocks = [
   { effect = "filter", type = "Low shelf", freq = 150, gain = 4 },
   { effect = "compressor", threshold = -28, ratio = 6, makeup = 7 },
   { effect = "reverb", size = 0.7, mix = 0.2 },
-]
-
-[[voice]]
-id = "noir"
-name = "Noir Detective"
-icon = "detective"
-category = "characters"
-description = "An old radio play on a rainy night."
-blocks = [
-  { effect = "band", low = 250, high = 4500, boost = 3 },
-  { effect = "noise", type = "Crackle", level = -36 },
-  { effect = "reverb", size = 0.3, mix = 0.1 },
-  { effect = "ambience", type = "Rain", level = -16 },
 ]
 
 # Horror
@@ -324,19 +263,6 @@ blocks = [
   { effect = "pitch", semitones = 6, formant = 4 },
   { effect = "distortion", drive = 10, type = "Hard", mix = 0.35, tone = 5000 },
   { effect = "vibrato", rate = 9, depth = 20, random = 0.5 },
-]
-
-[[voice]]
-id = "possessed"
-name = "Possessed"
-icon = "skull"
-category = "horror"
-description = "Something else talks with you."
-blocks = [
-  { effect = "harmony", voice_a = -12, voice_b = 7, level = 0.75, dry = 0.5, detune = 15 },
-  { effect = "distortion", drive = 10, mix = 0.3 },
-  { effect = "reverb", size = 0.9, mix = 0.35 },
-  { effect = "ambience", type = "Heartbeat", level = -18 },
 ]
 
 [[voice]]
@@ -636,20 +562,6 @@ blocks = [
 ]
 
 [[voice]]
-id = "pilot"
-name = "Pilot"
-icon = "pilot"
-category = "devices"
-description = "This is your captain speaking."
-blocks = [
-  { effect = "band", low = 350, high = 3500, boost = 5 },
-  { effect = "distortion", drive = 8, mix = 0.25 },
-  { effect = "compressor", threshold = -24, ratio = 4, makeup = 4 },
-  { effect = "beeps", type = "Roger beep", level = -16, start = false },
-  { effect = "ambience", type = "Engine", level = -18 },
-]
-
-[[voice]]
 id = "oldmovie"
 name = "1920s Film"
 icon = "top-hat"
@@ -771,17 +683,6 @@ blocks = [
 ]
 
 [[voice]]
-id = "mouse"
-name = "Mouse"
-icon = "mouse"
-category = "funny"
-description = "Even tinier than a chipmunk."
-blocks = [
-  { effect = "pitch", semitones = 15, formant = 12 },
-  { effect = "band", low = 400, high = 12000 },
-]
-
-[[voice]]
 id = "helium"
 name = "Helium"
 icon = "balloon"
@@ -824,17 +725,6 @@ description = "Psst. Only breath, no voice."
 blocks = [
   { effect = "whisper" },
   { effect = "reverb", size = 0.2, mix = 0.08 },
-]
-
-[[voice]]
-id = "kitty"
-name = "Kitty"
-icon = "cat"
-category = "funny"
-description = "Meow."
-blocks = [
-  { effect = "pitch", semitones = 9, formant = 7 },
-  { effect = "vibrato", rate = 6, depth = 30 },
 ]
 
 [[voice]]
