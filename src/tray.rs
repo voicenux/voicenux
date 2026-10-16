@@ -23,13 +23,22 @@ pub struct Snapshot {
     pub voice: String,
     /// Favorite voices: id and name.
     pub favorites: Vec<(String, String)>,
+    /// The plain one-color icon instead of the logo.
+    pub mono: bool,
 }
 
 pub struct Tray {
     tx: async_channel::Sender<Cmd>,
     s: Snapshot,
     icon: Vec<Icon>,
+    /// Where the plain icon is, for a Voicenux that is not installed.
+    theme_path: String,
 }
+
+/// The plain icon: the bars of the logo in the text color of the panel. KDE colors it through
+/// its `ColorScheme-Text` class, GNOME because the name ends in "-symbolic".
+const MONO: &str = "io.github.voicenux.Voicenux-symbolic";
+const MONO_SVG: &str = include_str!("../data/app/io.github.voicenux.Voicenux-symbolic.svg");
 
 pub type Handle = ksni::blocking::Handle<Tray>;
 
@@ -43,9 +52,14 @@ impl ksni::Tray for Tray {
     }
 
     fn icon_name(&self) -> String {
-        crate::app::APP_ID.into()
+        if self.s.mono { MONO.into() } else { crate::app::APP_ID.into() }
     }
 
+    fn icon_theme_path(&self) -> String {
+        self.theme_path.clone()
+    }
+
+    /// Only for trays that cannot find the icon by its name.
     fn icon_pixmap(&self) -> Vec<Icon> {
         self.icon.clone()
     }
@@ -162,8 +176,23 @@ fn logo_pixmap() -> Vec<Icon> {
     vec![Icon { width: w as i32, height: h as i32, data }]
 }
 
+/// Puts the plain icon in a folder of the runtime dir, laid out like an icon theme, and returns
+/// the folder. Installed, the icon theme has it anyway.
+fn write_theme() -> String {
+    let root = gtk::glib::user_runtime_dir().join("voicenux").join("icons");
+    let dir = root.join("hicolor").join("scalable").join("apps");
+    let written = std::fs::create_dir_all(&dir).and_then(|_| std::fs::write(dir.join(format!("{MONO}.svg")), MONO_SVG));
+    match written {
+        Ok(()) => root.to_string_lossy().into_owned(),
+        Err(e) => {
+            log::warn!("tray icon: {e}");
+            String::new()
+        }
+    }
+}
+
 pub fn spawn(tx: async_channel::Sender<Cmd>, s: Snapshot) -> Option<Handle> {
-    let tray = Tray { tx, s, icon: logo_pixmap() };
+    let tray = Tray { tx, s, icon: logo_pixmap(), theme_path: write_theme() };
     match tray.spawn() {
         Ok(h) => Some(h),
         Err(e) => {

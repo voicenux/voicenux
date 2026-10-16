@@ -1769,6 +1769,12 @@ msgstr "Verbundene Apps: {}"
 msgid "{} people like this on MyInstants"
 msgstr "{} Leuten gefällt das auf MyInstants"
 
+msgid "Simple tray icon"
+msgstr "Schlichtes Tray-Symbol"
+
+msgid "A plain icon in the color of your panel, instead of the blue logo."
+msgstr "Ein schlichtes Symbol in der Farbe deiner Leiste statt des blauen Logos."
+
 msgid "{} is still downloading. Try again in a moment."
 msgstr "{} lädt noch. Versuch es gleich noch mal."
 

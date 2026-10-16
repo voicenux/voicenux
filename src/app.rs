@@ -140,6 +140,7 @@ impl Ctx {
                 .iter()
                 .filter_map(|f| voices.iter().find(|v| &v.id == f).map(|v| (v.id.clone(), t_dyn(&v.name))))
                 .collect(),
+            mono: c.tray_mono,
         }
     }
 
@@ -318,7 +319,12 @@ pub fn run() -> glib::ExitCode {
                     let Some(c) = weak.upgrade() else { return };
                     if matches!(
                         change,
-                        Change::Toggles | Change::Voice | Change::Favorites | Change::Voices | Change::VoiceEdited(_)
+                        Change::Toggles
+                            | Change::Voice
+                            | Change::Favorites
+                            | Change::Voices
+                            | Change::VoiceEdited(_)
+                            | Change::Settings
                     ) && let Some(h) = c.tray.borrow().as_ref()
                     {
                         tray::update(h, c.snapshot());

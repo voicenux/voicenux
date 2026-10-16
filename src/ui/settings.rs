@@ -456,6 +456,17 @@ pub fn build(st: &St, window: &adw::ApplicationWindow) -> adw::ToolbarView {
         move |r| st.update(|c| c.close_to_tray = r.is_active())
     });
     app.add(&tray);
+    let mono = adw::SwitchRow::builder()
+        .title(t("Simple tray icon"))
+        .subtitle(t("A plain icon in the color of your panel, instead of the blue logo."))
+        .active(c.tray_mono)
+        .sensitive(st.tray.get())
+        .build();
+    mono.connect_active_notify({
+        let st = st.clone();
+        move |r| st.update(|c| c.tray_mono = r.is_active())
+    });
+    app.add(&mono);
     // Appearance as buttons side by side, all choices in sight.
     let look = adw::ActionRow::builder().title(t("Appearance")).build();
     let looks = adw::ToggleGroup::new();

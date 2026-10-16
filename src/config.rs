@@ -43,6 +43,8 @@ pub struct Config {
     /// The user has set up shortcuts once, so they are bound at every start.
     pub shortcuts_on: bool,
     pub close_to_tray: bool,
+    /// A plain one-color tray icon instead of the blue logo.
+    pub tray_mono: bool,
     pub autostart: bool,
     /// "system", "light" or "dark".
     pub appearance: String,
@@ -82,6 +84,7 @@ impl Default for Config {
             shortcuts: BTreeMap::new(),
             shortcuts_on: false,
             close_to_tray: true,
+            tray_mono: false,
             autostart: false,
             appearance: "system".into(),
             onboarded: false,
