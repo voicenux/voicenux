@@ -138,7 +138,8 @@ impl Ctx {
             favorites: c
                 .favorites
                 .iter()
-                .filter_map(|f| voices.iter().find(|v| &v.id == f).map(|v| (v.id.clone(), t_dyn(&v.name))))
+                .filter_map(|f| voices.iter().find(|v| &v.id == f))
+                .map(|v| (v.id.clone(), t_dyn(&v.name), crate::ui::picture_png(&v.icon)))
                 .collect(),
             mono: c.tray_mono,
         }

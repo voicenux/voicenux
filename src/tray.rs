@@ -21,8 +21,8 @@ pub struct Snapshot {
     pub muted: bool,
     pub background: bool,
     pub voice: String,
-    /// Favorite voices: id and name.
-    pub favorites: Vec<(String, String)>,
+    /// Favorite voices: id, name and their picture as PNG.
+    pub favorites: Vec<(String, String, Vec<u8>)>,
     /// The plain one-color icon instead of the logo.
     pub mono: bool,
 }
@@ -73,20 +73,37 @@ impl ksni::Tray for Tray {
         let _ = self.tx.send_blocking(Cmd::Show);
     }
 
+    /// Every item has an icon: KDE keeps a column for icons, and with only some of them filled
+    /// the texts look out of line. The icons are the ones of the bottom bar.
     fn menu(&self) -> Vec<MenuItem<Self>> {
         let action = |id: &'static str| -> Box<dyn Fn(&mut Self) + Send> {
             Box::new(move |this: &mut Self| {
                 let _ = this.tx.send_blocking(Cmd::Action(id));
             })
         };
+        let toggle = |label: &str, icon: &str, checked: bool, id: &'static str| -> MenuItem<Self> {
+            CheckmarkItem {
+                label: label.into(),
+                icon_name: icon.into(),
+                checked,
+                activate: action(id),
+                ..Default::default()
+            }
+            .into()
+        };
+        let item = |label: &str, icon: &str, id: &'static str| -> MenuItem<Self> {
+            StandardItem { label: label.into(), icon_name: icon.into(), activate: action(id), ..Default::default() }
+                .into()
+        };
         let mut voices: Vec<MenuItem<Self>> = self
             .s
             .favorites
             .iter()
-            .map(|(id, name)| {
+            .map(|(id, name, picture)| {
                 let id = id.clone();
                 StandardItem {
                     label: name.clone(),
+                    icon_data: picture.clone(),
                     activate: Box::new(move |this: &mut Self| {
                         let _ = this.tx.send_blocking(Cmd::Voice(id.clone()));
                     }),
@@ -104,6 +121,7 @@ impl ksni::Tray for Tray {
         vec![
             StandardItem {
                 label: t("Open Voicenux").into(),
+                icon_name: if self.s.mono { MONO.into() } else { crate::app::APP_ID.into() },
                 activate: Box::new(|this: &mut Self| {
                     let _ = this.tx.send_blocking(Cmd::Show);
                 }),
@@ -111,44 +129,24 @@ impl ksni::Tray for Tray {
             }
             .into(),
             MenuItem::Separator,
-            CheckmarkItem {
-                label: t("Voice changer").into(),
-                checked: self.s.voice_on,
-                activate: action("voice-toggle"),
-                ..Default::default()
-            }
-            .into(),
-            CheckmarkItem {
-                label: t("Hear myself").into(),
-                checked: self.s.hear,
-                activate: action("hear-toggle"),
-                ..Default::default()
-            }
-            .into(),
-            CheckmarkItem {
-                label: t("Background").into(),
-                checked: self.s.background,
-                activate: action("background-toggle"),
-                ..Default::default()
-            }
-            .into(),
-            CheckmarkItem {
-                label: t("Mute microphone").into(),
-                checked: self.s.muted,
-                activate: action("mute-toggle"),
-                ..Default::default()
-            }
-            .into(),
+            toggle(t("Voice changer"), "audio-input-microphone-symbolic", self.s.voice_on, "voice-toggle"),
+            toggle(t("Hear myself"), "audio-headphones-symbolic", self.s.hear, "hear-toggle"),
+            toggle(t("Background"), "weather-few-clouds-symbolic", self.s.background, "background-toggle"),
+            toggle(t("Mute microphone"), "microphone-sensitivity-muted-symbolic", self.s.muted, "mute-toggle"),
             MenuItem::Separator,
-            SubMenu { label: t("Favorite voices").into(), submenu: voices, ..Default::default() }.into(),
-            StandardItem { label: t("Random voice").into(), activate: action("random-voice"), ..Default::default() }
-                .into(),
-            StandardItem { label: t("Stop all sounds").into(), activate: action("stop-sounds"), ..Default::default() }
-                .into(),
+            SubMenu {
+                label: t("Favorite voices").into(),
+                icon_name: "starred-symbolic".into(),
+                submenu: voices,
+                ..Default::default()
+            }
+            .into(),
+            item(t("Random voice"), "media-playlist-shuffle-symbolic", "random-voice"),
+            item(t("Stop all sounds"), "media-playback-stop-symbolic", "stop-sounds"),
             MenuItem::Separator,
             StandardItem {
                 label: t("Quit").into(),
-                icon_name: "application-exit".into(),
+                icon_name: "application-exit-symbolic".into(),
                 activate: Box::new(|this: &mut Self| {
                     let _ = this.tx.send_blocking(Cmd::Quit);
                 }),

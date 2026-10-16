@@ -56,6 +56,15 @@ pub fn load_picture(name: &str) -> gdk::Texture {
     gdk::Texture::from_resource(&format!("{RESOURCE}/icons/sparkles.png"))
 }
 
+/// The PNG file of a picture, like `load_picture` finds it, for the tray menu.
+pub fn picture_png(name: &str) -> Vec<u8> {
+    let found = [("icons", name), ("emoji", name), ("icons", "sparkles")].into_iter().find_map(|(dir, n)| {
+        let path = format!("{RESOURCE}/{dir}/{n}.png");
+        gtk::gio::resources_lookup_data(&path, gtk::gio::ResourceLookupFlags::NONE).ok()
+    });
+    found.map(|b| b.to_vec()).unwrap_or_default()
+}
+
 pub fn icon(name: &str, size: i32) -> gtk::Image {
     let img = gtk::Image::from_paintable(Some(&texture(name)));
     img.set_pixel_size(size);
