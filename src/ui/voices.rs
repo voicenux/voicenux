@@ -404,10 +404,14 @@ pub fn build(st: &St, open_lab: OpenLab) -> VoicesPage {
     VoicesPage { widget, search, show_current }
 }
 
-/// The voices in the order the grid shows them: favorites first, in the order you starred them.
+/// The voices in the order the grid shows them, like the chips above it: favorites first, in the
+/// order you starred them, then your own voices, then the built-in ones.
 fn sorted(st: &St, order: &[String]) -> Vec<String> {
     let mut ids: Vec<String> = st.config.borrow().favorites.iter().filter(|f| order.contains(f)).cloned().collect();
-    ids.extend(order.iter().filter(|id| !st.is_favorite(id)).cloned());
+    let mut rest: Vec<String> = order.iter().filter(|id| !st.is_favorite(id)).cloned().collect();
+    let voices = st.voices.borrow();
+    rest.sort_by_key(|id| voices.iter().any(|v| &v.id == id && v.builtin));
+    ids.extend(rest);
     ids
 }
 
