@@ -46,11 +46,17 @@ pub fn status_text(model: &ai::Model) -> String {
     match ai::bridge::status() {
         Status::Starting => t("Starting the AI…").into(),
         Status::Loading(name) => fill(t("Loading {}…"), &[&t_dyn(name)]),
-        Status::Running if ai::on_cpu() => t("The AI runs on your processor. It adds up to a second of delay.").into(),
-        Status::Running => t("The AI runs on your graphics card. It adds about 0.3 s of delay.").into(),
+        Status::Running(ms) if ai::on_cpu() => fill(t("The AI runs on your processor. It adds about {} of delay."), &[&seconds(ms)]),
+        Status::Running(ms) => fill(t("The AI runs on your graphics card. It adds about {} of delay."), &[&seconds(ms)]),
         Status::Failed(e) => fill(t("The AI did not work: {}"), &[&e]),
         Status::Off | Status::Missing => String::new(),
     }
+}
+
+/// "0.2 s", with a comma in German.
+fn seconds(ms: u32) -> String {
+    let text = format!("{:.1} s", ms as f32 / 1000.0);
+    if crate::i18n::language() == "de" { text.replace('.', ",") } else { text }
 }
 
 /// Asks to download what the AI voice `id` needs, then turns it on.
@@ -72,15 +78,15 @@ pub fn offer(st: &St, parent: &impl IsA<gtk::Widget>, id: &str) {
     let title = label(&fill(t("Download {}?"), &[&name]), &["title-3"]);
     title.set_wrap(true);
     let size = if engine {
-        t("The voice is about 60 MB.").to_string()
+        fill(t("The voice is about {} MB."), &[&model.mb.to_string()])
     } else {
         fill(
-            t("The first AI voice also needs the AI engine: about {} GB, once. Each voice is about 60 MB more."),
-            &[&install::engine_gb().to_string()],
+            t("The first AI voice also needs the AI engine: about {} GB, once. The voice is about {} MB more."),
+            &[&install::engine_gb().to_string(), &model.mb.to_string()],
         )
     };
     let runs = if ai::on_cpu() {
-        t("It runs on your processor and adds up to a second of delay.")
+        t("It runs on your processor and adds about half a second of delay.")
     } else {
         t("It runs on your NVIDIA graphics card and adds about 0.3 s of delay.")
     };

@@ -20,8 +20,10 @@ pub struct Link {
     pub key: AtomicU32,
     /// False once the effect is gone.
     pub alive: AtomicBool,
-    /// Samples the effect waits for before it plays, so a late answer does not click.
-    pub prime: AtomicUsize,
+    /// Samples per block the helper sends back.
+    pub block: AtomicUsize,
+    /// Samples the effect keeps in store against a late block, so it does not click.
+    pub cushion: AtomicUsize,
     /// Sample rate of the engine.
     pub rate: u32,
 }
@@ -33,7 +35,8 @@ impl Link {
             model: AtomicUsize::new(model),
             key: AtomicU32::new(key.to_bits()),
             alive: AtomicBool::new(true),
-            prime: AtomicUsize::new(usize::MAX),
+            block: AtomicUsize::new(0),
+            cushion: AtomicUsize::new(usize::MAX),
         }
     }
 }
@@ -51,7 +54,8 @@ pub enum Status {
     Off,
     Starting,
     Loading(&'static str),
-    Running,
+    /// With about how much delay, in ms.
+    Running(u32),
     /// The voice is not downloaded, or the engine not installed.
     Missing,
     Failed(String),
@@ -105,11 +109,13 @@ pub fn stop() {
 struct Helper {
     child: Child,
     stdin: ChildStdin,
-    /// Seconds per block, once the helper is ready.
-    seconds: f32,
-    /// Samples per block at the rate of the stream.
-    block: usize,
+    ready: bool,
     model: Option<usize>,
+    /// The rate of the stream the model was loaded for.
+    rate: u32,
+    /// Samples per block and of cushion at that rate, from the helper once the model is loaded.
+    block: usize,
+    cushion: usize,
     loading: bool,
     /// Started on the processor.
     cpu: bool,
@@ -167,7 +173,7 @@ fn start(back: Sender<Event>) -> anyhow::Result<Helper> {
         }
         let _ = back.send(Event::Exited);
     });
-    Ok(Helper { child, stdin, seconds: 0.0, block: 0, model: None, loading: false, cpu: on_cpu() })
+    Ok(Helper { child, stdin, ready: false, model: None, rate: 0, block: 0, cushion: 0, loading: false, cpu: on_cpu() })
 }
 
 /// Throws away what the effect sent: while the helper is not ready, old voice would only pile up.
@@ -204,12 +210,18 @@ fn run(rx: Receiver<Event>, back: Sender<Event>) {
                 match kind {
                     b'R' => {
                         let info: serde_json::Value = serde_json::from_slice(&payload).unwrap_or_default();
-                        h.seconds = info["block"].as_f64().unwrap_or(0.25) as f32;
+                        h.ready = true;
                         log::info!("AI helper ready on {}", info["device"]);
                     }
                     b'M' => {
+                        let info: serde_json::Value = serde_json::from_slice(&payload).unwrap_or_default();
+                        let samples = |key: &str| (info[key].as_f64().unwrap_or(0.25) * h.rate as f64).round() as usize;
+                        h.block = samples("block").max(1);
+                        h.cushion = samples("cushion");
                         h.loading = false;
-                        set_status(Status::Running);
+                        let delay = (info["delay"].as_f64().unwrap_or(0.0) * 1000.0).round() as u32;
+                        log::info!("AI blocks of {} ms, about {delay} ms delay", info["block"].as_f64().unwrap_or(0.0) * 1000.0);
+                        set_status(Status::Running(delay));
                     }
                     b'A' => {
                         if let Some(s) = stream.as_mut() {
@@ -275,19 +287,22 @@ fn run(rx: Receiver<Event>, back: Sender<Event>) {
             }
         }
         let h = helper.as_mut().expect("started");
-        if h.seconds == 0.0 {
+        if !h.ready {
             drain(&mut s.input);
             continue;
         }
-        let block = (h.seconds * s.link.rate as f32).round() as usize;
-        s.link.prime.store(block / 4, Ordering::Relaxed);
         // A new model, or a stream at another rate, loads again.
-        if (h.model != Some(index) || h.block != block) && !h.loading {
+        if (h.model != Some(index) || h.rate != s.link.rate) && !h.loading {
             set_status(Status::Loading(model.name));
             h.loading = true;
             h.model = Some(index);
-            h.block = block;
-            let order = serde_json::json!({ "model": model.path(), "rate": s.link.rate });
+            h.rate = s.link.rate;
+            let order = serde_json::json!({
+                "model": model.path(),
+                "index": model.index(),
+                "pitch": model.pitch,
+                "rate": s.link.rate,
+            });
             if send(&mut h.stdin, b'L', order.to_string().as_bytes()).is_err() {
                 helper = None;
                 continue;
@@ -297,6 +312,8 @@ fn run(rx: Receiver<Event>, back: Sender<Event>) {
             drain(&mut s.input);
             continue;
         }
+        s.link.block.store(h.block, Ordering::Relaxed);
+        s.link.cushion.store(h.cushion, Ordering::Relaxed);
         while s.input.slots() >= h.block {
             let Ok(chunk) = s.input.read_chunk(h.block) else { break };
             frame.clear();

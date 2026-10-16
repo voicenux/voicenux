@@ -188,16 +188,31 @@ pub fn install_engine(step: &dyn Fn(usize)) -> anyhow::Result<()> {
     Ok(())
 }
 
-/// Downloads the voice of a model.
+/// Downloads the voice of a model: the model and its index.
 pub fn download_model(model: &Model, progress: &dyn Fn(f32)) -> anyhow::Result<()> {
-    let path = model.path();
-    download(&model.url(), &path, MAX_MODEL, progress)?;
-    // PyTorch files are zip archives.
-    let mut head = [0u8; 2];
-    let ok = std::fs::File::open(&path).and_then(|mut f| f.read_exact(&mut head)).is_ok() && &head == b"PK";
-    if !ok {
-        let _ = std::fs::remove_file(&path);
-        bail!("{} is no model", model.id);
+    // PyTorch files are zip archives, Faiss indexes start with an I.
+    let share = if model.index().is_some() { 55.0 / model.mb as f32 } else { 1.0 };
+    let files = [(Some(model.path()), "model.pth", &b"PK"[..], 0.0, share), (model.index(), "model.index", &b"I"[..], share, 1.0 - share)];
+    for (path, name, magic, start, share) in files {
+        let Some(path) = path.filter(|p| !p.is_file()) else { continue };
+        download(&model.url(name), &path, MAX_MODEL, &|f| progress(start + share * f))?;
+        let mut head = vec![0u8; magic.len()];
+        let ok = std::fs::File::open(&path).and_then(|mut f| f.read_exact(&mut head)).is_ok() && head == magic;
+        if !ok {
+            let _ = std::fs::remove_file(&path);
+            bail!("{name} of {} is broken", model.id);
+        }
+    }
+    // Files of a model this voice used before.
+    let keep = [Some(model.path()), model.index()];
+    if let Ok(dir) = std::fs::read_dir(dir().join("voices")) {
+        for e in dir.flatten() {
+            let name = e.file_name().to_string_lossy().into_owned();
+            let stem = name.split(['.', '-']).next().unwrap_or_default();
+            if stem == model.id && !keep.contains(&Some(e.path())) {
+                let _ = std::fs::remove_file(e.path());
+            }
+        }
     }
     Ok(())
 }

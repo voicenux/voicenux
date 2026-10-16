@@ -39,8 +39,12 @@
   12.6). The `ai` effect only moves samples through lock-free rings; the bridge thread talks to
   the helper over stdin and stdout. They want an NVIDIA card; the setting "Run on the processor"
   (`ai_cpu`, or `VOICENUX_AI_CPU=1` for tests) installs a smaller PyTorch and runs them on the
-  processor with bigger blocks and more delay. Models are pinned to a Hugging Face commit in
-  `ai::MODELS`. Only fictional characters, no real people as themselves.
+  processor with bigger blocks and more delay. The helper warms a model up when it loads and
+  picks the block size from how fast it renders. Blocks under 120 ms, or HuBERT without the
+  mirrored window ends, make a held "aaa" jump between vowels. Models are pinned to a Hugging Face commit in
+  `ai::MODELS`, with the character's typical pitch (the helper moves yours there, `key` only
+  shifts from it) and whether to use the index. Only fictional characters, no real people as
+  themselves.
 - `src/api.rs` lets other apps control Voicenux (WebSocket and HTTP on 127.0.0.1:41967, off by
   default). Keep `API.md` in step with it. Raise `VERSION` there only for changes that break clients.
 - Users never touch a config file. Every option has a place in the app, `src/config.rs` only

@@ -862,7 +862,8 @@ blocks = [
 ]
 
 # AI voices: an RVC model of the character turns your voice into it. They need an NVIDIA
-# graphics card and download with one click, see src/ai. The pitch suits a deep voice.
+# graphics card and download with one click, see src/ai. The AI moves your pitch to the
+# character's by itself, so `key` only shifts from there.
 
 [[voice]]
 id = "ai-spongebob"
@@ -870,7 +871,7 @@ name = "SpongeBob"
 icon = "sponge"
 category = "ai"
 description = "The cheerful fry cook from under the sea."
-blocks = [{ effect = "ai", model = "SpongeBob", key = 10 }]
+blocks = [{ effect = "ai", model = "SpongeBob" }]
 
 [[voice]]
 id = "ai-patrick"
@@ -878,7 +879,7 @@ name = "Patrick"
 icon = "star"
 category = "ai"
 description = "His best friend, a slow pink star."
-blocks = [{ effect = "ai", model = "Patrick", key = 4 }]
+blocks = [{ effect = "ai", model = "Patrick" }]
 
 [[voice]]
 id = "ai-squidward"
@@ -886,7 +887,7 @@ name = "Squidward"
 icon = "octopus"
 category = "ai"
 description = "Grumpy neighbor with a clarinet."
-blocks = [{ effect = "ai", model = "Squidward", key = 3 }]
+blocks = [{ effect = "ai", model = "Squidward" }]
 
 [[voice]]
 id = "ai-plankton"
@@ -894,7 +895,7 @@ name = "Plankton"
 icon = "microbe"
 category = "ai"
 description = "Tiny, green and full of evil plans."
-blocks = [{ effect = "ai", model = "Plankton", key = 6 }]
+blocks = [{ effect = "ai", model = "Plankton" }]
 
 [[voice]]
 id = "ai-vader"
@@ -902,7 +903,7 @@ name = "Darth Vader"
 icon = "crossed-swords"
 category = "ai"
 description = "Deep breaths behind the mask."
-blocks = [{ effect = "ai", model = "Darth Vader", key = -3 }]
+blocks = [{ effect = "ai", model = "Darth Vader" }]
 
 [[voice]]
 id = "ai-yoda"
@@ -910,7 +911,7 @@ name = "Yoda"
 icon = "lizard"
 category = "ai"
 description = "Old and wise, the little green master is."
-blocks = [{ effect = "ai", model = "Yoda", key = 8 }]
+blocks = [{ effect = "ai", model = "Yoda" }]
 
 [[voice]]
 id = "ai-optimus"
@@ -918,7 +919,7 @@ name = "Optimus Prime"
 icon = "articulated-lorry"
 category = "ai"
 description = "Leader of the robots in disguise."
-blocks = [{ effect = "ai", model = "Optimus Prime", key = -2 }]
+blocks = [{ effect = "ai", model = "Optimus Prime" }]
 
 [[voice]]
 id = "ai-glados"
@@ -926,7 +927,7 @@ name = "GLaDOS"
 icon = "test-tube"
 category = "ai"
 description = "The calm AI that runs the tests."
-blocks = [{ effect = "ai", model = "GLaDOS", key = 12 }]
+blocks = [{ effect = "ai", model = "GLaDOS" }]
 
 [[voice]]
 id = "ai-rick"
@@ -934,7 +935,7 @@ name = "Rick Sanchez"
 icon = "cucumber"
 category = "ai"
 description = "Genius scientist with a portal gun."
-blocks = [{ effect = "ai", model = "Rick Sanchez", key = 2 }]
+blocks = [{ effect = "ai", model = "Rick Sanchez" }]
 
 [[voice]]
 id = "ai-homer"
@@ -942,4 +943,4 @@ name = "Homer Simpson"
 icon = "doughnut"
 category = "ai"
 description = "Loves doughnuts and his couch."
-blocks = [{ effect = "ai", model = "Homer Simpson", key = 1 }]
+blocks = [{ effect = "ai", model = "Homer Simpson" }]

@@ -1826,14 +1826,14 @@ msgstr "KI-Stimmen brauchen eine NVIDIA-Grafikkarte, oder „Auf dem Prozessor l
 msgid "Run on the processor"
 msgstr "Auf dem Prozessor laufen"
 
-msgid "For computers without an NVIDIA graphics card. Takes much of the processor and adds up to a second of delay."
-msgstr "Für Computer ohne NVIDIA-Grafikkarte. Braucht viel vom Prozessor und verzögert um bis zu eine Sekunde."
+msgid "For computers without an NVIDIA graphics card. Takes much of the processor and adds about half a second of delay."
+msgstr "Für Computer ohne NVIDIA-Grafikkarte. Braucht viel vom Prozessor und verzögert um etwa eine halbe Sekunde."
 
-msgid "The AI runs on your processor. It adds up to a second of delay."
-msgstr "Die KI läuft auf deinem Prozessor. Sie verzögert um bis zu eine Sekunde."
+msgid "The AI runs on your processor. It adds about {} of delay."
+msgstr "Die KI läuft auf deinem Prozessor. Sie verzögert um etwa {}."
 
-msgid "It runs on your processor and adds up to a second of delay."
-msgstr "Sie läuft auf deinem Prozessor und verzögert um bis zu eine Sekunde."
+msgid "It runs on your processor and adds about half a second of delay."
+msgstr "Sie läuft auf deinem Prozessor und verzögert um etwa eine halbe Sekunde."
 
 msgid "AI voices"
 msgstr "KI-Stimmen"
@@ -1886,8 +1886,8 @@ msgstr "Starte die KI…"
 msgid "Loading {}…"
 msgstr "Lade {}…"
 
-msgid "The AI runs on your graphics card. It adds about 0.3 s of delay."
-msgstr "Die KI läuft auf deiner Grafikkarte. Sie verzögert um etwa 0,3 s."
+msgid "The AI runs on your graphics card. It adds about {} of delay."
+msgstr "Die KI läuft auf deiner Grafikkarte. Sie verzögert um etwa {}."
 
 msgid "The AI did not work: {}"
 msgstr "Die KI hat nicht geklappt: {}"
@@ -1895,11 +1895,11 @@ msgstr "Die KI hat nicht geklappt: {}"
 msgid "Download {}?"
 msgstr "{} herunterladen?"
 
-msgid "The voice is about 60 MB."
-msgstr "Die Stimme ist etwa 60 MB groß."
+msgid "The voice is about {} MB."
+msgstr "Die Stimme ist etwa {} MB groß."
 
-msgid "The first AI voice also needs the AI engine: about {} GB, once. Each voice is about 60 MB more."
-msgstr "Die erste KI-Stimme braucht auch die KI-Engine: etwa {} GB, nur einmal. Jede Stimme ist dann etwa 60 MB."
+msgid "The first AI voice also needs the AI engine: about {} GB, once. The voice is about {} MB more."
+msgstr "Die erste KI-Stimme braucht auch die KI-Engine: etwa {} GB, nur einmal. Dazu kommt die Stimme mit etwa {} MB."
 
 msgid "It runs on your NVIDIA graphics card and adds about 0.3 s of delay."
 msgstr "Sie läuft auf deiner NVIDIA-Grafikkarte und verzögert um etwa 0,3 s."

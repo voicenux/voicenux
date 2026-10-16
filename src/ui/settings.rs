@@ -536,7 +536,7 @@ fn ai_group(st: &St) -> Group {
     let cpu = adw::SwitchRow::builder()
         .title(t("Run on the processor"))
         .subtitle(t(
-            "For computers without an NVIDIA graphics card. Takes much of the processor and adds up to a second of delay.",
+            "For computers without an NVIDIA graphics card. Takes much of the processor and adds about half a second of delay.",
         ))
         .active(st.config.borrow().ai_cpu)
         .build();
