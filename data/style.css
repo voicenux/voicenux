@@ -1019,10 +1019,12 @@ spinbutton:focus-within {
   box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--accent-bg-color) 75%, transparent), 0 0 0 4px color-mix(in srgb, var(--accent-bg-color) 18%, transparent);
 }
 
+/* The same room on both sides, so the clear button keeps clear of the round end. */
 entry.search,
 entry.vn-search {
   border-radius: 999px;
   padding-left: 12px;
+  padding-right: 12px;
 }
 
 entry.vn-search.vn-capped > text {
