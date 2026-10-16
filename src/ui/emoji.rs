@@ -78,7 +78,7 @@ pub fn icon_picker(current: &str, size: i32, on_pick: impl Fn(&str) + 'static) -
 
 fn grid(popover: &gtk::Popover, button: &gtk::MenuButton, size: i32, on_pick: Rc<dyn Fn(&str)>) -> gtk::Box {
     let search = gtk::SearchEntry::new();
-    search.set_placeholder_text(Some(t("Search pictures")));
+    search.set_placeholder_text(Some(t("Search emojis")));
     search.set_margin_bottom(8);
 
     let ids: Vec<&str> = index().iter().map(|e| e.id).collect();

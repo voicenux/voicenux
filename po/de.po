@@ -86,8 +86,8 @@ msgstr "Stimmverzerrer für Linux"
 msgid "Change picture"
 msgstr "Bild ändern"
 
-msgid "Search pictures"
-msgstr "Bilder suchen"
+msgid "Search emojis"
+msgstr "Emojis suchen"
 
 msgid "No pictures found"
 msgstr "Keine Bilder gefunden"
