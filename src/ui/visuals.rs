@@ -185,7 +185,9 @@ impl Orb {
                 s.restore();
             }
 
-            // A gradient arc that circles around, with a round head.
+            // A gradient arc that circles around, with a round head. In the color of the voice, a
+            // little lighter at the head.
+            let light = (c.0 + (1.0 - c.0) * 0.35, c.1 + (1.0 - c.1) * 0.35, c.2 + (1.0 - c.2) * 0.35);
             let arc_r = base * 1.04;
             let ring = circle(cx, cy, arc_r + 1.75);
             let len = 0.35 + 0.25 * level;
@@ -198,18 +200,18 @@ impl Orb {
                 &center,
                 turn as f32,
                 &[
-                    gsk::ColorStop::new(0.0, rgba(BRAND[0], 0.0)),
-                    gsk::ColorStop::new(len * 0.5, rgba(BRAND[1], 0.6)),
-                    gsk::ColorStop::new(len, rgba(BRAND[2], 0.95)),
-                    gsk::ColorStop::new(len + 0.001, rgba(BRAND[2], 0.0)),
-                    gsk::ColorStop::new(1.0, rgba(BRAND[2], 0.0)),
+                    gsk::ColorStop::new(0.0, rgba(c, 0.0)),
+                    gsk::ColorStop::new(len * 0.5, rgba(c, 0.6)),
+                    gsk::ColorStop::new(len, rgba(light, 0.95)),
+                    gsk::ColorStop::new(len + 0.001, rgba(light, 0.0)),
+                    gsk::ColorStop::new(1.0, rgba(light, 0.0)),
                 ],
             );
             s.pop();
             let head = (turn + len as f64 * 360.0).to_radians();
             let dot = circle(cx + arc_r * head.sin() as f32, cy - arc_r * head.cos() as f32, 1.75);
             s.push_rounded_clip(&dot);
-            s.append_color(&rgba(BRAND[2], 0.95), dot.bounds());
+            s.append_color(&rgba(light, 0.95), dot.bounds());
             s.pop();
 
             // Disc behind the picture.
