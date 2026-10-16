@@ -765,20 +765,44 @@ impl State {
         lib.save();
     }
 
-    pub fn import_sounds(&self, paths: &[std::path::PathBuf]) -> Vec<String> {
-        let mut errors = Vec::new();
-        {
-            let mut lib = self.library.borrow_mut();
+    /// Adds audio files one after the other, on a thread of their own: checking and copying
+    /// takes a moment each, and the window stays smooth. Each one shows up when it is in.
+    pub fn import_sounds(self: &Rc<Self>, paths: Vec<std::path::PathBuf>) {
+        let (tx, rx) = async_channel::unbounded();
+        std::thread::spawn(move || {
             for p in paths {
-                if let Err(e) = lib.import(p) {
-                    log::warn!("could not import {}: {e}", p.display());
-                    errors.push(p.file_name().unwrap_or_default().to_string_lossy().to_string());
+                let r = soundboard::copy_in(&p);
+                if tx.send_blocking((p, r)).is_err() {
+                    break;
                 }
             }
-            lib.save();
-        }
-        self.notify(Change::Sounds);
-        errors
+        });
+        let weak = Rc::downgrade(self);
+        glib::spawn_future_local(async move {
+            let mut failed = Vec::new();
+            while let Ok((path, r)) = rx.recv().await {
+                let Some(st) = weak.upgrade() else { return };
+                match r {
+                    Ok((file, name)) => {
+                        let mut lib = st.library.borrow_mut();
+                        lib.add_file(file, &name, "loudspeaker");
+                        lib.save();
+                        drop(lib);
+                        st.notify(Change::Sounds);
+                    }
+                    Err(e) => {
+                        log::warn!("could not import {}: {e}", path.display());
+                        failed.push(path.file_name().unwrap_or_default().to_string_lossy().to_string());
+                    }
+                }
+            }
+            if let Some(st) = weak.upgrade()
+                && !failed.is_empty()
+            {
+                let text = crate::i18n::fill(crate::i18n::t("Could not add {}"), &[&failed.join(", ")]);
+                st.notify(Change::Notice(text));
+            }
+        });
     }
 
     /// Removes a sound. [`State::undo_remove`] brings it back, until [`State::forget_removed`].

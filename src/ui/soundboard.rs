@@ -424,10 +424,18 @@ pub fn build(st: &St) -> SoundboardPage {
     // Typing anywhere searches your sounds.
     search.set_key_capture_widget(Some(&view));
 
+    // Many changes in a row, like a lot of new files, build the pads only once.
+    let queued = Rc::new(Cell::new(false));
     st.subscribe({
         let (st, pads) = (st.clone(), pads.clone());
         move |c| match c {
-            Change::Sounds => rebuild(false),
+            Change::Sounds if !queued.replace(true) => {
+                let (rebuild, queued) = (rebuild.clone(), queued.clone());
+                glib::idle_add_local_once(move || {
+                    queued.set(false);
+                    rebuild(false);
+                });
+            }
             Change::Settings => {
                 for (id, p) in pads.borrow().iter() {
                     show_keys(&st, &p.keys, id);
@@ -507,10 +515,7 @@ fn more_button(st: &St, add: Rc<dyn Fn()>) -> gtk::MenuButton {
 }
 
 fn import(st: &St, paths: &[std::path::PathBuf]) {
-    let failed = st.import_sounds(paths);
-    if !failed.is_empty() {
-        st.notify(Change::Notice(fill(t("Could not add {}"), &[&failed.join(", ")])));
-    }
+    st.import_sounds(paths.to_vec());
 }
 
 fn volume_button(st: &St) -> gtk::MenuButton {

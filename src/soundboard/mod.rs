@@ -209,22 +209,13 @@ impl Library {
     }
 
     /// Copies an audio file into the soundboard folder and adds it.
-    pub fn import(&mut self, path: &Path) -> anyhow::Result<Sound> {
-        // Decode first, so broken files are refused right away.
-        decode(path)?;
-        let dir = dir();
-        std::fs::create_dir_all(&dir)?;
-        path.file_name().ok_or_else(|| anyhow::anyhow!("no file name"))?;
-        let stem = path.file_stem().unwrap_or_default().to_string_lossy();
-        let ext = path.extension().map(|e| format!(".{}", e.to_string_lossy())).unwrap_or_default();
-        let target = free_path(&dir, &stem, &ext);
-        std::fs::copy(path, &target)?;
-        let name = path.file_stem().unwrap_or_default().to_string_lossy().replace(['_', '-'], " ");
+    /// Adds a file in the soundboard folder as a new sound, see [`copy_in`].
+    pub fn add_file(&mut self, file: String, name: &str, icon: &str) -> Sound {
         let sound = Sound {
             id: self.new_id(),
             name: name.trim().to_string(),
-            icon: "loudspeaker".into(),
-            file: Some(target.file_name().unwrap().to_string_lossy().to_string()),
+            icon: icon.to_string(),
+            file: Some(file),
             builtin: None,
             volume: 1.0,
             mode: None,
@@ -232,32 +223,19 @@ impl Library {
             end: None,
         };
         self.sound.push(sound.clone());
-        Ok(sound)
+        sound
     }
 
-    /// Adds a sound from audio in memory, like a download. The file gets a safe name made from
-    /// `name`.
+    /// Adds a sound from audio in memory, like a download. The caller decoded it already, so it
+    /// is known to play. The file gets a safe name made from `name`.
     pub fn add_bytes(&mut self, name: &str, ext: &str, data: &[u8], icon: &str) -> anyhow::Result<Sound> {
-        decode_bytes(data.to_vec(), ext)?;
         let dir = dir();
         std::fs::create_dir_all(&dir)?;
         let stem: String = name.chars().map(|c| if c.is_alphanumeric() { c.to_ascii_lowercase() } else { '-' }).collect();
         let stem = stem.trim_matches('-');
         let target = free_path(&dir, if stem.is_empty() { "sound" } else { stem }, &format!(".{ext}"));
         std::fs::write(&target, data)?;
-        let sound = Sound {
-            id: self.new_id(),
-            name: name.to_string(),
-            icon: icon.to_string(),
-            file: Some(target.file_name().unwrap().to_string_lossy().to_string()),
-            builtin: None,
-            volume: 1.0,
-            mode: None,
-            start: 0.0,
-            end: None,
-        };
-        self.sound.push(sound.clone());
-        Ok(sound)
+        Ok(self.add_file(target.file_name().unwrap().to_string_lossy().to_string(), name, icon))
     }
 
     /// Takes a sound out of the list, with where it was. Its file stays, for Undo.
@@ -319,6 +297,21 @@ pub fn load(sound: &Sound) -> anyhow::Result<Arc<SoundData>> {
     }
     let file = sound.file.as_ref().ok_or_else(|| anyhow::anyhow!("sound has no file"))?;
     decode(&dir().join(file)).map(Arc::new)
+}
+
+/// Copies an audio file into the soundboard folder and gives back the new file name and a name
+/// for the sound. It decodes the file first, so broken files are refused right away. That takes
+/// a moment: run it off the main thread, then add the file with [`Library::add_file`].
+pub fn copy_in(path: &Path) -> anyhow::Result<(String, String)> {
+    decode(path)?;
+    let dir = dir();
+    std::fs::create_dir_all(&dir)?;
+    path.file_name().ok_or_else(|| anyhow::anyhow!("no file name"))?;
+    let stem = path.file_stem().unwrap_or_default().to_string_lossy();
+    let ext = path.extension().map(|e| format!(".{}", e.to_string_lossy())).unwrap_or_default();
+    let target = free_path(&dir, &stem, &ext);
+    std::fs::copy(path, &target)?;
+    Ok((target.file_name().unwrap().to_string_lossy().to_string(), stem.replace(['_', '-'], " ")))
 }
 
 /// What plays of a sound: its cut, or without one, all but the silent edges.
