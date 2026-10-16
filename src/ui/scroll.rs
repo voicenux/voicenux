@@ -11,8 +11,8 @@ use gtk::{cairo, gdk, glib};
 
 /// How fast a glide reaches its target: the time it takes for about two thirds of the way.
 const GLIDE: f64 = 0.07;
-/// Autoscroll does nothing this close to where the middle click was.
-const DEAD_ZONE: f64 = 12.0;
+/// Autoscroll does nothing this close to where the middle click was. Like Chrome.
+const DEAD_ZONE: f64 = 15.0;
 /// Size of the mark where the middle click was.
 const MARK: i32 = 28;
 
@@ -118,9 +118,10 @@ impl Scroller {
         }
         if let Some(anchor) = self.anchor.get() {
             let d = self.pointer.get() - anchor;
-            let far = (d.abs() - DEAD_ZONE).max(0.0);
-            self.set_cursor(if far == 0.0 { Pan::Both } else if d < 0.0 { Pan::Up } else { Pan::Down });
-            let speed = d.signum() * far.powf(1.3) * 2.5;
+            let far = d.abs() > DEAD_ZONE;
+            self.set_cursor(if !far { Pan::Both } else if d < 0.0 { Pan::Up } else { Pan::Down });
+            // Pixels a second, like Chrome: 0.04 × distance^2.2.
+            let speed = if far { d.signum() * 0.04 * d.abs().powf(2.2) } else { 0.0 };
             let v = (self.adj.value() + speed * dt).clamp(self.adj.lower(), self.max());
             self.target.set(v);
             self.set_value(v);
