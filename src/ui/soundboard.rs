@@ -154,6 +154,9 @@ pub fn build(st: &St) -> SoundboardPage {
         .transition_duration(260)
         .child(&finder)
         .build();
+    // The entry in the panel wants to grow, and the revealer would take that over: closed, it
+    // would still get half of the free width, and the grid only the other half.
+    reveal.set_hexpand(false);
     find.connect_toggled({
         let st = st.clone();
         let reveal = reveal.clone();
