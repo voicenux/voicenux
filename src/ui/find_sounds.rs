@@ -135,6 +135,18 @@ pub fn panel(st: &St) -> (gtk::Box, gtk::SearchEntry) {
         let finder = Rc::downgrade(&finder);
         move |a, b| finder.upgrade().map_or(std::cmp::Ordering::Equal, |f| f.order(a, b)).into()
     });
+    // A click anywhere on a row listens, like its play button. Clicks on the buttons stay theirs.
+    finder.list.connect_row_activated({
+        let finder = Rc::downgrade(&finder);
+        move |_, row| {
+            let Some(me) = finder.upgrade() else { return };
+            let found = me.rows.borrow().get(row).map(|(_, f)| f.clone());
+            let play = row.child().and_then(|b| b.first_child()).and_downcast::<gtk::Button>();
+            if let (Some(f), Some(play)) = (found, play) {
+                me.listen(&f, &play);
+            }
+        }
+    });
     sort.connect_selected_notify({
         let finder = finder.clone();
         move |d| {
@@ -321,8 +333,8 @@ impl Finder {
         b.append(&text);
         b.append(&add);
         let row = gtk::ListBoxRow::new();
-        row.set_activatable(false);
         row.set_child(Some(&b));
+        row.set_cursor_from_name(Some("pointer"));
 
         let f = Rc::new(f.clone());
         play.connect_clicked({
