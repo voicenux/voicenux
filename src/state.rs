@@ -605,9 +605,7 @@ impl State {
         std::thread::spawn({
             let sound = sound.clone();
             move || {
-                let data = soundboard::load(&sound).map(|d| {
-                    if sound.is_trimmed() { Arc::new(soundboard::trim(&d, sound.start, sound.end)) } else { d }
-                });
+                let data = soundboard::load(&sound).map(|d| soundboard::playable(&sound, d));
                 let _ = tx.send_blocking(data);
             }
         });

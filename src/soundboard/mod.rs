@@ -293,6 +293,32 @@ pub fn load(sound: &Sound) -> anyhow::Result<Arc<SoundData>> {
     decode(&dir().join(file)).map(Arc::new)
 }
 
+/// What plays of a sound: its cut, or without one, all but the silent edges.
+pub fn playable(sound: &Sound, data: Arc<SoundData>) -> Arc<SoundData> {
+    if sound.is_trimmed() {
+        return Arc::new(trim(&data, sound.start, sound.end));
+    }
+    let (start, end) = audible(&data);
+    if start == 0.0 && end == data.frames.len() as f32 / RATE as f32 {
+        return data;
+    }
+    Arc::new(trim(&data, start, Some(end)))
+}
+
+/// Where a sound starts and ends, in seconds: without the silent edges (under -60 dB), with
+/// 10 ms to spare. All of it when it is silent all through.
+pub fn audible(data: &SoundData) -> (f32, f32) {
+    const SILENCE: f32 = 0.001;
+    let len = data.frames.len();
+    let loud = |f: &[f32; 2]| f[0].abs().max(f[1].abs()) > SILENCE;
+    let (Some(a), Some(b)) = (data.frames.iter().position(loud), data.frames.iter().rposition(loud)) else {
+        return (0.0, len as f32 / RATE as f32);
+    };
+    let spare = RATE as usize / 100;
+    let (a, b) = (a.saturating_sub(spare), (b + 1 + spare).min(len));
+    (a as f32 / RATE as f32, b as f32 / RATE as f32)
+}
+
 /// The part of a sound from `start` to `end`, in seconds. Where it is cut, it fades in or out
 /// over 5 ms, so the cut does not click.
 pub fn trim(data: &SoundData, start: f32, end: Option<f32>) -> SoundData {
@@ -553,6 +579,27 @@ mod tests {
         // Out of range or the wrong way round gives a short or empty sound, never a crash.
         assert!(trim(&data, 5.0, Some(9.0)).frames.is_empty());
         assert!(trim(&data, 1.5, Some(0.5)).frames.is_empty());
+    }
+
+    #[test]
+    fn silent_edges_do_not_play() {
+        // 0.5 s of nothing, 0.2 s of sound with a quiet hiss after it, 0.3 s of nothing.
+        let mut frames = vec![[0.0f32, 0.0]; RATE as usize];
+        for f in &mut frames[RATE as usize / 2..RATE as usize * 7 / 10] {
+            *f = [0.4, -0.4];
+        }
+        frames[RATE as usize * 7 / 10] = [0.0005, 0.0];
+        let data = Arc::new(SoundData { frames });
+        let (a, b) = audible(&data);
+        assert!((a - 0.49).abs() < 0.001 && (b - 0.71).abs() < 0.001, "{a} {b}");
+        let mut sound = Library::starter().sound.remove(0);
+        assert!((playable(&sound, data.clone()).seconds() - 0.22).abs() < 0.001);
+        // A cut of your own plays as it is, silence and all.
+        sound.start = 0.1;
+        assert!((playable(&sound, data.clone()).seconds() - 0.9).abs() < 0.001);
+        // Silent all through: nothing to go by, so all of it.
+        let quiet = Arc::new(SoundData { frames: vec![[0.0, 0.0]; 4800] });
+        assert_eq!(audible(&quiet), (0.0, 0.1));
     }
 
     #[test]

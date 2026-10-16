@@ -79,6 +79,8 @@ struct Trim {
     peaks: Vec<f32>,
     /// All of the sound, in seconds.
     length: f32,
+    /// The sound without its silent edges: what plays without a cut.
+    whole: (f32, f32),
     start: Cell<f32>,
     end: Cell<f32>,
     /// The cut as it is saved, to know if there is something to lose.
@@ -188,8 +190,10 @@ pub fn open(st: &St, id: &str, parent: &impl IsA<gtk::Widget>) {
     }
 
     let dialog = adw::Dialog::builder().content_width(680).build();
-    let start = sound.start.clamp(0.0, length - SHORTEST);
-    let mut end = sound.end.unwrap_or(length).clamp(SHORTEST, length);
+    let whole = soundboard::audible(&data);
+    let (start, end) = if sound.is_trimmed() { (sound.start, sound.end.unwrap_or(length)) } else { whole };
+    let start = start.clamp(0.0, length - SHORTEST);
+    let mut end = end.clamp(SHORTEST, length);
     if end <= start {
         end = length;
     }
@@ -204,6 +208,7 @@ pub fn open(st: &St, id: &str, parent: &impl IsA<gtk::Widget>) {
         peaks: soundboard::peaks(&data, (data.frames.len() / 32).clamp(PEAKS.0, PEAKS.1)),
         data,
         length,
+        whole,
         start: Cell::new(start),
         end: Cell::new(end),
         saved: (start, end),
@@ -268,8 +273,8 @@ pub fn open(st: &St, id: &str, parent: &impl IsA<gtk::Widget>) {
         move |_| {
             if let Some(e) = with() {
                 e.remember();
-                e.set(Side::Start, 0.0);
-                e.set(Side::End, e.length);
+                e.set(Side::Start, e.whole.0);
+                e.set(Side::End, e.whole.1);
             }
         }
     });
@@ -892,9 +897,11 @@ impl Trim {
         self.stop();
         let Some(mut sound) = self.st.library.borrow().find(&self.id).cloned() else { return };
         let (start, end) = (self.start.get(), self.end.get());
-        // A hair from the edge counts as no cut.
-        sound.start = if start < 0.005 { 0.0 } else { start };
-        sound.end = if end > self.length - 0.005 { None } else { Some(end) };
+        // A hair from the edge counts as no cut, and so does all of it but the silence.
+        let near = |a: f32, b: f32| (a - b).abs() < 0.005;
+        let whole = near(start, self.whole.0) && near(end, self.whole.1);
+        sound.start = if start < 0.005 || whole { 0.0 } else { start };
+        sound.end = if end > self.length - 0.005 || whole { None } else { Some(end) };
         self.st.update_sound(sound);
     }
 
