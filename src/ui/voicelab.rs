@@ -182,7 +182,7 @@ pub fn build(st: &St) -> Lab {
                         popup::show_list(&r, x, y, vec![
                             popup::Item::new("object-select-symbolic", t("Use voice"), move || st1.set_voice(&id1)),
                             popup::Item::new("edit-copy-symbolic", t("Duplicate"), move || duplicate(&st2, &id2)),
-                            popup::Item::new("user-trash-symbolic", t("Delete…"), move || {
+                            popup::Item::new("user-trash-symbolic", t("Delete"), move || {
                                 if let Some(p) = parent.upgrade() {
                                     ask_delete(&st3, &id3, &name, &p);
                                 }

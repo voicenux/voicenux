@@ -1610,9 +1610,6 @@ msgstr "Mehr"
 msgid "Sort by name"
 msgstr "Nach Namen sortieren"
 
-msgid "Delete…"
-msgstr "Löschen …"
-
 msgid "Turn off"
 msgstr "Ausschalten"
 
