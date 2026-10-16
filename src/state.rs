@@ -868,13 +868,19 @@ impl State {
     }
 
     /// Sorts the soundboard by name, as the user reads them.
-    pub fn sort_sounds(&self) {
-        {
-            let mut lib = self.library.borrow_mut();
-            lib.sound.sort_by_cached_key(|s| crate::i18n::t_dyn(&s.name).to_lowercase());
-            lib.save();
-        }
+    /// Shows the soundboard by name, or in your own order again. Your order stays as it is.
+    pub fn set_sounds_by_name(self: &Rc<Self>, on: bool) {
+        self.update(|c| c.sounds_by_name = on);
         self.notify(Change::Sounds);
+    }
+
+    /// The sounds in the order the soundboard shows them.
+    pub fn sounds_shown(&self) -> Vec<soundboard::Sound> {
+        let mut sounds = self.library.borrow().sound.clone();
+        if self.config.borrow().sounds_by_name {
+            sounds.sort_by_cached_key(|s| crate::i18n::t_dyn(&s.name).to_lowercase());
+        }
+        sounds
     }
 
     pub fn restore_starter_sounds(self: &Rc<Self>) {

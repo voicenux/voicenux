@@ -1622,6 +1622,9 @@ msgstr "Mehr"
 msgid "Sort by name"
 msgstr "Nach Namen sortieren"
 
+msgid "Your own order"
+msgstr "Eigene Reihenfolge"
+
 msgid "Turn off"
 msgstr "Ausschalten"
 

@@ -38,6 +38,8 @@ pub struct Config {
     pub sound_volume: f32,
     /// What a click on a sound does, for the sounds without a mode of their own.
     pub sound_mode: PlayMode,
+    /// The soundboard shows its sounds by name, not in the order you gave them.
+    pub sounds_by_name: bool,
     pub favorites: Vec<String>,
     /// Changed settings of built-in voices, by voice id.
     pub tweaks: BTreeMap<String, Vec<BlockDef>>,
@@ -88,6 +90,7 @@ impl Default for Config {
             hear_sounds: true,
             sound_volume: 0.8,
             sound_mode: PlayMode::Restart,
+            sounds_by_name: false,
             favorites: Vec::new(),
             tweaks: BTreeMap::new(),
             shortcuts: BTreeMap::new(),

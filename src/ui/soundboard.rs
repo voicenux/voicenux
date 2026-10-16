@@ -241,7 +241,7 @@ pub fn build(st: &St) -> SoundboardPage {
             });
             clear(&grid);
             pads.borrow_mut().clear();
-            let sounds = st.library.borrow().sound.clone();
+            let sounds = st.sounds_shown();
             for (i, s) in sounds.iter().enumerate() {
                 let p = pad(&st, s);
                 grid.append(&p.child);
@@ -276,7 +276,8 @@ pub fn build(st: &St) -> SoundboardPage {
             let Some(id) = pads.borrow().iter().find(|(_, p)| p.child == child).map(|(id, _)| id.clone()) else {
                 return glib::Propagation::Proceed;
             };
-            let alt = mods.contains(gdk::ModifierType::ALT_MASK);
+            // Sorted by name, moving would only change an order you do not see.
+            let alt = mods.contains(gdk::ModifierType::ALT_MASK) && !st.config.borrow().sounds_by_name;
             match key {
                 gdk::Key::Delete | gdk::Key::KP_Delete => st.remove_sound(&id),
                 gdk::Key::Left | gdk::Key::KP_Left if alt => st.shift_sound(&id, false),
@@ -436,12 +437,21 @@ fn more_button(st: &St, add: Rc<dyn Fn()>) -> gtk::MenuButton {
     let b = gtk::MenuButton::new();
     b.set_icon_name("view-more-symbolic");
     b.set_tooltip_text(Some(t("More")));
-    let (st1, st2) = (st.clone(), st.clone());
-    b.set_popover(Some(&popup::list(vec![
-        popup::Item::new("list-add-symbolic", t("Add audio files"), move || add()),
-        popup::Item::new("view-sort-ascending-symbolic", t("Sort by name"), move || st1.sort_sounds()),
-        popup::Item::new("edit-undo-symbolic", t("Bring back the starter sounds"), move || st2.restore_starter_sounds()),
-    ])));
+    // Made new each time it opens: the sort item says what it switches to.
+    let st = st.clone();
+    b.set_create_popup_func(move |b| {
+        let (st1, st2, add) = (st.clone(), st.clone(), add.clone());
+        let sort = if st.config.borrow().sounds_by_name {
+            popup::Item::new("view-list-symbolic", t("Your own order"), move || st1.set_sounds_by_name(false))
+        } else {
+            popup::Item::new("view-sort-ascending-symbolic", t("Sort by name"), move || st1.set_sounds_by_name(true))
+        };
+        b.set_popover(Some(&popup::list(vec![
+            popup::Item::new("list-add-symbolic", t("Add audio files"), move || add()),
+            sort,
+            popup::Item::new("edit-undo-symbolic", t("Bring back the starter sounds"), move || st2.restore_starter_sounds()),
+        ])));
+    });
     b
 }
 
@@ -653,8 +663,12 @@ fn reorder(st: &St, child: &gtk::FlowBoxChild, pad: &gtk::Box, id: &str) {
     // Where the pad was grabbed, so the picture under the pointer hangs from the same spot.
     let grabbed = Rc::new(Cell::new((0.0, 0.0)));
     drag.connect_prepare({
-        let (grabbed, id) = (grabbed.clone(), id.to_string());
+        let (st, grabbed, id) = (st.clone(), grabbed.clone(), id.to_string());
         move |_, x, y| {
+            // Sorted by name, a drop would only change an order you do not see.
+            if st.config.borrow().sounds_by_name {
+                return None;
+            }
             grabbed.set((x, y));
             Some(gdk::ContentProvider::for_value(&id.to_value()))
         }
