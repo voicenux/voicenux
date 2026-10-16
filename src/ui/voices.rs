@@ -453,8 +453,17 @@ fn card(st: &St, v: &Voice, open_lab: &OpenLab) -> Card {
     overlay.add_overlay(&keys);
 
     let mut tip = t_dyn(&v.description);
-    // AI voices: gray without a graphics card, with a download mark until they are there.
+    // AI voices: marked, gray without a graphics card, with a download mark until they are there.
     if let Some(model) = crate::ai::model_of(&v.block_values()) {
+        let mark = label(t("AI"), &["vn-ai-mark"]);
+        mark.set_halign(gtk::Align::Start);
+        mark.set_valign(gtk::Align::Start);
+        mark.set_margin_top(10);
+        mark.set_margin_start(10);
+        mark.set_can_target(false);
+        overlay.add_overlay(&mark);
+        // The shortcut goes under the mark.
+        keys.set_margin_top(34);
         if !crate::ai::usable() {
             card.add_css_class("vn-ai-off");
             tip = format!("{tip}\n{}", t("AI voices need an NVIDIA graphics card, or Run on the processor in Settings."));

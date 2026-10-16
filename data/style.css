@@ -1362,6 +1362,18 @@ banner > revealer > widget {
   opacity: 0.45;
 }
 
+/* Every voice that uses AI says so on its card. */
+.vn-ai-mark {
+  padding: 1px 7px;
+  border-radius: 99px;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.4px;
+  color: #ffffff;
+  background-image: var(--vn-grad);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.35);
+}
+
 image.vn-ai-get {
   padding: 6px;
   border-radius: 99px;
