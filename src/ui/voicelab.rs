@@ -228,10 +228,30 @@ pub fn build(st: &St) -> Lab {
     list.connect_row_activated({
         let show_editor = show_editor.clone();
         let st = st.clone();
-        move |_, row| {
+        move |list, row| {
             let id = row.widget_name().to_string();
             st.set_voice(&id);
             show_editor(&id);
+            list.select_row(Some(row));
+        }
+    });
+    // The list marks the open voice. A selection follows the focus, and libadwaita moves the
+    // focus on when a breakpoint changes, like on maximize: then the mark goes back.
+    list.connect_row_selected({
+        let current = current.clone();
+        move |list, row| {
+            let Some(open) = current.borrow().clone() else { return };
+            if row.is_some_and(|r| r.widget_name() == open.as_str()) {
+                return;
+            }
+            let mut child = list.first_child();
+            while let Some(c) = child {
+                if c.widget_name() == open.as_str() {
+                    list.select_row(c.downcast_ref::<gtk::ListBoxRow>());
+                    return;
+                }
+                child = c.next_sibling();
+            }
         }
     });
 

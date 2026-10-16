@@ -1,6 +1,5 @@
 //! The main window: sidebar, pages and the bottom bar.
 
-use std::cell::Cell;
 use std::rc::Rc;
 
 use adw::prelude::*;
@@ -42,11 +41,7 @@ impl Window {
             }
         }
         self.stack.set_visible_child_name(name);
-        if let Some(i) = PAGES.iter().position(|p| p.0 == name)
-            && let Some(row) = self.nav.row_at_index(i as i32)
-        {
-            self.nav.select_row(Some(&row));
-        }
+        mark_page(&self.nav, name);
     }
 
     pub fn toast(&self, text: &str) {
@@ -193,31 +188,20 @@ pub fn build(app: &adw::Application, st: &St) -> Window {
             r.set_tooltip_text(Some(&format!("{} ({}+{})", t_dyn(title), t("Ctrl"), i + 1)));
         }
     }
-    // The icon of the page jumps when you pick it, also by a key, and on a click on the page you
-    // are on. A new animation name starts it again, the same name would not.
-    let jump = |row: &gtk::ListBoxRow| {
-        let a = !row.has_css_class("vn-pick-a");
-        row.remove_css_class(if a { "vn-pick-b" } else { "vn-pick-a" });
-        row.add_css_class(if a { "vn-pick-a" } else { "vn-pick-b" });
-    };
-    // A click selects and then activates: it should jump only once.
-    let picked = Rc::new(Cell::new(false));
-    nav.connect_row_selected({
+    // Only a click or Enter on a page goes there. A selection follows the focus, and libadwaita
+    // moves the focus on when a breakpoint changes, like on maximize: that stepped through the
+    // pages. So the list selects nothing and marks the page itself.
+    nav.set_selection_mode(gtk::SelectionMode::None);
+    nav.connect_row_activated({
         let stack = stack.clone();
-        let picked = picked.clone();
-        move |_, row| {
-            if let Some(row) = row {
-                stack.set_visible_child_name(PAGES[row.index() as usize].0);
+        move |nav, row| {
+            let name = PAGES[row.index() as usize].0;
+            // A click on the page you are on only makes its icon jump.
+            if stack.visible_child_name().as_deref() == Some(name) {
                 jump(row);
-                picked.set(true);
-                let picked = picked.clone();
-                glib::idle_add_local_once(move || picked.set(false));
             }
-        }
-    });
-    nav.connect_row_activated(move |_, row| {
-        if !picked.replace(false) {
-            jump(row);
+            stack.set_visible_child_name(name);
+            mark_page(nav, name);
         }
     });
 
@@ -446,6 +430,31 @@ fn history(win: &Window) {
         }
     });
     window.add_controller(click);
+}
+
+/// The icon of a page jumps when you pick it, also by a key, and on a click on the page you are
+/// on. A new animation name starts it again, the same name would not.
+fn jump(row: &gtk::ListBoxRow) {
+    let a = !row.has_css_class("vn-pick-a");
+    row.remove_css_class(if a { "vn-pick-b" } else { "vn-pick-a" });
+    row.add_css_class(if a { "vn-pick-a" } else { "vn-pick-b" });
+}
+
+/// Marks the page you are on in the sidebar, for the eye and for screen readers.
+fn mark_page(nav: &gtk::ListBox, name: &str) {
+    for (i, (id, ..)) in PAGES.iter().enumerate() {
+        let Some(row) = nav.row_at_index(i as i32) else { continue };
+        let on = *id == name;
+        if on && !row.has_css_class("vn-current") {
+            jump(&row);
+        }
+        if on {
+            row.add_css_class("vn-current");
+        } else {
+            row.remove_css_class("vn-current");
+        }
+        row.update_state(&[gtk::accessible::State::Selected(Some(on))]);
+    }
 }
 
 /// Keeps the size of the window for the next start: its size when not maximized, and whether it
