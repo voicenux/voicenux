@@ -105,6 +105,33 @@ pub fn build(st: &St, open_lab: OpenLab) -> VoicesPage {
     let cards: Rc<RefCell<HashMap<String, Card>>> = Rc::default();
     let order: Rc<RefCell<Vec<String>>> = Rc::default();
 
+    // Favorites come first, in the order you starred them.
+    let rank: Rc<RefCell<HashMap<gtk::FlowBoxChild, usize>>> = Rc::default();
+    grid.set_sort_func({
+        let rank = rank.clone();
+        move |a, b| {
+            let rank = rank.borrow();
+            rank.get(a).cmp(&rank.get(b)).into()
+        }
+    });
+    let resort = {
+        let grid = grid.clone();
+        let cards = cards.clone();
+        let order = order.clone();
+        let st = st.clone();
+        Rc::new(move || {
+            let mut rank = rank.borrow_mut();
+            rank.clear();
+            for (i, id) in sorted(&st, &order.borrow()).iter().enumerate() {
+                if let Some(c) = cards.borrow().get(id) {
+                    rank.insert(c.child.clone(), i);
+                }
+            }
+            drop(rank);
+            grid.invalidate_sort();
+        })
+    };
+
     let refilter = {
         let grid = grid.clone();
         let grid_stack = grid_stack.clone();
@@ -116,7 +143,7 @@ pub fn build(st: &St, open_lab: OpenLab) -> VoicesPage {
             let (cat, query) = filter.borrow().clone();
             let query = query.to_lowercase();
             let mut shown = 0;
-            for id in order.borrow().iter() {
+            for id in sorted(&st, &order.borrow()).iter() {
                 let Some(c) = cards.borrow().get(id).map(|c| c.child.clone()) else { continue };
                 let Some(v) = st.voices.borrow().iter().find(|v| &v.id == id).cloned() else { continue };
                 let in_cat = match cat.as_str() {
@@ -238,6 +265,7 @@ pub fn build(st: &St, open_lab: OpenLab) -> VoicesPage {
         let open_lab = open_lab.clone();
         let refilter = refilter.clone();
         let update_active = update_active.clone();
+        let resort = resort.clone();
         Rc::new(move || {
             clear(&grid);
             cards.borrow_mut().clear();
@@ -250,6 +278,7 @@ pub fn build(st: &St, open_lab: OpenLab) -> VoicesPage {
                 cards.borrow_mut().insert(v.id.clone(), c);
             }
             update_active();
+            resort();
             refilter(true);
         })
     };
@@ -294,6 +323,7 @@ pub fn build(st: &St, open_lab: OpenLab) -> VoicesPage {
         let cards = cards.clone();
         let st = st.clone();
         let detail = detail.clone();
+        let resort = resort.clone();
         move |change| match change {
             Change::Voices => {
                 rebuild_chips();
@@ -327,6 +357,7 @@ pub fn build(st: &St, open_lab: OpenLab) -> VoicesPage {
             Change::Favorites => {
                 update_active();
                 detail.toggles();
+                resort();
                 if filter.borrow().0 == "favorites" {
                     refilter(false);
                 }
@@ -352,6 +383,13 @@ pub fn build(st: &St, open_lab: OpenLab) -> VoicesPage {
         }
     });
     VoicesPage { widget, search, show_current }
+}
+
+/// The voices in the order the grid shows them: favorites first, in the order you starred them.
+fn sorted(st: &St, order: &[String]) -> Vec<String> {
+    let mut ids: Vec<String> = st.config.borrow().favorites.iter().filter(|f| order.contains(f)).cloned().collect();
+    ids.extend(order.iter().filter(|id| !st.is_favorite(id)).cloned());
+    ids
 }
 
 fn refresh_card(c: &Card, v: &Voice) {
