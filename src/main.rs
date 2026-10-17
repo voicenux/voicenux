@@ -7,6 +7,7 @@ mod audio;
 mod config;
 mod dsp;
 mod i18n;
+mod order;
 mod shortcuts;
 mod soundboard;
 mod state;

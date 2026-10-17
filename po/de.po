@@ -2027,9 +2027,6 @@ msgstr "Macht aus deiner Stimme eine Figur, mit einem KI-Modell. Braucht eine NV
 msgid "Character"
 msgstr "Figur"
 
-msgid "Done"
-msgstr "Fertig"
-
 msgid "Stop selecting (Esc)"
 msgstr "Auswahl beenden (Esc)"
 
@@ -2092,3 +2089,27 @@ msgstr "Öffnen"
 
 msgid "Empty"
 msgstr "Leer"
+
+msgid "All voices"
+msgstr "Alle Stimmen"
+
+msgid "Back to all voices (Backspace)"
+msgstr "Zurück zu allen Stimmen (Rücktaste)"
+
+msgid "Deletes your own voices among them. The built-in ones stay."
+msgstr "Löscht deine eigenen Stimmen darunter. Die eingebauten bleiben."
+
+msgid "Drag voices onto the folder, or pick some with Ctrl+click and move them here."
+msgstr "Zieh Stimmen auf den Ordner, oder wähle welche mit Strg+Klick aus und verschiebe sie hierher."
+
+msgid "1 voice"
+msgstr "1 Stimme"
+
+msgid "{} voices"
+msgstr "{} Stimmen"
+
+msgid "Delete {} voices?"
+msgstr "{} Stimmen löschen?"
+
+msgid "They are gone for good."
+msgstr "Sie sind dann für immer weg."

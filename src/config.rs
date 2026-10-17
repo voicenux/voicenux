@@ -41,6 +41,15 @@ pub struct Config {
     /// The soundboard shows its sounds by name, not in the order you gave them.
     pub sounds_by_name: bool,
     pub favorites: Vec<String>,
+    /// Voice folders by name, in the order of their tiles.
+    pub voice_folders: Vec<String>,
+    /// The folder of each voice that is in one, by voice id.
+    pub voice_folder: BTreeMap<String, String>,
+    /// Your own order of the voices, once you moved one. Until then: favorites, your own voices,
+    /// then the built-in ones.
+    pub voice_order: Vec<String>,
+    /// The voice page shows the voices by name, not in your order.
+    pub voices_by_name: bool,
     /// Changed settings of built-in voices, by voice id.
     pub tweaks: BTreeMap<String, Vec<BlockDef>>,
     /// Shortcuts by action name, in the portal's trigger syntax ("CTRL+ALT+v").
@@ -92,6 +101,10 @@ impl Default for Config {
             sound_mode: PlayMode::Restart,
             sounds_by_name: false,
             favorites: Vec::new(),
+            voice_folders: Vec::new(),
+            voice_folder: BTreeMap::new(),
+            voice_order: Vec::new(),
+            voices_by_name: false,
             tweaks: BTreeMap::new(),
             shortcuts: BTreeMap::new(),
             shortcuts_on: false,

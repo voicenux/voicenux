@@ -252,8 +252,7 @@ impl Library {
 
     /// `name`, or with a number after it when a folder has that name already.
     pub fn free_folder_name(&self, name: &str) -> String {
-        let name = name.trim();
-        (1..).map(|i| if i == 1 { name.to_string() } else { format!("{name} {i}") }).find(|n| !self.folders.contains(n)).unwrap()
+        crate::order::free_name(&self.folders, name)
     }
 
     /// Renames a folder, and moves its sounds along. False when the name is empty or taken.
@@ -298,17 +297,7 @@ impl Library {
     /// Moves sounds next to `target`, before or after it, in the order they had. The target may
     /// be one of them: then they go where it was.
     pub fn move_group(&mut self, ids: &[String], target: &str, after: bool) {
-        let Some(at) = self.sound.iter().position(|s| s.id == target) else { return };
-        let moving = |s: &Sound| ids.contains(&s.id);
-        // The place counts only the sounds that stay.
-        let mut to = self.sound[..at].iter().filter(|s| !moving(s)).count();
-        if after && !moving(&self.sound[at]) {
-            to += 1;
-        }
-        let (group, rest): (Vec<Sound>, Vec<Sound>) = std::mem::take(&mut self.sound).into_iter().partition(|s| moving(s));
-        self.sound = rest;
-        let to = to.min(self.sound.len());
-        self.sound.splice(to..to, group);
+        crate::order::move_group(&mut self.sound, |s| s.id.as_str(), ids, target, after);
     }
 }
 

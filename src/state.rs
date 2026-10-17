@@ -31,6 +31,8 @@ pub enum Change {
     Devices,
     Users,
     Sounds,
+    /// Voice folders, or your order of the voices.
+    VoiceShelf,
     /// Sounds were removed, with the text for the note. They can come back until it is gone.
     SoundRemoved { ids: Vec<String>, title: String },
     Settings,
@@ -440,7 +442,12 @@ impl State {
     pub fn delete_custom(self: &Rc<Self>, id: &str) {
         voice::delete_custom(&voice::custom_dir(), id);
         self.voices.borrow_mut().retain(|v| v.id != id);
-        self.config.borrow_mut().favorites.retain(|f| f != id);
+        {
+            let mut c = self.config.borrow_mut();
+            c.favorites.retain(|f| f != id);
+            c.voice_folder.remove(id);
+            c.voice_order.retain(|o| o != id);
+        }
         if self.config.borrow().voice == id {
             self.config.borrow_mut().voice = "baby".into();
             self.send_voice();
@@ -488,6 +495,111 @@ impl State {
         };
         self.save_custom(v.clone());
         v
+    }
+
+    /// The voices in the order the voice page shows them: by name, in your order, or favorites
+    /// first in the order you starred them, then your own voices, then the built-in ones.
+    pub fn voices_shown(&self) -> Vec<String> {
+        let c = self.config.borrow();
+        voice::shown_order(&self.voices.borrow(), &c.favorites, &c.voice_order, c.voices_by_name, |v| {
+            crate::i18n::t_dyn(&v.name)
+        })
+    }
+
+    pub fn voice_folder(&self, id: &str) -> Option<String> {
+        self.config.borrow().voice_folder.get(id).cloned()
+    }
+
+    fn voice_shelf_changed(self: &Rc<Self>) {
+        self.save_later();
+        self.notify(Change::VoiceShelf);
+    }
+
+    /// Makes a voice folder, with a number after the name when it is taken. Gives back its name.
+    pub fn add_voice_folder(self: &Rc<Self>, name: &str) -> String {
+        let name = {
+            let mut c = self.config.borrow_mut();
+            let name = crate::order::free_name(&c.voice_folders, name);
+            c.voice_folders.push(name.clone());
+            name
+        };
+        self.voice_shelf_changed();
+        name
+    }
+
+    /// False when the new name is empty or another folder has it.
+    pub fn rename_voice_folder(self: &Rc<Self>, old: &str, new: &str) -> bool {
+        let new = new.trim();
+        {
+            let mut c = self.config.borrow_mut();
+            if new.is_empty() || (new != old && c.voice_folders.iter().any(|f| f == new)) {
+                return false;
+            }
+            for f in c.voice_folders.iter_mut().filter(|f| *f == old) {
+                *f = new.to_string();
+            }
+            for f in c.voice_folder.values_mut().filter(|f| *f == old) {
+                *f = new.to_string();
+            }
+        }
+        self.voice_shelf_changed();
+        true
+    }
+
+    /// Removes a voice folder. Its voices stay, in no folder.
+    pub fn remove_voice_folder(self: &Rc<Self>, name: &str) {
+        {
+            let mut c = self.config.borrow_mut();
+            c.voice_folders.retain(|f| f != name);
+            c.voice_folder.retain(|_, f| f != name);
+        }
+        self.voice_shelf_changed();
+    }
+
+    /// Puts voices in a folder, or in none.
+    pub fn voices_to_folder(self: &Rc<Self>, ids: &[String], folder: Option<&str>) {
+        {
+            let mut c = self.config.borrow_mut();
+            for id in ids {
+                match folder {
+                    Some(f) => c.voice_folder.insert(id.clone(), f.to_string()),
+                    None => c.voice_folder.remove(id),
+                };
+            }
+        }
+        self.voice_shelf_changed();
+    }
+
+    /// Moves voices next to another one, together and in the order they had. From then on the
+    /// voice page keeps your order.
+    pub fn move_voices(self: &Rc<Self>, ids: &[String], target: &str, after: bool) {
+        let mut order = self.voices_shown();
+        crate::order::move_group(&mut order, |s| s.as_str(), ids, target, after);
+        self.config.borrow_mut().voice_order = order;
+        self.voice_shelf_changed();
+    }
+
+    /// Shows the voices by name, or in your order again. Your order stays as it is.
+    pub fn set_voices_by_name(self: &Rc<Self>, on: bool) {
+        self.config.borrow_mut().voices_by_name = on;
+        self.voice_shelf_changed();
+    }
+
+    /// Makes all these voices favorites, or none of them.
+    pub fn set_favorites(self: &Rc<Self>, ids: &[String], on: bool) {
+        {
+            let mut c = self.config.borrow_mut();
+            for id in ids {
+                let has = c.favorites.contains(id);
+                if on && !has {
+                    c.favorites.push(id.clone());
+                } else if !on && has {
+                    c.favorites.retain(|f| f != id);
+                }
+            }
+        }
+        self.save_later();
+        self.notify(Change::Favorites);
     }
 
     pub fn is_favorite(&self, id: &str) -> bool {

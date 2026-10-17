@@ -528,6 +528,11 @@ flowboxchild:hover .sound-pad {
   box-shadow: inset 0 1px 0 var(--vn-glass-edge), inset 0 0 0 2px var(--accent-bg-color), inset 0 0 0 0 transparent;
 }
 
+.voice-card.vn-selected {
+  background-color: color-mix(in srgb, var(--accent-bg-color) 18%, var(--vn-card));
+  box-shadow: inset 0 1px 0 var(--vn-glass-edge), inset 0 0 0 2px var(--accent-bg-color);
+}
+
 .vn-pad-check {
   min-width: 22px;
   min-height: 22px;
@@ -537,8 +542,8 @@ flowboxchild:hover .sound-pad {
   -gtk-icon-size: 14px;
 }
 
-/* Folders on the soundboard: a glass folder, the pictures of its sounds peeking out and
-   showing through the front. On hover the front dips a little, and it opens for a drop. */
+/* Folders: a glass folder, the pictures of what is in it peeking out and showing through the
+   front. On hover the front dips a little, and it opens for a drop. */
 .vn-folder-front {
   transition: transform 260ms cubic-bezier(.2, .9, .3, 1.4);
 }
@@ -547,7 +552,7 @@ flowboxchild:hover .vn-folder .vn-folder-front {
   transform: translateY(3px);
 }
 
-.vn-folder.vn-drop-into .vn-folder-front {
+flowboxchild.vn-drop-into .vn-folder-front {
   transform: translateY(8px);
 }
 
@@ -559,10 +564,19 @@ flowboxchild:hover .vn-folder .vn-folder-front {
   transform: rotate(14deg);
 }
 
-/* GTK frames a drop target while something is dragged over it. The soundboard shows itself
-   where a sound lands: a bar between pads, an opening folder, or All sounds lit up. */
+/* The bar for picked tiles, under the grid. */
+.vn-picks-bar {
+  padding: 8px 16px;
+  border-top: 1px solid var(--vn-line);
+  background-color: var(--vn-glass);
+  box-shadow: inset 0 1px 0 var(--vn-glass-edge);
+}
+
+/* GTK frames a drop target while something is dragged over it. The grids show themselves where
+   a tile lands: a bar between tiles, an opening folder, or All sounds lit up. */
 stack.vn-pad-area:drop(active),
 flowbox.vn-pads > flowboxchild:drop(active),
+flowbox.vn-grid > flowboxchild:drop(active),
 button.vn-up:drop(active) {
   box-shadow: none;
 }
@@ -577,8 +591,12 @@ button.vn-up.vn-drop-into {
   box-shadow: inset 0 0 0 2px var(--accent-bg-color);
 }
 
-.sound-pad.vn-drop-into {
+flowboxchild.vn-drop-into .sound-pad {
   box-shadow: inset 0 1px 0 var(--vn-glass-edge), inset 0 0 0 2px var(--accent-bg-color), inset 0 0 22px -4px var(--vn-glow);
+}
+
+flowboxchild.vn-drop-into .voice-card {
+  box-shadow: inset 0 0 0 2px var(--accent-bg-color), inset 0 0 22px -4px var(--vn-glow);
 }
 
 .vn-folder-title {
@@ -589,6 +607,10 @@ button.vn-up.vn-drop-into {
 /* The first match of a search: Enter plays it. */
 .sound-pad.vn-first {
   box-shadow: inset 0 1px 0 var(--vn-glass-edge), inset 0 0 0 2px color-mix(in srgb, var(--accent-bg-color) 75%, transparent), inset 0 0 0 0 transparent;
+}
+
+.voice-card.vn-first {
+  box-shadow: inset 0 1px 0 var(--vn-glass-edge), inset 0 0 0 2px color-mix(in srgb, var(--accent-bg-color) 75%, transparent);
 }
 
 .sound-pad.playing,
@@ -1351,11 +1373,13 @@ statuspage image.icon {
   opacity: 0.35;
 }
 
-flowboxchild.vn-drop-before .sound-pad {
+flowboxchild.vn-drop-before .sound-pad,
+flowboxchild.vn-drop-before .voice-card {
   box-shadow: inset 4px 0 0 var(--accent-bg-color), inset 0 0 0 1px var(--vn-line);
 }
 
-flowboxchild.vn-drop-after .sound-pad {
+flowboxchild.vn-drop-after .sound-pad,
+flowboxchild.vn-drop-after .voice-card {
   box-shadow: inset -4px 0 0 var(--accent-bg-color), inset 0 0 0 1px var(--vn-line);
 }
 

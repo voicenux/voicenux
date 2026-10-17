@@ -202,11 +202,55 @@ pub fn new_id(name: &str, taken: &[&str]) -> String {
     id
 }
 
+/// The order of the voice page: by name, in your own order, or favorites first in the order you
+/// starred them, then your own voices, then the built-in ones. Voices that came after you set
+/// your order keep their usual place behind it. `name` is the name people read.
+pub fn shown_order(voices: &[Voice], favorites: &[String], order: &[String], by_name: bool, name: impl Fn(&Voice) -> String) -> Vec<String> {
+    if by_name {
+        let mut ids: Vec<(String, String)> = voices.iter().map(|v| (name(v).to_lowercase(), v.id.clone())).collect();
+        ids.sort();
+        return ids.into_iter().map(|(_, id)| id).collect();
+    }
+    let mut usual: Vec<String> = favorites.iter().filter(|f| voices.iter().any(|v| &v.id == *f)).cloned().collect();
+    let mut rest: Vec<&Voice> = voices.iter().filter(|v| !favorites.contains(&v.id)).collect();
+    rest.sort_by_key(|v| v.builtin);
+    usual.extend(rest.into_iter().map(|v| v.id.clone()));
+    if order.is_empty() {
+        return usual;
+    }
+    let mut ids: Vec<String> = order.iter().filter(|id| usual.contains(id)).cloned().collect();
+    let known: std::collections::HashSet<String> = ids.iter().cloned().collect();
+    ids.extend(usual.into_iter().filter(|id| !known.contains(id)));
+    ids
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
     use crate::dsp::chain::Chain;
     use crate::dsp::{BuildCtx, Ctx};
+
+    #[test]
+    fn the_voice_page_keeps_your_order() {
+        let mut voices: Vec<Voice> = builtin().into_iter().take(3).collect();
+        let ids: Vec<String> = voices.iter().map(|v| v.id.clone()).collect();
+        let mut own = voices[0].clone();
+        own.id = "mine".into();
+        own.builtin = false;
+        voices.push(own);
+        let name = |v: &Voice| v.id.clone();
+        // Favorites first, then your own voices, then the built-in ones.
+        let favs = vec![ids[2].clone()];
+        assert_eq!(shown_order(&voices, &favs, &[], false, name), [ids[2].as_str(), "mine", &ids[0], &ids[1]]);
+        // Your order, with a voice it does not know yet behind, and gone ones left out.
+        let order = vec![ids[1].clone(), "gone".into(), ids[0].clone(), "mine".into()];
+        assert_eq!(shown_order(&voices, &favs, &order, false, name), [ids[1].as_str(), &ids[0], "mine", &ids[2]]);
+        // By name.
+        let mut sorted = ids.clone();
+        sorted.push("mine".into());
+        sorted.sort();
+        assert_eq!(shown_order(&voices, &favs, &order, true, name), sorted);
+    }
 
     #[test]
     fn builtin_voices_are_valid() {

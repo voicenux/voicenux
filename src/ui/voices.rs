@@ -5,12 +5,12 @@ use std::collections::HashMap;
 use std::rc::Rc;
 
 use adw::prelude::*;
-use gtk::glib;
+use gtk::{gdk, glib};
 
 use super::visuals::Orb;
-use super::{animate_in, cat_class, clear, icon, label, popup, smooth_scroll, value_field};
+use super::{animate_in, board, cat_class, clear, icon, label, popup, smooth_scroll, value_field};
 use crate::dsp::blocks::{self, Kind};
-use crate::i18n::{t, t_dyn};
+use crate::i18n::{fill, t, t_dyn};
 use crate::state::{Change, St};
 use crate::voice::{CATEGORIES, Voice, category};
 
@@ -20,6 +20,9 @@ struct Card {
     star: gtk::Button,
     /// The shortcut of the voice, as a key cap in the corner.
     keys: gtk::Label,
+    /// Marks in the top left corner. A check takes their place while the voice is picked.
+    marks: Vec<gtk::Widget>,
+    check: gtk::Image,
 }
 
 pub struct VoicesPage {
@@ -32,7 +35,52 @@ pub struct VoicesPage {
 /// Called with a voice id when someone wants to edit a voice in Voicelab.
 pub type OpenLab = Rc<dyn Fn(&str)>;
 
+/// The voices as a shelf with folders, for the grid that `board` shares with the soundboard.
+struct VoiceShelf(St);
+
+impl board::Shelf for VoiceShelf {
+    fn folders(&self) -> Vec<String> {
+        self.0.config.borrow().voice_folders.clone()
+    }
+
+    fn folder_of(&self, id: &str) -> Option<String> {
+        self.0.voice_folder(id)
+    }
+
+    fn order(&self) -> Vec<String> {
+        self.0.voices_shown()
+    }
+
+    fn add_folder(&self, name: &str) -> String {
+        self.0.add_voice_folder(name)
+    }
+
+    fn rename_folder(&self, old: &str, new: &str) -> bool {
+        self.0.rename_voice_folder(old, new)
+    }
+
+    fn remove_folder(&self, name: &str) {
+        self.0.remove_voice_folder(name)
+    }
+
+    fn move_to_folder(&self, ids: &[String], folder: Option<&str>) {
+        self.0.voices_to_folder(ids, folder)
+    }
+
+    fn move_items(&self, ids: &[String], target: &str, after: bool) {
+        self.0.move_voices(ids, target, after)
+    }
+
+    fn note(&self, text: String) {
+        self.0.notify(Change::Notice(text))
+    }
+}
+
+/// Folders look like voice cards.
+const FOLDER_LOOK: board::TileLook = board::TileLook { card: "voice-card", size: (124, 146), title: "voice-name" };
+
 pub fn build(st: &St, open_lab: OpenLab) -> VoicesPage {
+    let shelf: board::Shared = Rc::new(VoiceShelf(st.clone()));
     let header = adw::HeaderBar::new();
     // The tools sit on the left, in line with the page. The rest of the bar is for dragging.
     header.set_show_title(false);
@@ -83,13 +131,36 @@ pub fn build(st: &St, open_lab: OpenLab) -> VoicesPage {
         .description(t("Try another word or category."))
         .build();
     let grid_stack = gtk::Stack::new();
+    grid_stack.add_css_class("vn-pad-area");
     grid_stack.set_transition_type(gtk::StackTransitionType::Crossfade);
     grid_stack.add_named(&grid_scroll, Some("grid"));
     grid_stack.add_named(&empty, Some("empty"));
 
+    // In a folder: the way back up over the grid. Drop a voice on it to take it out.
+    let path = board::path_bar(t("All voices"), t("Back to all voices (Backspace)"));
+    // And the bar for picked voices under the grid.
+    let picks = Rc::new(board::Picks::default());
+    let count = label("", &["heading"]);
+    let done = gtk::Button::new();
+    let delete = gtk::Button::with_label(t("Delete"));
+    delete.add_css_class("destructive-action");
+    delete.set_tooltip_text(Some(t("Deletes your own voices among them. The built-in ones stay.")));
+    let move_to = gtk::MenuButton::new();
+    move_to.set_label(t("Move to folder"));
+    move_to.set_always_show_arrow(true);
+    let star_all = gtk::Button::new();
+    let select_all = gtk::Button::with_label(t("Select all"));
+    select_all.set_tooltip_text(Some(&super::with_key(t("Select all"), "A")));
+    let picks_bar = board::picks_bar(
+        &done,
+        &count,
+        &[select_all.upcast_ref(), star_all.upcast_ref(), move_to.upcast_ref(), delete.upcast_ref()],
+    );
+
     let left = gtk::Box::new(gtk::Orientation::Vertical, 0);
     left.set_hexpand(true);
     left.append(&chips);
+    left.append(&path.widget);
     left.append(&grid_stack);
 
     let detail = Detail::new(st, open_lab.clone());
@@ -101,11 +172,25 @@ pub fn build(st: &St, open_lab: OpenLab) -> VoicesPage {
     let widget = adw::ToolbarView::new();
     widget.add_top_bar(&header);
     widget.set_content(Some(&body));
+    widget.add_bottom_bar(&picks_bar);
+    widget.set_reveal_bottom_bars(false);
 
     let cards: Rc<RefCell<HashMap<String, Card>>> = Rc::default();
-    let order: Rc<RefCell<Vec<String>>> = Rc::default();
+    // The folder the grid shows, None for the top. Folders sit at the start of the grid.
+    let shown: Rc<RefCell<Option<String>>> = Rc::default();
+    let tiles: board::Folders = Rc::default();
+    // The first card that matches the search, top left: Enter in the search uses it.
+    let first: Rc<RefCell<Option<String>>> = Rc::default();
+    let item_of: board::ItemOf = Rc::new({
+        let cards = cards.clone();
+        move |w: &gtk::Widget| cards.borrow().iter().find(|(_, c)| c.child.upcast_ref::<gtk::Widget>() == w).map(|(id, _)| id.clone())
+    });
+    let faces: board::Faces = Rc::new({
+        let cards = cards.clone();
+        move |id: &str| cards.borrow().get(id).map(|c| (c.child.clone(), c.card.clone().upcast()))
+    });
 
-    // Favorites come first, in the order you starred them.
+    // Folders first, then the voices in the order of the voice page.
     let rank: Rc<RefCell<HashMap<gtk::FlowBoxChild, usize>>> = Rc::default();
     grid.set_sort_func({
         let rank = rank.clone();
@@ -115,16 +200,17 @@ pub fn build(st: &St, open_lab: OpenLab) -> VoicesPage {
         }
     });
     let resort = {
-        let grid = grid.clone();
-        let cards = cards.clone();
-        let order = order.clone();
-        let st = st.clone();
+        let (grid, cards, tiles, st) = (grid.clone(), cards.clone(), tiles.clone(), st.clone());
         Rc::new(move || {
             let mut rank = rank.borrow_mut();
             rank.clear();
-            for (i, id) in sorted(&st, &order.borrow()).iter().enumerate() {
+            for (i, (c, _)) in tiles.borrow().iter().enumerate() {
+                rank.insert(c.clone(), i);
+            }
+            let n = rank.len();
+            for (i, id) in st.voices_shown().iter().enumerate() {
                 if let Some(c) = cards.borrow().get(id) {
-                    rank.insert(c.child.clone(), i);
+                    rank.insert(c.child.clone(), n + i);
                 }
             }
             drop(rank);
@@ -132,18 +218,58 @@ pub fn build(st: &St, open_lab: OpenLab) -> VoicesPage {
         })
     };
 
+    let sync_picks: Rc<dyn Fn()> = Rc::new({
+        let (st, cards, picks, view, count) = (st.clone(), cards.clone(), picks.clone(), widget.clone(), count.clone());
+        let (select_all, star_all, delete, grid, item_of) =
+            (select_all.clone(), star_all.clone(), delete.clone(), grid.clone(), item_of.clone());
+        move || {
+            let all = picks.all_of(&board::shown_items(&grid, &item_of));
+            select_all.set_label(if all { t("Deselect all") } else { t("Select all") });
+            let ids = picks.ids.borrow();
+            for (id, c) in cards.borrow().iter() {
+                let on = ids.contains(id);
+                if on {
+                    c.card.add_css_class("vn-selected");
+                } else {
+                    c.card.remove_css_class("vn-selected");
+                }
+                c.check.set_visible(on);
+                for m in &c.marks {
+                    m.set_opacity(if on { 0.0 } else { 1.0 });
+                }
+            }
+            let favs = !ids.is_empty() && ids.iter().all(|id| st.is_favorite(id));
+            star_all.set_label(if favs { t("Remove from favorites") } else { t("Add to favorites") });
+            let own = ids.iter().any(|id| st.voice(id).is_some_and(|v| !v.builtin));
+            delete.set_sensitive(own);
+            view.set_reveal_bottom_bars(!ids.is_empty());
+            count.set_label(&fill(t("{} selected"), &[&ids.len().to_string()]));
+        }
+    });
+
+    // Like a file manager: the top shows the folders and the voices in none, a folder its voices.
+    // A category or a search on the top looks at all voices.
     let refilter = {
-        let grid = grid.clone();
-        let grid_stack = grid_stack.clone();
-        let cards = cards.clone();
-        let order = order.clone();
-        let filter = filter.clone();
-        let st = st.clone();
+        let (grid_stack, cards, filter, st, shown, tiles) =
+            (grid_stack.clone(), cards.clone(), filter.clone(), st.clone(), shown.clone(), tiles.clone());
+        let (empty, first) = (empty.clone(), first.clone());
         Rc::new(move |animate: bool| {
             let (cat, query) = filter.borrow().clone();
             let query = query.to_lowercase();
-            let mut shown = 0;
-            for id in sorted(&st, &order.borrow()).iter() {
+            let folder = shown.borrow().clone();
+            let top = cat == "all" && query.is_empty() && folder.is_none();
+            let mut visible_count = 0;
+            for (c, _) in tiles.borrow().iter() {
+                c.set_visible(top);
+                if top {
+                    if animate {
+                        animate_in(c, visible_count);
+                    }
+                    visible_count += 1;
+                }
+            }
+            let mut first_match = None;
+            for id in st.voices_shown().iter() {
                 let Some(c) = cards.borrow().get(id).map(|c| c.child.clone()) else { continue };
                 let Some(v) = st.voices.borrow().iter().find(|v| &v.id == id).cloned() else { continue };
                 let in_cat = match cat.as_str() {
@@ -151,23 +277,114 @@ pub fn build(st: &St, open_lab: OpenLab) -> VoicesPage {
                     "favorites" => st.is_favorite(id),
                     c => v.category == c,
                 };
+                let here = if cat != "all" {
+                    true
+                } else if query.is_empty() {
+                    st.voice_folder(id) == folder
+                } else {
+                    folder.is_none() || st.voice_folder(id) == folder
+                };
                 let name = t_dyn(&v.name).to_lowercase();
                 let matches = query.is_empty()
                     || name.contains(&query)
                     || v.name.to_lowercase().contains(&query)
                     || t_dyn(&v.description).to_lowercase().contains(&query)
                     || t_dyn(category(&v.category).label).to_lowercase().contains(&query);
-                let visible = in_cat && matches;
+                let visible = in_cat && here && matches;
                 c.set_visible(visible);
                 if visible {
-                    if animate {
-                        animate_in(&c, shown);
+                    if first_match.is_none() && !query.is_empty() {
+                        first_match = Some(id.clone());
                     }
-                    shown += 1;
+                    if animate {
+                        animate_in(&c, visible_count);
+                    }
+                    visible_count += 1;
                 }
             }
-            grid_stack.set_visible_child_name(if shown == 0 { "empty" } else { "grid" });
-            let _ = &grid;
+            for (id, c) in cards.borrow().iter() {
+                if first_match.as_ref() == Some(id) {
+                    c.card.add_css_class("vn-first");
+                } else {
+                    c.card.remove_css_class("vn-first");
+                }
+            }
+            *first.borrow_mut() = first_match;
+            // An empty folder says how voices get in, not that the search found nothing.
+            if folder.is_some() && query.is_empty() {
+                empty.set_title(t("Nothing in this folder yet"));
+                empty.set_description(Some(t("Drag voices onto the folder, or pick some with Ctrl+click and move them here.")));
+            } else {
+                empty.set_title(t("No voices found"));
+                empty.set_description(Some(t("Try another word or category.")));
+            }
+            grid_stack.set_visible_child_name(if visible_count == 0 { "empty" } else { "grid" });
+        })
+    };
+
+    let sync_path: Rc<dyn Fn()> = Rc::new({
+        let (shown, bar, here) = (shown.clone(), path.widget.clone(), path.here.clone());
+        move || {
+            let folder = shown.borrow().clone();
+            bar.set_visible(folder.is_some());
+            here.set_label(folder.as_deref().unwrap_or(""));
+        }
+    });
+    // Goes into a folder, or back up with None, at once like a file manager. The picks stay only
+    // for a spring while dragging: they go along into the folder.
+    let goto: Rc<dyn Fn(Option<String>, bool)> = Rc::new({
+        let (shown, picks, sync_path, refilter, sync_picks) =
+            (shown.clone(), picks.clone(), sync_path.clone(), refilter.clone(), sync_picks.clone());
+        let scroll = grid_scroll.downgrade();
+        move |folder: Option<String>, keep_picks: bool| {
+            *shown.borrow_mut() = folder;
+            if !keep_picks {
+                picks.clear();
+            }
+            sync_path();
+            refilter(false);
+            sync_picks();
+            if let Some(scroll) = scroll.upgrade() {
+                scroll.vadjustment().set_value(0.0);
+            }
+        }
+    });
+    let open_folder: board::Open = {
+        let goto = goto.clone();
+        Rc::new(move |folder| goto(folder, false))
+    };
+    let spring_to: board::Open = Rc::new(move |folder| goto(folder, true));
+
+    // The folder tiles, made new when folders or what is in them change.
+    let rebuild_tiles = {
+        let (st, grid, tiles, shelf, picks, sync_picks) =
+            (st.clone(), grid.clone(), tiles.clone(), shelf.clone(), picks.clone(), sync_picks.clone());
+        let (open_folder, spring_to, shown, sync_path) =
+            (open_folder.clone(), spring_to.clone(), shown.clone(), sync_path.clone());
+        Rc::new(move || {
+            for (c, _) in tiles.borrow_mut().drain(..) {
+                grid.remove(&c);
+            }
+            let folders = st.config.borrow().voice_folders.clone();
+            // The folder went away, removed or renamed: back to the top.
+            if shown.borrow().as_ref().is_some_and(|f| !folders.contains(f)) {
+                shown.borrow_mut().take();
+            }
+            sync_path();
+            let order = st.voices_shown();
+            for name in folders {
+                let inside: Vec<&String> = order.iter().filter(|id| st.voice_folder(id).as_deref() == Some(name.as_str())).collect();
+                let icons: Vec<String> = inside.iter().take(3).filter_map(|id| st.voice(id).map(|v| v.icon)).collect();
+                let count = match inside.len() {
+                    0 => t("Empty").to_string(),
+                    1 => t("1 voice").to_string(),
+                    n => fill(t("{} voices"), &[&n.to_string()]),
+                };
+                let child = board::folder_tile(&name, &icons, &count, &FOLDER_LOOK);
+                board::folder_actions(&shelf, &child, &name, &picks, &sync_picks, &open_folder, &spring_to);
+                grid.append(&child);
+                tiles.borrow_mut().push((child, name));
+            }
         })
     };
 
@@ -176,6 +393,7 @@ pub fn build(st: &St, open_lab: OpenLab) -> VoicesPage {
         let filter = filter.clone();
         let refilter = refilter.clone();
         let st = st.clone();
+        let (shown, sync_path, picks, sync_picks) = (shown.clone(), sync_path.clone(), picks.clone(), sync_picks.clone());
         Rc::new(move || {
             clear(&chips);
             let has_custom = st.voices.borrow().iter().any(|v| !v.builtin);
@@ -218,11 +436,17 @@ pub fn build(st: &St, open_lab: OpenLab) -> VoicesPage {
                 let id = id.to_string();
                 b.connect_toggled({
                     let picked = picked.clone();
+                    let (shown, sync_path, picks, sync_picks) = (shown.clone(), sync_path.clone(), picks.clone(), sync_picks.clone());
                     move |b| {
                         if b.is_active() {
                             picked.set(true);
                             filter.borrow_mut().0 = id.clone();
+                            // A category leaves the folder: it looks at all voices.
+                            shown.borrow_mut().take();
+                            sync_path();
+                            picks.clear();
                             refilter(true);
+                            sync_picks();
                         }
                     }
                 });
@@ -276,47 +500,215 @@ pub fn build(st: &St, open_lab: OpenLab) -> VoicesPage {
         })
     };
 
+    // After the folders or the order changed: tiles, order and what shows.
+    let reshelve = {
+        let (rebuild_tiles, resort, refilter, sync_picks) =
+            (rebuild_tiles.clone(), resort.clone(), refilter.clone(), sync_picks.clone());
+        let (picks, st) = (picks.clone(), st.clone());
+        Rc::new(move || {
+            rebuild_tiles();
+            resort();
+            refilter(false);
+            picks.ids.borrow_mut().retain(|id| st.voice(id).is_some());
+            sync_picks();
+        })
+    };
+
     let rebuild_cards = {
         let grid = grid.clone();
         let cards = cards.clone();
-        let order = order.clone();
         let st = st.clone();
         let open_lab = open_lab.clone();
+        let (update_active, reshelve, picks, faces) = (update_active.clone(), reshelve.clone(), picks.clone(), faces.clone());
         let refilter = refilter.clone();
-        let update_active = update_active.clone();
-        let resort = resort.clone();
         Rc::new(move || {
-            clear(&grid);
-            cards.borrow_mut().clear();
-            order.borrow_mut().clear();
+            for (_, c) in cards.borrow_mut().drain() {
+                grid.remove(&c.child);
+            }
             let voices = st.voices.borrow().clone();
             for v in voices.iter() {
                 let c = card(&st, v, &open_lab);
+                board::drag_source(&c.child, c.card.upcast_ref(), &v.id, &picks, &faces);
                 grid.append(&c.child);
-                order.borrow_mut().push(v.id.clone());
                 cards.borrow_mut().insert(v.id.clone(), c);
             }
             update_active();
-            resort();
+            reshelve();
             refilter(true);
         })
     };
 
+    // While voices are picked, a click or Enter picks too, instead of using the voice.
     grid.connect_child_activated({
         let st = st.clone();
         let cards = cards.clone();
+        let (tiles, open_folder, picks, sync_picks) = (tiles.clone(), open_folder.clone(), picks.clone(), sync_picks.clone());
         move |_, child| {
-            let id = cards.borrow().iter().find(|(_, c)| &c.child == child).map(|(id, _)| id.clone());
-            // A click on the voice that is on turns it off: your normal voice. Unless it is an AI
-            // voice that is not downloaded: then the click offers the download.
-            if let Some(id) = id {
-                let on = st.config.borrow().voice == id && st.config.borrow().voice_on;
-                let missing = st
-                    .voice(&id)
-                    .and_then(|v| crate::ai::model_of(&v.block_values()))
-                    .is_some_and(|m| !crate::ai::ready(m));
-                if on && !missing { st.set_voice_on(false) } else { st.set_voice(&id) }
+            let folder = tiles.borrow().iter().find(|(c, _)| c == child).map(|(_, n)| n.clone());
+            if let Some(folder) = folder {
+                open_folder(Some(folder));
+                return;
             }
+            let id = cards.borrow().iter().find(|(_, c)| &c.child == child).map(|(id, _)| id.clone());
+            let Some(id) = id else { return };
+            if !picks.is_empty() {
+                picks.toggle(&id);
+                sync_picks();
+                return;
+            }
+            use_voice(&st, &id);
+        }
+    });
+    board::pick_clicks(&grid, &item_of, &picks, &sync_picks);
+    // Only on All and in your order does a place mean something, and only there do voices come
+    // into a folder: the other chips are filters.
+    let can_order: Rc<dyn Fn() -> bool> = Rc::new({
+        let (st, filter) = (st.clone(), filter.clone());
+        move || filter.borrow().0 == "all" && !st.config.borrow().voices_by_name
+    });
+    let can_take: Rc<dyn Fn() -> bool> = Rc::new({
+        let filter = filter.clone();
+        move || filter.borrow().0 == "all"
+    });
+    board::drop_on_grid(&shelf, &grid_stack, &grid, &item_of, &shown, &picks, &sync_picks, can_order, can_take);
+    board::up_takes_drops(&path.up, &shelf, &picks, &sync_picks, &spring_to);
+    path.up.connect_clicked({
+        let open_folder = open_folder.clone();
+        move |_| open_folder(None)
+    });
+    board::mouse_back(&widget, &shown, &open_folder);
+    board::move_to_menu(&move_to, &shelf, &picks, &sync_picks);
+
+    let pick_all: Rc<dyn Fn()> = Rc::new({
+        let (grid, item_of, picks, sync_picks) = (grid.clone(), item_of.clone(), picks.clone(), sync_picks.clone());
+        move || {
+            picks.ids.borrow_mut().extend(board::shown_items(&grid, &item_of));
+            sync_picks();
+        }
+    });
+    let delete_picks: Rc<dyn Fn()> = Rc::new({
+        let (st, shelf, picks, sync_picks, widget) = (st.clone(), shelf.clone(), picks.clone(), sync_picks.clone(), widget.downgrade());
+        move || {
+            let own: Vec<String> = picks
+                .in_order(&shelf)
+                .into_iter()
+                .filter(|id| st.voice(id).is_some_and(|v| !v.builtin))
+                .collect();
+            let Some(parent) = widget.upgrade() else { return };
+            ask_delete_voices(&st, &own, &parent, {
+                let (picks, sync_picks) = (picks.clone(), sync_picks.clone());
+                move || {
+                    picks.clear();
+                    sync_picks();
+                }
+            });
+        }
+    });
+    done.connect_clicked({
+        let (picks, sync_picks) = (picks.clone(), sync_picks.clone());
+        move |_| {
+            picks.clear();
+            sync_picks();
+        }
+    });
+    delete.connect_clicked({
+        let delete_picks = delete_picks.clone();
+        move |_| delete_picks()
+    });
+    star_all.connect_clicked({
+        let (st, picks) = (st.clone(), picks.clone());
+        move |_| {
+            let ids = picks.list();
+            let all = ids.iter().all(|id| st.is_favorite(id));
+            st.set_favorites(&ids, !all);
+        }
+    });
+    // The button in the bar puts all down again when all are picked.
+    select_all.connect_clicked({
+        let (pick_all, picks, sync_picks, grid, item_of) =
+            (pick_all.clone(), picks.clone(), sync_picks.clone(), grid.clone(), item_of.clone());
+        move |_| {
+            if picks.all_of(&board::shown_items(&grid, &item_of)) {
+                picks.clear();
+                sync_picks();
+            } else {
+                pick_all();
+            }
+        }
+    });
+
+    // Ctrl+A picks all voices on the grid, Delete removes the picked ones of your own.
+    let keys = gtk::EventControllerKey::new();
+    keys.set_propagation_phase(gtk::PropagationPhase::Capture);
+    keys.connect_key_pressed({
+        let (grid, picks, pick_all, delete_picks) = (grid.clone(), picks.clone(), pick_all.clone(), delete_picks.clone());
+        move |_, key, _, mods| {
+            if grid.focus_child().filter(|c| c.has_focus()).is_none() {
+                return glib::Propagation::Proceed;
+            }
+            match key {
+                gdk::Key::a if mods.contains(gdk::ModifierType::CONTROL_MASK) => pick_all(),
+                gdk::Key::Delete | gdk::Key::KP_Delete if !picks.is_empty() => delete_picks(),
+                _ => return glib::Propagation::Proceed,
+            }
+            glib::Propagation::Stop
+        }
+    });
+    grid.add_controller(keys);
+    // Escape puts the picks down. Backspace or Alt+Left goes back up out of a folder.
+    let escape = gtk::EventControllerKey::new();
+    escape.connect_key_pressed({
+        let (picks, sync_picks, shown, open_folder, search) =
+            (picks.clone(), sync_picks.clone(), shown.clone(), open_folder.clone(), search.clone());
+        move |_, key, _, mods| {
+            let alt_left = key == gdk::Key::Left && mods == gdk::ModifierType::ALT_MASK;
+            let backspace = key == gdk::Key::BackSpace && mods.is_empty() && search.text().is_empty();
+            if (alt_left || backspace) && shown.borrow().is_some() {
+                open_folder(None);
+                return glib::Propagation::Stop;
+            }
+            if key == gdk::Key::Escape && mods.is_empty() && !picks.is_empty() {
+                picks.clear();
+                sync_picks();
+                return glib::Propagation::Stop;
+            }
+            glib::Propagation::Proceed
+        }
+    });
+    widget.add_controller(escape);
+
+    // A right click on free space: things for all voices. Cards have their own menu.
+    popup::context(&grid_scroll, {
+        let (st, scroll, shelf, open_lab) = (st.clone(), grid_scroll.downgrade(), shelf.clone(), open_lab.clone());
+        let (picks, sync_picks, pick_all, grid, item_of) =
+            (picks.clone(), sync_picks.clone(), pick_all.clone(), grid.clone(), item_of.clone());
+        move |x, y| {
+            let Some(scroll) = scroll.upgrade() else { return };
+            let mut items = vec![board::new_folder_item(&shelf, scroll.upcast_ref())];
+            if !picks.all_of(&board::shown_items(&grid, &item_of)) {
+                let pick_all = pick_all.clone();
+                items.push(popup::Item::new("edit-select-all-symbolic", t("Select all"), move || pick_all()));
+            }
+            if !picks.is_empty() {
+                let (picks, sync_picks) = (picks.clone(), sync_picks.clone());
+                items.push(popup::Item::new("edit-clear-symbolic", t("Deselect all"), move || {
+                    picks.clear();
+                    sync_picks();
+                }));
+            }
+            let (st1, st2, st3, open_lab) = (st.clone(), st.clone(), st.clone(), open_lab.clone());
+            items.push(popup::Item::new("list-add-symbolic", t("New voice"), move || {
+                let v = st1.new_custom();
+                st1.set_voice(&v.id);
+                open_lab(&v.id);
+            }));
+            items.push(popup::Item::new("media-playlist-shuffle-symbolic", t("Random voice"), move || st2.random_voice()));
+            items.push(if st3.config.borrow().voices_by_name {
+                popup::Item::new("view-list-symbolic", t("Your own order"), move || st3.set_voices_by_name(false))
+            } else {
+                popup::Item::new("view-sort-ascending-symbolic", t("Sort by name"), move || st3.set_voices_by_name(true))
+            });
+            popup::show_list(&scroll, x, y, items);
         }
     });
 
@@ -328,6 +720,34 @@ pub fn build(st: &St, open_lab: OpenLab) -> VoicesPage {
             refilter(false);
         }
     });
+    // Enter uses the first match and leaves the search as it is. Down goes to the matches.
+    search.connect_activate({
+        let (st, first) = (st.clone(), first.clone());
+        move |_| {
+            let id = first.borrow().clone();
+            if let Some(id) = id {
+                use_voice(&st, &id);
+            }
+        }
+    });
+    let down = gtk::EventControllerKey::new();
+    down.connect_key_pressed({
+        let (cards, first) = (cards.clone(), first.clone());
+        move |_, key, _, _| {
+            if !matches!(key, gdk::Key::Down | gdk::Key::KP_Down) {
+                return glib::Propagation::Proceed;
+            }
+            let child = first.borrow().as_ref().and_then(|id| cards.borrow().get(id).map(|c| c.child.clone()));
+            match child {
+                Some(c) => {
+                    c.grab_focus();
+                    glib::Propagation::Stop
+                }
+                None => glib::Propagation::Proceed,
+            }
+        }
+    });
+    search.add_controller(down);
 
     rebuild_chips();
     rebuild_cards();
@@ -342,12 +762,22 @@ pub fn build(st: &St, open_lab: OpenLab) -> VoicesPage {
         let cards = cards.clone();
         let st = st.clone();
         let detail = detail.clone();
-        let resort = resort.clone();
+        let (resort, reshelve, sync_picks) = (resort.clone(), reshelve.clone(), sync_picks.clone());
+        // Many changes in a row, like a drop that moves voices into a folder and to a place,
+        // sort the grid once.
+        let queued = Rc::new(Cell::new(false));
         move |change| match change {
             Change::Voices => {
                 rebuild_chips();
                 rebuild_cards();
                 detail.show(&st.current(), false);
+            }
+            Change::VoiceShelf if !queued.replace(true) => {
+                let (reshelve, queued) = (reshelve.clone(), queued.clone());
+                glib::idle_add_local_once(move || {
+                    queued.set(false);
+                    reshelve();
+                });
             }
             Change::VoiceEdited(id) => {
                 if let Some(v) = st.voice(id) {
@@ -377,6 +807,7 @@ pub fn build(st: &St, open_lab: OpenLab) -> VoicesPage {
                 update_active();
                 detail.toggles();
                 resort();
+                sync_picks();
                 if filter.borrow().0 == "favorites" {
                     refilter(false);
                 }
@@ -390,10 +821,15 @@ pub fn build(st: &St, open_lab: OpenLab) -> VoicesPage {
         }
     });
 
+    // The card of the voice in use. In a folder, the folder opens for it.
     let show_current: Rc<dyn Fn()> = Rc::new({
-        let (st, cards) = (st.clone(), cards.clone());
+        let (st, cards, open_folder, filter, shown) = (st.clone(), cards.clone(), open_folder.clone(), filter.clone(), shown.clone());
         move || {
             let id = st.config.borrow().voice.clone();
+            let folder = st.voice_folder(&id);
+            if filter.borrow().0 == "all" && *shown.borrow() != folder {
+                open_folder(folder);
+            }
             if let Some(c) = cards.borrow().get(&id)
                 && c.child.is_visible()
             {
@@ -404,15 +840,37 @@ pub fn build(st: &St, open_lab: OpenLab) -> VoicesPage {
     VoicesPage { widget, search, show_current }
 }
 
-/// The voices in the order the grid shows them, like the chips above it: favorites first, in the
-/// order you starred them, then your own voices, then the built-in ones.
-fn sorted(st: &St, order: &[String]) -> Vec<String> {
-    let mut ids: Vec<String> = st.config.borrow().favorites.iter().filter(|f| order.contains(f)).cloned().collect();
-    let mut rest: Vec<String> = order.iter().filter(|id| !st.is_favorite(id)).cloned().collect();
-    let voices = st.voices.borrow();
-    rest.sort_by_key(|id| voices.iter().any(|v| &v.id == id && v.builtin));
-    ids.extend(rest);
-    ids
+/// A click on a voice: it goes on. A click on the voice that is on turns it off, your normal
+/// voice. Unless it is an AI voice that is not downloaded: then the click offers the download.
+fn use_voice(st: &St, id: &str) {
+    let on = st.config.borrow().voice == id && st.config.borrow().voice_on;
+    let missing = st.voice(id).and_then(|v| crate::ai::model_of(&v.block_values())).is_some_and(|m| !crate::ai::ready(m));
+    if on && !missing { st.set_voice_on(false) } else { st.set_voice(id) }
+}
+
+/// Asks before your own voices go for good, then deletes them. `done` runs after.
+fn ask_delete_voices(st: &St, ids: &[String], parent: &impl IsA<gtk::Widget>, done: impl Fn() + 'static) {
+    let heading = match ids {
+        [] => return,
+        [id] => fill(t("Delete {}?"), &[&st.voice(id).map(|v| t_dyn(&v.name)).unwrap_or_default()]),
+        _ => fill(t("Delete {} voices?"), &[&ids.len().to_string()]),
+    };
+    let body = if ids.len() == 1 { t("The voice is gone for good.") } else { t("They are gone for good.") };
+    let dialog = adw::AlertDialog::new(Some(&heading), Some(body));
+    dialog.add_response("cancel", t("Cancel"));
+    dialog.add_response("delete", t("Delete"));
+    dialog.set_response_appearance("delete", adw::ResponseAppearance::Destructive);
+    dialog.set_default_response(Some("cancel"));
+    let (st, ids) = (st.clone(), ids.to_vec());
+    dialog.connect_response(None, move |_, r| {
+        if r == "delete" {
+            for id in &ids {
+                st.delete_custom(id);
+            }
+            done();
+        }
+    });
+    dialog.present(Some(parent));
 }
 
 fn refresh_card(c: &Card, v: &Voice) {
@@ -474,6 +932,7 @@ fn card(st: &St, v: &Voice, open_lab: &OpenLab) -> Card {
     overlay.set_child(Some(&card));
     overlay.add_overlay(&star);
     overlay.add_overlay(&keys);
+    let mut marks: Vec<gtk::Widget> = vec![keys.clone().upcast()];
 
     let mut tip = t_dyn(&v.description);
     // AI voices: marked, gray without a graphics card, with a download mark until they are there.
@@ -485,6 +944,7 @@ fn card(st: &St, v: &Voice, open_lab: &OpenLab) -> Card {
         mark.set_margin_start(10);
         mark.set_can_target(false);
         overlay.add_overlay(&mark);
+        marks.push(mark.upcast());
         // The shortcut goes under the mark.
         keys.set_margin_top(34);
         if !crate::ai::usable() {
@@ -503,6 +963,16 @@ fn card(st: &St, v: &Voice, open_lab: &OpenLab) -> Card {
         }
     }
 
+    let check = gtk::Image::from_icon_name("object-select-symbolic");
+    check.add_css_class("vn-pad-check");
+    check.set_halign(gtk::Align::Start);
+    check.set_valign(gtk::Align::Start);
+    check.set_margin_top(8);
+    check.set_margin_start(8);
+    check.set_visible(false);
+    check.set_can_target(false);
+    overlay.add_overlay(&check);
+
     let child = gtk::FlowBoxChild::new();
     child.set_child(Some(&overlay));
     child.set_tooltip_text(Some(&tip));
@@ -514,7 +984,7 @@ fn card(st: &St, v: &Voice, open_lab: &OpenLab) -> Card {
             }
         }
     });
-    Card { child, card, star, keys }
+    Card { child, card, star, keys, marks, check }
 }
 
 /// Shows the shortcut of a voice on its card, or nothing.
