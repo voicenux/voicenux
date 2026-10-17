@@ -2,7 +2,10 @@
 //! page, and the page of each sound for its likes and views. Nothing goes out before you open Find
 //! sounds; then only your country for the front page and the words you search for.
 
+use std::sync::LazyLock;
 use std::time::Duration;
+
+use ureq::config::IpFamily;
 
 const SITE: &str = "https://www.myinstants.com";
 /// Far more than any soundboard sound needs.
@@ -40,14 +43,30 @@ pub enum Error {
     Failed,
 }
 
-fn agent() -> ureq::Agent {
+/// One agent for all requests, so they share their connections. IPv4 first: where IPv6 is set
+/// up but does not reach out, trying it first took 3 s for every request. Hosts without IPv4 are
+/// asked over both.
+static V4: LazyLock<ureq::Agent> = LazyLock::new(|| agent(IpFamily::Ipv4Only));
+static ANY: LazyLock<ureq::Agent> = LazyLock::new(|| agent(IpFamily::Any));
+
+fn agent(family: IpFamily) -> ureq::Agent {
     ureq::Agent::config_builder()
+        .ip_family(family)
         // A bad connection shows an error soon, instead of a spinner that never ends.
         .timeout_connect(Some(Duration::from_secs(5)))
         .timeout_global(Some(Duration::from_secs(12)))
         .user_agent(concat!("Voicenux/", env!("CARGO_PKG_VERSION"), " (+https://github.com/voicenux/voicenux)"))
         .build()
         .into()
+}
+
+type Response = ureq::http::Response<ureq::Body>;
+
+fn call(request: impl Fn(&ureq::Agent) -> Result<Response, ureq::Error>) -> Result<Response, ureq::Error> {
+    match request(&V4) {
+        Err(ureq::Error::HostNotFound) => request(&ANY),
+        r => r,
+    }
 }
 
 fn error(e: ureq::Error) -> Error {
@@ -61,7 +80,7 @@ fn error(e: ureq::Error) -> Error {
 /// Sounds for `query`, best first. Blocks: call it off the main thread.
 pub fn search(query: &str) -> Result<Vec<Found>, Error> {
     let started = std::time::Instant::now();
-    let page = agent().get(format!("{SITE}/en/search/")).query("name", query).call();
+    let page = call(|a| a.get(format!("{SITE}/en/search/")).query("name", query).call());
     let page = match page {
         // MyInstants answers a search without results with "not found".
         Err(ureq::Error::StatusCode(404)) => String::new(),
@@ -77,9 +96,7 @@ pub fn search(query: &str) -> Result<Vec<Found>, Error> {
 pub fn popular() -> Result<Vec<Found>, Error> {
     let mut last = Ok(Vec::new());
     for region in [region(), "us".into()] {
-        last = agent()
-            .get(format!("{SITE}/en/index/{region}/"))
-            .call()
+        last = call(|a| a.get(format!("{SITE}/en/index/{region}/")).call())
             .map_err(error)
             .and_then(|mut r| r.body_mut().read_to_string().map_err(error))
             .map(|page| parse(&page));
@@ -148,7 +165,7 @@ fn unescape(s: &str) -> String {
 /// The likes and views of a sound on MyInstants. Blocks: call it off the main thread.
 pub fn stats(found: &Found) -> Result<Stats, Error> {
     let Some(page) = found.page.as_ref().filter(|p| from_myinstants(p)) else { return Err(Error::Failed) };
-    let page = agent().get(page).call().map_err(error)?.body_mut().read_to_string().map_err(error)?;
+    let page = call(|a| a.get(page).call()).map_err(error)?.body_mut().read_to_string().map_err(error)?;
     Ok(Stats { likes: parse_likes(&page), views: parse_views(&page) })
 }
 
@@ -175,7 +192,13 @@ pub fn download(found: &Found) -> Result<Vec<u8>, Error> {
     if !from_myinstants(&found.url) {
         return Err(Error::Offline);
     }
-    agent().get(&found.url).call().map_err(error)?.body_mut().with_config().limit(MAX_BYTES).read_to_vec().map_err(error)
+    call(|a| a.get(&found.url).call())
+        .map_err(error)?
+        .body_mut()
+        .with_config()
+        .limit(MAX_BYTES)
+        .read_to_vec()
+        .map_err(error)
 }
 
 /// Downloads only come from MyInstants, over https.
