@@ -329,22 +329,18 @@ flowboxchild:hover .vn-star,
   animation: vn-star-pop 600ms ease-out;
 }
 
-/* Two names, because only a new name starts the animation again. */
-.vn-entering-a {
-  animation: vn-card-in-a 480ms ease-out both;
+/* Tiles pop in (see `animate_in`). Before that they wait like the start of the pop, but just
+   visible enough to be drawn: so the slow first frame of a page comes before they move. */
+.vn-pre {
+  opacity: 0.01;
+  transform: translateY(16px) scale(0.9);
 }
 
-.vn-entering-b {
-  animation: vn-card-in-b 480ms ease-out both;
+.vn-entering {
+  animation: vn-card-in 480ms ease-out both;
 }
 
-@keyframes vn-card-in-a {
-  0% { opacity: 0; transform: translateY(16px) scale(0.9); }
-  60% { opacity: 1; transform: translateY(-3px) scale(1.03); }
-  100% { opacity: 1; transform: translateY(0px) scale(1); }
-}
-
-@keyframes vn-card-in-b {
+@keyframes vn-card-in {
   0% { opacity: 0; transform: translateY(16px) scale(0.9); }
   60% { opacity: 1; transform: translateY(-3px) scale(1.03); }
   100% { opacity: 1; transform: translateY(0px) scale(1); }

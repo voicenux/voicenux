@@ -18,7 +18,7 @@ pub mod voicelab;
 pub mod voices;
 pub mod window;
 
-use std::cell::RefCell;
+use std::cell::{Cell, RefCell};
 use std::collections::HashMap;
 
 use adw::prelude::*;
@@ -31,6 +31,8 @@ pub const RESOURCE: &str = "/io/github/voicenux/Voicenux";
 
 thread_local! {
     static TEXTURES: RefCell<HashMap<String, gdk::Texture>> = RefCell::new(HashMap::new());
+    /// The pop-in each tile is on, by tile, so an older one stops when a new one starts.
+    static ENTERING: RefCell<(u64, HashMap<usize, u64>)> = RefCell::default();
 }
 
 /// A picture from `data/icons`, cached.
@@ -128,18 +130,97 @@ pub fn clear(widget: &impl IsA<gtk::Widget>) {
     }
 }
 
-/// Plays the entrance animation on a widget, `delay` steps of 18 ms late.
-pub fn animate_in(widget: &impl IsA<gtk::Widget>, delay: usize) {
+/// How long `.vn-entering` takes, and how much later each next tile starts, in ms.
+const ENTER_MS: i64 = 480;
+const STEP_MS: i64 = 18;
+
+/// Lets a tile pop in, `place` tiles after the first. From the 40th on, tiles are out of sight
+/// and just show. A tile on a page out of sight pops when the page shows. The first time a page
+/// shows, its first frames are slow: the pop waits until the page is in and a frame came in
+/// time, so it plays in full. At the end its classes go, or another animation on the tile, like
+/// the bounce of a drop, would start it again when it ends.
+pub fn animate_in(widget: &impl IsA<gtk::Widget>, place: usize) {
     let w = widget.as_ref();
+    let key = w.as_ptr() as usize;
+    let mine = ENTERING.with(|e| {
+        let (next, on) = &mut *e.borrow_mut();
+        *next += 1;
+        on.insert(key, *next);
+        *next
+    });
+    stop_entering(w);
+    if place >= 40 {
+        ENTERING.with(|e| e.borrow_mut().1.remove(&key));
+        return;
+    }
+    // Drawn but not seen yet, so the slow first frame is done before it moves.
+    w.add_css_class("vn-pre");
+    pop_when_shown(w, key, mine, place);
+}
+
+fn pop_when_shown(w: &gtk::Widget, key: usize, mine: u64, place: usize) {
+    let current = move || ENTERING.with(|e| e.borrow().1.get(&key) == Some(&mine));
+    // Waits for the map, since a clock that ticks for a page out of sight costs power.
+    if !w.is_mapped() {
+        let handler: std::rc::Rc<RefCell<Option<glib::SignalHandlerId>>> = Default::default();
+        let h = handler.clone();
+        handler.replace(Some(w.connect_map(move |w| {
+            if let Some(id) = h.borrow_mut().take() {
+                w.disconnect(id);
+            }
+            if current() {
+                pop_when_shown(w, key, mine, place);
+            }
+        })));
+        return;
+    }
+    let (last, start, waited) = (Cell::new(None::<i64>), Cell::new(None::<i64>), Cell::new(0));
+    let end = (place as i64 * STEP_MS + ENTER_MS) * 1000;
+    w.add_tick_callback(move |w, clock| {
+        if !current() {
+            return glib::ControlFlow::Break;
+        }
+        if !w.is_mapped() && start.get().is_none() {
+            pop_when_shown(w, key, mine, place);
+            return glib::ControlFlow::Break;
+        }
+        let now = clock.frame_time();
+        let done = match start.get() {
+            _ if !w.is_mapped() => true,
+            None => {
+                let in_time = last.replace(Some(now)).is_some_and(|t| now - t < 40_000);
+                waited.set(waited.get() + 1);
+                if (in_time && !in_transition(w)) || waited.get() > 30 {
+                    w.remove_css_class("vn-pre");
+                    w.add_css_class(&format!("vn-d{place}"));
+                    w.add_css_class("vn-entering");
+                    start.set(Some(now));
+                }
+                false
+            }
+            Some(t) => now - t >= end,
+        };
+        if !done {
+            return glib::ControlFlow::Continue;
+        }
+        stop_entering(w);
+        ENTERING.with(|e| e.borrow_mut().1.remove(&key));
+        glib::ControlFlow::Break
+    });
+}
+
+/// Whether a stack around the widget still fades to another page.
+fn in_transition(w: &gtk::Widget) -> bool {
+    std::iter::successors(w.parent(), |p| p.parent())
+        .any(|p| p.downcast_ref::<gtk::Stack>().is_some_and(|s| s.is_transition_running()))
+}
+
+fn stop_entering(w: &gtk::Widget) {
+    w.remove_css_class("vn-pre");
+    w.remove_css_class("vn-entering");
     for i in 0..40 {
         w.remove_css_class(&format!("vn-d{i}"));
     }
-    w.add_css_class(&format!("vn-d{}", delay.min(39)));
-    // A new animation name starts the animation again, the same name would not.
-    let (old, new) =
-        if w.has_css_class("vn-entering-a") { ("vn-entering-a", "vn-entering-b") } else { ("vn-entering-b", "vn-entering-a") };
-    w.remove_css_class(old);
-    w.add_css_class(new);
 }
 
 /// A tooltip with its key, like "Random voice (Ctrl+R)".
@@ -320,7 +401,7 @@ fn click_outside(field: &gtk::EditableLabel, native: &gtk::Widget) -> gtk::Gestu
 
 /// CSS for the staggered entrance delays.
 pub fn delay_css() -> String {
-    (0..40).map(|i| format!(".vn-d{i} {{ animation-delay: {}ms; }}\n", i * 18)).collect()
+    (0..40).map(|i| format!(".vn-d{i} {{ animation-delay: {}ms; }}\n", i * STEP_MS)).collect()
 }
 
 /// Renders a widget (the window) into a PNG file.
