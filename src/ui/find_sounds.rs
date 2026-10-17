@@ -18,6 +18,11 @@ use crate::state::{Change, St};
 
 /// A downloaded sound: the file to keep and the audio to play.
 type Audio = Rc<(Vec<u8>, Arc<SoundData>)>;
+type Waiting = Vec<Box<dyn FnOnce(Result<Audio, online::Error>)>>;
+
+/// How many sounds at the top of the list load ahead, and how many stay in memory.
+const AHEAD: i32 = 8;
+const KEEP: usize = 16;
 
 /// The ways to sort, with their names in the config.
 const SORTS: [(&str, &str); 5] =
@@ -34,7 +39,10 @@ struct Finder {
     search_no: Cell<u32>,
     /// Found sounds by search words. The popular ones are under "".
     results: RefCell<HashMap<String, Vec<Found>>>,
-    audio: RefCell<HashMap<String, Audio>>,
+    /// Sounds downloaded lately, by file, the last one used at the back.
+    audio: RefCell<VecDeque<(String, Audio)>>,
+    /// Sounds on their way, with what waits for them.
+    pending: RefCell<HashMap<String, Waiting>>,
     /// Likes and views of the sounds by their file, once their pages are read.
     stats: RefCell<HashMap<String, Stats>>,
     /// The rows shown, with their place in the order MyInstants gave.
@@ -124,6 +132,7 @@ pub fn panel(st: &St) -> (gtk::Box, gtk::SearchEntry) {
         search_no: Cell::new(0),
         results: RefCell::default(),
         audio: RefCell::default(),
+        pending: RefCell::default(),
         stats: RefCell::default(),
         rows: RefCell::default(),
         sort: Cell::new(chosen),
@@ -242,6 +251,12 @@ impl Finder {
         }
         self.list.invalidate_sort();
         self.stack.set_visible_child_name("results");
+        // The sounds at the top load ahead, so they play at once.
+        let ahead: VecDeque<Rc<Found>> = (0..AHEAD)
+            .filter_map(|i| self.list.row_at_index(i))
+            .filter_map(|r| self.rows.borrow().get(&r).map(|(_, f)| f.clone()))
+            .collect();
+        self.load_ahead(self.search_no.get(), Rc::new(RefCell::new(ahead)));
         // Each sound's numbers are a page of their own: read a few at a time, top first.
         let waiting = Rc::new(RefCell::new(waiting));
         for _ in 0..3 {
@@ -413,7 +428,7 @@ impl Finder {
         icon: &'static str,
         then: impl FnOnce(&gtk::Button, Audio) + 'static,
     ) {
-        if let Some(audio) = self.audio.borrow().get(&f.url).cloned() {
+        if let Some(audio) = self.cached(&f.url) {
             then(button, audio);
             return;
         }
@@ -421,26 +436,81 @@ impl Finder {
             return;
         }
         button.set_child(Some(&adw::Spinner::new()));
-        let found = (**f).clone();
         let (me, button) = (self.clone(), button.clone());
+        self.fetch(f, move |r| {
+            button.set_icon_name(icon);
+            match r {
+                Ok(audio) => then(&button, audio),
+                Err(e) => me.st.notify(Change::Notice(error_text(e).to_string())),
+            }
+        });
+    }
+
+    /// The audio of a sound, from memory or downloaded, for `then`. A sound on its way already
+    /// is not asked for again: `then` waits for it.
+    fn fetch(self: &Rc<Self>, f: &Found, then: impl FnOnce(Result<Audio, online::Error>) + 'static) {
+        if let Some(audio) = self.cached(&f.url) {
+            then(Ok(audio));
+            return;
+        }
+        if let Some(waiting) = self.pending.borrow_mut().get_mut(&f.url) {
+            waiting.push(Box::new(then));
+            return;
+        }
+        self.pending.borrow_mut().insert(f.url.clone(), vec![Box::new(then)]);
+        let (me, found, url) = (self.clone(), f.clone(), f.url.clone());
         off_thread(
             move || {
                 let bytes = online::download(&found)?;
                 let data = decode_bytes(bytes.clone(), &found.ext).map_err(|_| online::Error::Failed)?;
-                Ok::<_, online::Error>((found, bytes, Arc::new(data)))
+                Ok::<_, online::Error>((bytes, Arc::new(data)))
             },
             move |r| {
-                button.set_icon_name(icon);
-                match r {
-                    Ok((found, bytes, data)) => {
-                        let audio: Audio = Rc::new((bytes, data));
-                        me.audio.borrow_mut().insert(found.url, audio.clone());
-                        then(&button, audio);
-                    }
-                    Err(e) => me.st.notify(Change::Notice(error_text(e).to_string())),
+                let r = r.map(|(bytes, data)| {
+                    let audio: Audio = Rc::new((bytes, data));
+                    me.keep(&url, audio.clone());
+                    audio
+                });
+                let waiting = me.pending.borrow_mut().remove(&url).unwrap_or_default();
+                for then in waiting {
+                    then(r.clone());
                 }
             },
         );
+    }
+
+    /// Loads the sounds in `next` one after the other, until a new search starts.
+    fn load_ahead(self: &Rc<Self>, no: u32, next: Rc<RefCell<VecDeque<Rc<Found>>>>) {
+        if self.search_no.get() != no {
+            return;
+        }
+        let Some(f) = next.borrow_mut().pop_front() else { return };
+        let me = self.clone();
+        self.fetch(&f, move |r| {
+            // MyInstants wants a break: the rest loads when you listen.
+            if !matches!(r, Err(online::Error::TooMany)) {
+                me.load_ahead(no, next);
+            }
+        });
+    }
+
+    fn cached(&self, url: &str) -> Option<Audio> {
+        let mut audio = self.audio.borrow_mut();
+        let at = audio.iter().position(|(u, _)| u == url)?;
+        let item = audio.remove(at)?;
+        let found = item.1.clone();
+        audio.push_back(item);
+        Some(found)
+    }
+
+    /// Keeps a sound in memory. The ones not used for longest go, since a long one takes a lot.
+    fn keep(&self, url: &str, a: Audio) {
+        let mut audio = self.audio.borrow_mut();
+        audio.retain(|(u, _)| u != url);
+        audio.push_back((url.to_string(), a));
+        while audio.len() > KEEP {
+            audio.pop_front();
+        }
     }
 }
 
