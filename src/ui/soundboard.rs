@@ -278,6 +278,8 @@ pub fn build(st: &St) -> SoundboardPage {
     // The folder the grid shows, None for all sounds. Folders sit on the grid like pads.
     let shown: Rc<RefCell<Option<String>>> = Rc::default();
     let tiles: board::Folders = Rc::default();
+    // Sounds that just moved, and the folder that took some: they bounce when the grid is built.
+    let landing = Rc::new(board::Landing::default());
     let item_of: board::ItemOf = Rc::new({
         let pads = pads.clone();
         move |w: &gtk::Widget| pads.borrow().iter().find(|(_, p)| p.child.upcast_ref::<gtk::Widget>() == w).map(|(id, _)| id.clone())
@@ -300,6 +302,9 @@ pub fn build(st: &St) -> SoundboardPage {
                     p.pad.add_css_class("vn-selected");
                 } else {
                     p.pad.remove_css_class("vn-selected");
+                }
+                if on && !p.check.is_visible() {
+                    board::bounce(&p.check, "vn-pop");
                 }
                 p.check.set_visible(on);
                 p.badges.set_visible(!on);
@@ -410,7 +415,7 @@ pub fn build(st: &St) -> SoundboardPage {
         let (st, grid, pads, refilter) = (st.clone(), grid.clone(), pads.clone(), refilter.clone());
         let (picks, sync_picks, sync_path) = (picks.clone(), sync_picks.clone(), sync_path.clone());
         let (shown, tiles, open_folder, spring_to) = (shown.clone(), tiles.clone(), open_folder.clone(), spring_to.clone());
-        let (shelf, faces) = (shelf.clone(), faces.clone());
+        let (shelf, faces, landing) = (shelf.clone(), faces.clone(), landing.clone());
         Rc::new(move |animate: bool| {
             // Keeps the focus on the same sound, or the one that took its place.
             let focused = grid.focus_child().and_then(|c| {
@@ -437,7 +442,7 @@ pub fn build(st: &St) -> SoundboardPage {
                     n => fill(t("{} sounds"), &[&n.to_string()]),
                 };
                 let child = board::folder_tile(&name, &icons, &count, &FOLDER_LOOK);
-                board::folder_actions(&shelf, &child, &name, &picks, &sync_picks, &open_folder, &spring_to);
+                board::folder_actions(&shelf, &child, &name, &picks, &sync_picks, &open_folder, &spring_to, &landing);
                 grid.append(&child);
                 tiles.borrow_mut().push((child, name));
             }
@@ -453,6 +458,7 @@ pub fn build(st: &St) -> SoundboardPage {
             picks.ids.borrow_mut().retain(|id| pads.borrow().contains_key(id));
             refilter();
             sync_picks();
+            landing.play(|id| pads.borrow().get(id).map(|p| p.child.clone().upcast()), &tiles);
             if let Some((id, index)) = focused {
                 let child = pads.borrow().get(&id).map(|p| p.child.clone()).or_else(|| grid.child_at_index(index.min(sounds.len() as i32 - 1)));
                 if let Some(c) = child {
@@ -578,8 +584,8 @@ pub fn build(st: &St) -> SoundboardPage {
         // Sorted by name, a place in the order means nothing, but a folder still does.
         move || !st.config.borrow().sounds_by_name
     });
-    board::drop_on_grid(&shelf, &stack, &grid, &item_of, &shown, &picks, &sync_picks, can_order, Rc::new(|| true));
-    board::drop_folders_on_grid(&shelf, &stack, &grid, &tiles);
+    board::drop_on_grid(&shelf, &stack, &grid, &item_of, &shown, &picks, &sync_picks, can_order, Rc::new(|| true), &landing);
+    board::drop_folders_on_grid(&shelf, &stack, &grid, &tiles, &landing);
     board::up_takes_drops(&path.up, &shelf, &picks, &sync_picks, &spring_to);
     path.up.connect_clicked({
         let open_folder = open_folder.clone();
@@ -642,7 +648,7 @@ pub fn build(st: &St) -> SoundboardPage {
             }
         }
     });
-    board::move_to_menu(&move_to, &shelf, &picks, &sync_picks);
+    board::move_to_menu(&move_to, &shelf, &picks, &sync_picks, &landing);
 
     // Progress rings, once per frame while the page is on screen.
     view.add_tick_callback({

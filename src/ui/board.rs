@@ -1,7 +1,7 @@
 //! What the soundboard and the voice page share: a grid with folders on it, like a file manager.
 //! Tiles are picked with Ctrl+click and Shift+click, dragged to a new place or into a folder, and
 //! a folder opens when you hold a tile over it for a moment. Folders stay at the start and move
-//! among themselves.
+//! among themselves. Moved tiles bounce in at their new place, a folder that takes some gulps.
 
 use std::cell::{Cell, RefCell};
 use std::collections::HashSet;
@@ -103,6 +103,48 @@ pub fn shown_items(grid: &gtk::FlowBox, item_of: &ItemOf) -> Vec<String> {
 /// shelf, else just the dragged one.
 pub fn group_of(shelf: &Shared, picks: &Picks, id: &str) -> Vec<String> {
     if picks.ids.borrow().contains(id) { picks.in_order(shelf) } else { vec![id.to_string()] }
+}
+
+/// Tiles that just moved, to bounce in at their new place once the grid shows them there, and the
+/// folder that took some, to gulp. The pages play them after they built or sorted the grid.
+#[derive(Default)]
+pub struct Landing {
+    pub items: RefCell<HashSet<String>>,
+    pub folder: RefCell<Option<String>>,
+    pub moved_folder: RefCell<Option<String>>,
+}
+
+impl Landing {
+    pub fn play(&self, child_of: impl Fn(&str) -> Option<gtk::Widget>, folders: &Folders) {
+        for id in self.items.borrow_mut().drain() {
+            if let Some(c) = child_of(&id) {
+                bounce(&c, "vn-landed");
+            }
+        }
+        let gulp = self.folder.borrow_mut().take();
+        let moved = self.moved_folder.borrow_mut().take();
+        for (c, name) in folders.borrow().iter() {
+            if gulp.as_ref() == Some(name) {
+                bounce(c, "vn-gulp");
+            } else if moved.as_ref() == Some(name) {
+                bounce(c, "vn-landed");
+            }
+        }
+    }
+}
+
+/// Plays a one-off animation on a widget: the class starts it, and goes again when it is done,
+/// so the next time starts it again too.
+pub fn bounce(w: &impl IsA<gtk::Widget>, class: &'static str) {
+    let w = w.as_ref();
+    w.remove_css_class(class);
+    w.add_css_class(class);
+    let weak = w.downgrade();
+    glib::timeout_add_local_once(Duration::from_millis(700), move || {
+        if let Some(w) = weak.upgrade() {
+            w.remove_css_class(class);
+        }
+    });
 }
 
 /// Lets a tile be dragged: onto the grid to move it, or onto a folder to put it there. A picked
@@ -302,6 +344,7 @@ pub fn drop_on_grid(
     sync_picks: &Rc<dyn Fn()>,
     can_order: Rc<dyn Fn() -> bool>,
     can_take: Rc<dyn Fn() -> bool>,
+    landing: &Rc<Landing>,
 ) {
     let mark = GapMark::default();
     let nearest = {
@@ -338,8 +381,8 @@ pub fn drop_on_grid(
         move |_| mark.clear()
     });
     drop.connect_drop({
-        let (shelf, item_of, shown, picks, sync_picks) =
-            (shelf.clone(), item_of.clone(), shown.clone(), picks.clone(), sync_picks.clone());
+        let (shelf, item_of, shown, picks, sync_picks, landing) =
+            (shelf.clone(), item_of.clone(), shown.clone(), picks.clone(), sync_picks.clone(), landing.clone());
         move |_, value, x, y| {
             mark.clear();
             let Ok(from) = value.get::<String>() else { return false };
@@ -358,6 +401,7 @@ pub fn drop_on_grid(
                 picks.clear();
                 sync_picks();
             }
+            landing.items.borrow_mut().extend(group.iter().cloned());
             // After the drop is done: moving builds the grid again, with the dragged tiles in it.
             let (shelf, folder) = (shelf.clone(), shown.borrow().clone());
             glib::idle_add_local_once(move || {
@@ -381,7 +425,7 @@ struct FolderDrag(String);
 
 /// Folders stay at the start of the grid, but move among themselves: a dragged folder lands in
 /// the gap between two others, and both of them light up like for tiles.
-pub fn drop_folders_on_grid(shelf: &Shared, area: &impl IsA<gtk::Widget>, grid: &gtk::FlowBox, folders: &Folders) {
+pub fn drop_folders_on_grid(shelf: &Shared, area: &impl IsA<gtk::Widget>, grid: &gtk::FlowBox, folders: &Folders, landing: &Rc<Landing>) {
     let mark = GapMark::default();
     let nearest = {
         let (area, grid, folders) = (area.as_ref().downgrade(), grid.downgrade(), folders.clone());
@@ -413,7 +457,7 @@ pub fn drop_folders_on_grid(shelf: &Shared, area: &impl IsA<gtk::Widget>, grid: 
         move |_| mark.clear()
     });
     drop.connect_drop({
-        let shelf = shelf.clone();
+        let (shelf, landing) = (shelf.clone(), landing.clone());
         move |_, value, x, y| {
             mark.clear();
             let Ok(FolderDrag(name)) = value.get::<FolderDrag>() else { return false };
@@ -421,6 +465,7 @@ pub fn drop_folders_on_grid(shelf: &Shared, area: &impl IsA<gtk::Widget>, grid: 
             else {
                 return false;
             };
+            *landing.moved_folder.borrow_mut() = Some(name.clone());
             // After the drop is done: moving builds the grid again, this folder too.
             let shelf = shelf.clone();
             glib::idle_add_local_once(move || shelf.move_folder(&name, &target, after));
@@ -552,6 +597,7 @@ pub fn folder_actions(
     sync_picks: &Rc<dyn Fn()>,
     open_folder: &Open,
     spring_to: &Open,
+    landing: &Rc<Landing>,
 ) {
     let tile = child.child().and_then(|lift| lift.first_child());
     let drag = gtk::DragSource::new();
@@ -583,7 +629,8 @@ pub fn folder_actions(
     });
     child.add_controller(drag);
 
-    // A tile held over it for a moment opens the folder, to be dropped at a place in it.
+    // A tile held over it for a moment opens the folder, to be dropped at a place in it. While
+    // it is held there the folder lifts and opens, and its pictures rise.
     let drop = gtk::DropTarget::new(String::static_type(), gdk::DragAction::MOVE);
     let spring = Spring::default();
     let weak = child.downgrade();
@@ -613,7 +660,8 @@ pub fn folder_actions(
         }
     });
     drop.connect_drop({
-        let (shelf, picks, sync_picks, name) = (shelf.clone(), picks.clone(), sync_picks.clone(), name.to_string());
+        let (shelf, picks, sync_picks, name, landing) =
+            (shelf.clone(), picks.clone(), sync_picks.clone(), name.to_string(), landing.clone());
         move |_, value, _, _| {
             spring.cancel();
             if let Some(c) = weak.upgrade() {
@@ -623,6 +671,7 @@ pub fn folder_actions(
             let ids = group_of(&shelf, &picks, &id);
             picks.clear();
             sync_picks();
+            *landing.folder.borrow_mut() = Some(name.clone());
             // After the drop is done: moving builds the grid again, this folder too.
             let (shelf, name) = (shelf.clone(), name.clone());
             glib::idle_add_local_once(move || shelf.move_to_folder(&ids, Some(&name)));
@@ -701,16 +750,17 @@ pub fn new_folder_item(shelf: &Shared, parent: &gtk::Widget) -> popup::Item {
 }
 
 /// The menu of the Move to folder button for picked tiles: each folder, none, or a new one.
-pub fn move_to_menu(button: &gtk::MenuButton, shelf: &Shared, picks: &Rc<Picks>, sync_picks: &Rc<dyn Fn()>) {
-    let (shelf, picks, sync_picks) = (shelf.clone(), picks.clone(), sync_picks.clone());
+pub fn move_to_menu(button: &gtk::MenuButton, shelf: &Shared, picks: &Rc<Picks>, sync_picks: &Rc<dyn Fn()>, landing: &Rc<Landing>) {
+    let (shelf, picks, sync_picks, landing) = (shelf.clone(), picks.clone(), sync_picks.clone(), landing.clone());
     button.set_create_popup_func(move |b| {
         let folders = shelf.folders();
         let put = |folder: Option<String>| {
-            let (shelf, picks, sync_picks) = (shelf.clone(), picks.clone(), sync_picks.clone());
+            let (shelf, picks, sync_picks, landing) = (shelf.clone(), picks.clone(), sync_picks.clone(), landing.clone());
             move || {
                 let ids = picks.in_order(&shelf);
                 picks.clear();
                 sync_picks();
+                *landing.folder.borrow_mut() = folder.clone();
                 shelf.move_to_folder(&ids, folder.as_deref());
             }
         };
@@ -719,15 +769,17 @@ pub fn move_to_menu(button: &gtk::MenuButton, shelf: &Shared, picks: &Rc<Picks>,
         if !folders.is_empty() {
             items.push(popup::Item::new("edit-clear-symbolic", t("No folder"), put(None)));
         }
-        let (shelf, picks, sync_picks, parent) = (shelf.clone(), picks.clone(), sync_picks.clone(), b.downgrade());
+        let (shelf, picks, sync_picks, landing, parent) =
+            (shelf.clone(), picks.clone(), sync_picks.clone(), landing.clone(), b.downgrade());
         items.push(popup::Item::new("list-add-symbolic", t("New folder"), move || {
             let Some(parent) = parent.upgrade() else { return };
-            let (shelf, picks, sync_picks) = (shelf.clone(), picks.clone(), sync_picks.clone());
+            let (shelf, picks, sync_picks, landing) = (shelf.clone(), picks.clone(), sync_picks.clone(), landing.clone());
             ask_folder_name(&parent, t("New folder"), "", t("Create"), move |name| {
                 let name = shelf.add_folder(&name);
                 let ids = picks.in_order(&shelf);
                 picks.clear();
                 sync_picks();
+                *landing.folder.borrow_mut() = Some(name.clone());
                 shelf.move_to_folder(&ids, Some(&name));
             });
         }));

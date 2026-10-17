@@ -183,6 +183,8 @@ pub fn build(st: &St, open_lab: OpenLab) -> VoicesPage {
     // The folder the grid shows, None for the top. Folders sit at the start of the grid.
     let shown: Rc<RefCell<Option<String>>> = Rc::default();
     let tiles: board::Folders = Rc::default();
+    // Voices that just moved, and the folder that took some: they bounce when the grid is sorted.
+    let landing = Rc::new(board::Landing::default());
     // The first card that matches the search, top left: Enter in the search uses it.
     let first: Rc<RefCell<Option<String>>> = Rc::default();
     let item_of: board::ItemOf = Rc::new({
@@ -236,6 +238,9 @@ pub fn build(st: &St, open_lab: OpenLab) -> VoicesPage {
                     c.card.add_css_class("vn-selected");
                 } else {
                     c.card.remove_css_class("vn-selected");
+                }
+                if on && !c.check.is_visible() {
+                    board::bounce(&c.check, "vn-pop");
                 }
                 c.check.set_visible(on);
                 for m in &c.marks {
@@ -363,8 +368,8 @@ pub fn build(st: &St, open_lab: OpenLab) -> VoicesPage {
     let rebuild_tiles = {
         let (st, grid, tiles, shelf, picks, sync_picks) =
             (st.clone(), grid.clone(), tiles.clone(), shelf.clone(), picks.clone(), sync_picks.clone());
-        let (open_folder, spring_to, shown, sync_path) =
-            (open_folder.clone(), spring_to.clone(), shown.clone(), sync_path.clone());
+        let (open_folder, spring_to, landing, shown, sync_path) =
+            (open_folder.clone(), spring_to.clone(), landing.clone(), shown.clone(), sync_path.clone());
         Rc::new(move || {
             for (c, _) in tiles.borrow_mut().drain(..) {
                 grid.remove(&c);
@@ -385,7 +390,7 @@ pub fn build(st: &St, open_lab: OpenLab) -> VoicesPage {
                     n => fill(t("{} voices"), &[&n.to_string()]),
                 };
                 let child = board::folder_tile(&name, &icons, &count, &FOLDER_LOOK);
-                board::folder_actions(&shelf, &child, &name, &picks, &sync_picks, &open_folder, &spring_to);
+                board::folder_actions(&shelf, &child, &name, &picks, &sync_picks, &open_folder, &spring_to, &landing);
                 grid.append(&child);
                 tiles.borrow_mut().push((child, name));
             }
@@ -504,10 +509,11 @@ pub fn build(st: &St, open_lab: OpenLab) -> VoicesPage {
         })
     };
 
-    // After the folders or the order changed: tiles, order and what shows.
+    // After the folders or the order changed: tiles, order and what shows, and the bounce of
+    // what just moved.
     let reshelve = {
-        let (rebuild_tiles, resort, refilter, sync_picks) =
-            (rebuild_tiles.clone(), resort.clone(), refilter.clone(), sync_picks.clone());
+        let (rebuild_tiles, resort, refilter, sync_picks, landing, cards, tiles) =
+            (rebuild_tiles.clone(), resort.clone(), refilter.clone(), sync_picks.clone(), landing.clone(), cards.clone(), tiles.clone());
         let (picks, st) = (picks.clone(), st.clone());
         Rc::new(move || {
             rebuild_tiles();
@@ -515,6 +521,7 @@ pub fn build(st: &St, open_lab: OpenLab) -> VoicesPage {
             refilter(false);
             picks.ids.borrow_mut().retain(|id| st.voice(id).is_some());
             sync_picks();
+            landing.play(|id| cards.borrow().get(id).map(|c| c.child.clone().upcast()), &tiles);
         })
     };
 
@@ -574,15 +581,15 @@ pub fn build(st: &St, open_lab: OpenLab) -> VoicesPage {
         let filter = filter.clone();
         move || filter.borrow().0 == "all"
     });
-    board::drop_on_grid(&shelf, &grid_stack, &grid, &item_of, &shown, &picks, &sync_picks, can_order, can_take);
-    board::drop_folders_on_grid(&shelf, &grid_stack, &grid, &tiles);
+    board::drop_on_grid(&shelf, &grid_stack, &grid, &item_of, &shown, &picks, &sync_picks, can_order, can_take, &landing);
+    board::drop_folders_on_grid(&shelf, &grid_stack, &grid, &tiles, &landing);
     board::up_takes_drops(&path.up, &shelf, &picks, &sync_picks, &spring_to);
     path.up.connect_clicked({
         let open_folder = open_folder.clone();
         move |_| open_folder(None)
     });
     board::mouse_back(&widget, &shown, &open_folder);
-    board::move_to_menu(&move_to, &shelf, &picks, &sync_picks);
+    board::move_to_menu(&move_to, &shelf, &picks, &sync_picks, &landing);
 
     let pick_all: Rc<dyn Fn()> = Rc::new({
         let (grid, item_of, picks, sync_picks) = (grid.clone(), item_of.clone(), picks.clone(), sync_picks.clone());

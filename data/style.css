@@ -543,17 +543,14 @@ flowboxchild:hover .sound-pad {
 }
 
 /* Folders: a glass folder, the pictures of what is in it peeking out and showing through the
-   front. On hover the front dips a little, and it opens for a drop. */
+   front. On hover the front dips and the pictures rise a little. With a tile held over it, the
+   folder lifts, its front opens wide and the pictures jump up to make room. */
 .vn-folder-front {
-  transition: transform 260ms cubic-bezier(.2, .9, .3, 1.4);
+  transition: transform 300ms cubic-bezier(.2, .9, .3, 1.45);
 }
 
-flowboxchild:hover .vn-folder .vn-folder-front {
-  transform: translateY(3px);
-}
-
-flowboxchild.vn-drop-into .vn-folder-front {
-  transform: translateY(8px);
+.vn-peek {
+  transition: transform 340ms cubic-bezier(.2, .9, .3, 1.6);
 }
 
 .vn-peek-left {
@@ -564,12 +561,90 @@ flowboxchild.vn-drop-into .vn-folder-front {
   transform: rotate(14deg);
 }
 
+flowboxchild:hover .vn-folder .vn-folder-front {
+  transform: translateY(3px);
+}
+
+flowboxchild:hover .vn-peek-left {
+  transform: translateY(-3px) rotate(-17deg);
+}
+
+flowboxchild:hover .vn-peek-mid {
+  transform: translateY(-4px);
+}
+
+flowboxchild:hover .vn-peek-right {
+  transform: translateY(-3px) rotate(17deg);
+}
+
+flowbox.vn-pads > flowboxchild.vn-drop-into > .vn-lift,
+flowbox.vn-grid > flowboxchild.vn-drop-into > .vn-lift {
+  transform: translateY(-5px) scale(1.07);
+}
+
+flowboxchild.vn-drop-into .vn-folder-front {
+  transform: translateY(12px);
+}
+
+flowboxchild.vn-drop-into .vn-peek-left {
+  transform: translateY(-9px) rotate(-24deg);
+}
+
+flowboxchild.vn-drop-into .vn-peek-mid {
+  transform: translateY(-12px) scale(1.08);
+}
+
+flowboxchild.vn-drop-into .vn-peek-right {
+  transform: translateY(-9px) rotate(24deg);
+}
+
+/* Tiles that were just dropped bounce in at their new place, and a folder that took some gulps
+   and shuts its front. The bounce lives in the keyframes, with a curve that does not overshoot. */
+flowboxchild.vn-landed {
+  animation: vn-land 560ms ease-out;
+}
+
+@keyframes vn-land {
+  0% { transform: scale(0.82); }
+  45% { transform: scale(1.07); }
+  72% { transform: scale(0.97); }
+  100% { transform: scale(1); }
+}
+
+flowboxchild.vn-gulp {
+  animation: vn-gulp 640ms ease-out;
+}
+
+@keyframes vn-gulp {
+  0% { transform: translateY(-5px) scale(1.08); }
+  30% { transform: scale(0.9); }
+  60% { transform: scale(1.05); }
+  82% { transform: scale(0.98); }
+  100% { transform: scale(1); }
+}
+
+flowboxchild.vn-gulp .vn-folder-front {
+  animation: vn-shut 560ms ease-out;
+}
+
+@keyframes vn-shut {
+  0% { transform: translateY(12px); }
+  40% { transform: translateY(-3px); }
+  70% { transform: translateY(1px); }
+  100% { transform: translateY(0px); }
+}
+
 /* The bar for picked tiles, under the grid. */
 .vn-picks-bar {
   padding: 8px 16px;
   border-top: 1px solid var(--vn-line);
   background-color: var(--vn-glass);
   box-shadow: inset 0 1px 0 var(--vn-glass-edge);
+}
+
+/* The check on a tile you pick pops in. */
+.vn-pad-check.vn-pop {
+  animation: vn-pop-in 320ms ease-out;
 }
 
 /* GTK frames a drop target while something is dragged over it. The grids show themselves where
