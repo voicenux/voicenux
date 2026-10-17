@@ -92,6 +92,16 @@ pub fn panel(st: &St) -> (gtk::Box, gtk::SearchEntry) {
     stack.add_named(&scroll, Some("results"));
     stack.add_named(&message, Some("message"));
 
+    // Most sounds there are very loud: they play quieter, here and once added.
+    let volume = super::soundboard::volume_slider(st.config.borrow().find_volume as f64, 1.0, {
+        let st = st.clone();
+        move |v| st.set_find_volume(v as f32)
+    });
+    volume.set_tooltip_text(Some(t("Volume of the sounds here. Added sounds keep it.")));
+    volume.set_margin_top(8);
+    volume.set_margin_start(16);
+    volume.set_margin_end(16);
+
     let credit = label(t("Sounds from MyInstants"), &["dim-label", "caption"]);
     credit.set_margin_top(6);
     credit.set_margin_bottom(10);
@@ -119,6 +129,7 @@ pub fn panel(st: &St) -> (gtk::Box, gtk::SearchEntry) {
     panel.append(&search);
     panel.append(&bar);
     panel.append(&stack);
+    panel.append(&volume);
     panel.append(&credit);
 
     let finder = Rc::new(Finder {
@@ -383,7 +394,7 @@ impl Finder {
             if me.listen_no.get() != no {
                 return;
             }
-            me.st.preview(audio.1.clone());
+            me.st.preview(audio.1.clone(), me.st.config.borrow().find_volume);
             button.set_icon_name("media-playback-stop-symbolic");
             let seconds = audio.1.frames.len() as f32 / RATE as f32;
             let button = button.clone();

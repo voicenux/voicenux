@@ -822,9 +822,16 @@ impl State {
         ids
     }
 
-    /// Plays a sound found online in the headphones only, to listen before adding it.
-    pub fn preview(&self, data: Arc<SoundData>) {
-        self.engine.rt(RtCmd::Play { id: PREVIEW, data, volume: 1.0, looped: false, restart: true, preview: true });
+    /// Plays a sound in the headphones only, to listen before adding or cutting it.
+    pub fn preview(&self, data: Arc<SoundData>, volume: f32) {
+        self.engine.rt(RtCmd::Play { id: PREVIEW, data, volume, looped: false, restart: true, preview: true });
+    }
+
+    /// How loud Find sounds plays them, at once for the one you hear.
+    pub fn set_find_volume(self: &Rc<Self>, volume: f32) {
+        self.config.borrow_mut().find_volume = volume;
+        self.save_later();
+        self.engine.rt(RtCmd::SoundVolumeOf { id: PREVIEW, volume });
     }
 
     pub fn stop_preview(&self) {
@@ -843,11 +850,15 @@ impl State {
         soundboard::load(&sound).map_err(|e| log::warn!("could not load sound {id}: {e}")).ok()
     }
 
-    /// Adds a sound found online.
+    /// Adds a sound found online, as loud as Find sounds played it.
     pub fn add_found(&self, name: &str, ext: &str, data: &[u8], icon: &str) -> anyhow::Result<()> {
         {
             let mut lib = self.library.borrow_mut();
-            lib.add_bytes(name, ext, data, icon)?;
+            let id = lib.add_bytes(name, ext, data, icon)?.id;
+            let volume = self.config.borrow().find_volume;
+            if let Some(s) = lib.sound.iter_mut().find(|s| s.id == id) {
+                s.volume = volume;
+            }
             lib.save();
         }
         self.notify(Change::Sounds);

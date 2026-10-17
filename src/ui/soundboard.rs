@@ -877,7 +877,7 @@ fn volume_button(st: &St) -> gtk::MenuButton {
 
 /// A volume slider with a speaker that shows the level, and the value in percent. Click the value
 /// to type one. It holds at 50 %, 100 % and 150 % on the way, so those are easy to hit.
-fn volume_slider(value: f64, max: f64, on_change: impl Fn(f64) + 'static) -> gtk::Box {
+pub(super) fn volume_slider(value: f64, max: f64, on_change: impl Fn(f64) + 'static) -> gtk::Box {
     let row = gtk::Box::new(gtk::Orientation::Horizontal, 10);
     row.add_css_class("vn-volume");
     let speaker = gtk::Image::new();

@@ -75,6 +75,8 @@ pub struct Config {
     pub page: String,
     /// How Find sounds sorts: "suggested", "views", "likes", "newest" or "az".
     pub sound_sort: String,
+    /// How loud Find sounds plays them. Most sounds on MyInstants are very loud.
+    pub find_volume: f32,
     /// Other apps on this computer may control Voicenux, see `src/api.rs`.
     pub api: bool,
 }
@@ -121,6 +123,7 @@ impl Default for Config {
             maximized: false,
             page: "voices".into(),
             sound_sort: "suggested".into(),
+            find_volume: 0.6,
             api: false,
         }
     }

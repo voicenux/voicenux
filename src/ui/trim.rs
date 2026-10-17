@@ -864,7 +864,7 @@ impl Trim {
         self.until.set(until);
         self.head.set(from);
         let cut = soundboard::trim(&self.data, from, Some(until));
-        self.st.preview(Arc::new(cut));
+        self.st.preview(Arc::new(cut), 1.0);
         self.playing.set(Some(Instant::now()));
         self.show_play();
     }
