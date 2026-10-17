@@ -223,8 +223,11 @@ flowbox.vn-grid > flowboxchild:hover > .vn-lift {
   transform: translateY(-5px) scale(1.04);
 }
 
+/* A press goes in at once and does not bounce, so quick clicks one after the other feel firm.
+   Letting go springs back up with the curve of .vn-lift. */
 flowbox.vn-grid > flowboxchild:active > .vn-lift {
-  transform: scale(0.96);
+  transform: translateY(-1px) scale(0.96);
+  transition: transform 90ms ease-out;
 }
 
 flowboxchild:hover .voice-card {
@@ -246,7 +249,8 @@ flowboxchild:hover .vn-pad-icon {
   transform: scale(1.1);
 }
 
-/* The picked voice jumps for joy, then floats while it is on. */
+/* The picked voice jumps for joy, then floats while it is on. The jump starts where the picture
+   is, bigger under the pointer, so a click does not make it jump back first. */
 flowboxchild .voice-card.active .voice-icon {
   animation: vn-boing 720ms ease-out, vn-float 2.6s ease-in-out 720ms infinite;
 }
@@ -256,8 +260,7 @@ flowboxchild .voice-card.active.off .voice-icon {
 }
 
 @keyframes vn-boing {
-  0% { transform: scale(1) rotate(0deg); }
-  35% { transform: scale(1.16) rotate(-5deg); }
+  35% { transform: scale(1.22) rotate(-5deg); }
   65% { transform: scale(0.96) rotate(2deg); }
   85% { transform: scale(1.02) rotate(0deg); }
   100% { transform: scale(1) rotate(0deg); }
@@ -515,7 +518,8 @@ flowbox.vn-pads > flowboxchild:hover > .vn-lift {
 }
 
 flowbox.vn-pads > flowboxchild:active > .vn-lift {
-  transform: scale(0.93);
+  transform: translateY(-1px) scale(0.94);
+  transition: transform 90ms ease-out;
 }
 
 flowboxchild:hover .sound-pad {
@@ -694,15 +698,14 @@ flowboxchild:hover .sound-pad.playing {
 }
 
 /* A sound that starts gives its picture one pop. The ring shows the rest, so several sounds at
-   once do not make the board restless. */
+   once do not make the board restless. The pop starts and ends where the picture is, bigger
+   under the pointer, so it does not jump. */
 flowboxchild .sound-pad.playing .vn-pad-icon {
   animation: vn-beat 360ms ease-out;
 }
 
 @keyframes vn-beat {
-  0% { transform: scale(1); }
-  40% { transform: scale(1.12); }
-  100% { transform: scale(1); }
+  40% { transform: scale(1.2); }
 }
 
 .sound-pad .vn-pad-name {
