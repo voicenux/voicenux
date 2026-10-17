@@ -278,6 +278,11 @@ impl Library {
         }
     }
 
+    /// Moves a folder before or after another one. Folders stay at the start of the soundboard.
+    pub fn move_folder(&mut self, name: &str, target: &str, after: bool) {
+        crate::order::move_one(&mut self.folders, name, target, after);
+    }
+
     /// Takes a sound out of the list, with where it was. Its file stays, for Undo.
     pub fn take(&mut self, id: &str) -> Option<(usize, Sound)> {
         let pos = self.sound.iter().position(|s| s.id == id)?;
@@ -699,6 +704,16 @@ mod tests {
         let saved: Library = toml::from_str(&toml::to_string_pretty(&lib).unwrap()).unwrap();
         assert_eq!(saved.folders, ["Best", "Other"]);
         assert_eq!(saved.sound[0].folder.as_deref(), Some("Best"));
+        // Folders move among themselves.
+        lib.folders.push("Third".into());
+        lib.move_folder("Third", "Best", false);
+        assert_eq!(lib.folders, ["Third", "Best", "Other"]);
+        lib.move_folder("Third", "Other", true);
+        assert_eq!(lib.folders, ["Best", "Other", "Third"]);
+        lib.move_folder("Third", "Third", false);
+        lib.move_folder("Third", "Gone", false);
+        assert_eq!(lib.folders, ["Best", "Other", "Third"]);
+        lib.folders.retain(|f| f != "Third");
         // Removing a folder keeps its sounds, in no folder.
         lib.remove_folder("Best");
         assert_eq!(lib.folders, ["Other"]);

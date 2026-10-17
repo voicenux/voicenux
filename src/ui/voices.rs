@@ -63,6 +63,10 @@ impl board::Shelf for VoiceShelf {
         self.0.remove_voice_folder(name)
     }
 
+    fn move_folder(&self, name: &str, target: &str, after: bool) {
+        self.0.move_voice_folder(name, target, after)
+    }
+
     fn move_to_folder(&self, ids: &[String], folder: Option<&str>) {
         self.0.voices_to_folder(ids, folder)
     }
@@ -571,6 +575,7 @@ pub fn build(st: &St, open_lab: OpenLab) -> VoicesPage {
         move || filter.borrow().0 == "all"
     });
     board::drop_on_grid(&shelf, &grid_stack, &grid, &item_of, &shown, &picks, &sync_picks, can_order, can_take);
+    board::drop_folders_on_grid(&shelf, &grid_stack, &grid, &tiles);
     board::up_takes_drops(&path.up, &shelf, &picks, &sync_picks, &spring_to);
     path.up.connect_clicked({
         let open_folder = open_folder.clone();

@@ -22,6 +22,17 @@ pub fn free_name(list: &[String], name: &str) -> String {
     (1..).map(|i| if i == 1 { name.to_string() } else { format!("{name} {i}") }).find(|n| !list.contains(n)).unwrap()
 }
 
+/// Moves one item before or after another one.
+pub fn move_one(list: &mut Vec<String>, name: &str, target: &str, after: bool) {
+    if name == target || !list.iter().any(|x| x == target) {
+        return;
+    }
+    let Some(from) = list.iter().position(|x| x == name) else { return };
+    let item = list.remove(from);
+    let to = list.iter().position(|x| x == target).map_or(list.len(), |p| p + after as usize);
+    list.insert(to, item);
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -41,5 +52,17 @@ mod tests {
         assert_eq!(l, list("b d a c e"));
         move_group(&mut l, |x| x.as_str(), &list("b"), "gone", true);
         assert_eq!(l, list("b d a c e"));
+    }
+
+    #[test]
+    fn one_moves_next_to_another() {
+        let mut l = list("a b c");
+        move_one(&mut l, "c", "a", false);
+        assert_eq!(l, list("c a b"));
+        move_one(&mut l, "c", "b", true);
+        assert_eq!(l, list("a b c"));
+        move_one(&mut l, "c", "c", false);
+        move_one(&mut l, "c", "gone", false);
+        assert_eq!(l, list("a b c"));
     }
 }

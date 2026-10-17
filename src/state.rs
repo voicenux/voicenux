@@ -556,6 +556,11 @@ impl State {
         self.voice_shelf_changed();
     }
 
+    pub fn move_voice_folder(self: &Rc<Self>, name: &str, target: &str, after: bool) {
+        crate::order::move_one(&mut self.config.borrow_mut().voice_folders, name, target, after);
+        self.voice_shelf_changed();
+    }
+
     /// Puts voices in a folder, or in none.
     pub fn voices_to_folder(self: &Rc<Self>, ids: &[String], folder: Option<&str>) {
         {
@@ -976,6 +981,16 @@ impl State {
         {
             let mut lib = self.library.borrow_mut();
             lib.remove_folder(name);
+            lib.save();
+        }
+        self.notify(Change::Sounds);
+    }
+
+    /// Moves a folder before or after another one.
+    pub fn move_folder(&self, name: &str, target: &str, after: bool) {
+        {
+            let mut lib = self.library.borrow_mut();
+            lib.move_folder(name, target, after);
             lib.save();
         }
         self.notify(Change::Sounds);

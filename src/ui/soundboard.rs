@@ -53,6 +53,10 @@ impl board::Shelf for SoundShelf {
         self.0.remove_folder(name)
     }
 
+    fn move_folder(&self, name: &str, target: &str, after: bool) {
+        self.0.move_folder(name, target, after)
+    }
+
     fn move_to_folder(&self, ids: &[String], folder: Option<&str>) {
         self.0.move_to_folder(ids, folder)
     }
@@ -575,6 +579,7 @@ pub fn build(st: &St) -> SoundboardPage {
         move || !st.config.borrow().sounds_by_name
     });
     board::drop_on_grid(&shelf, &stack, &grid, &item_of, &shown, &picks, &sync_picks, can_order, Rc::new(|| true));
+    board::drop_folders_on_grid(&shelf, &stack, &grid, &tiles);
     board::up_takes_drops(&path.up, &shelf, &picks, &sync_picks, &spring_to);
     path.up.connect_clicked({
         let open_folder = open_folder.clone();

@@ -1,6 +1,7 @@
 //! What the soundboard and the voice page share: a grid with folders on it, like a file manager.
 //! Tiles are picked with Ctrl+click and Shift+click, dragged to a new place or into a folder, and
-//! a folder opens when you hold a tile over it for a moment. Folders stay at the start.
+//! a folder opens when you hold a tile over it for a moment. Folders stay at the start and move
+//! among themselves.
 
 use std::cell::{Cell, RefCell};
 use std::collections::HashSet;
@@ -23,6 +24,7 @@ pub trait Shelf {
     /// False when the new name is empty or taken.
     fn rename_folder(&self, old: &str, new: &str) -> bool;
     fn remove_folder(&self, name: &str);
+    fn move_folder(&self, name: &str, target: &str, after: bool);
     fn move_to_folder(&self, ids: &[String], folder: Option<&str>);
     fn move_items(&self, ids: &[String], target: &str, after: bool);
     /// A short note at the bottom of the window.
@@ -372,6 +374,62 @@ pub fn drop_on_grid(
     area.as_ref().add_controller(drop);
 }
 
+/// A folder that is dragged, by name. A type of its own, so places for tiles do not take it.
+#[derive(Clone, Debug, glib::Boxed)]
+#[boxed_type(name = "VoicenuxFolderDrag")]
+struct FolderDrag(String);
+
+/// Folders stay at the start of the grid, but move among themselves: a dragged folder lands in
+/// the gap between two others, and both of them light up like for tiles.
+pub fn drop_folders_on_grid(shelf: &Shared, area: &impl IsA<gtk::Widget>, grid: &gtk::FlowBox, folders: &Folders) {
+    let mark = GapMark::default();
+    let nearest = {
+        let (area, grid, folders) = (area.as_ref().downgrade(), grid.downgrade(), folders.clone());
+        move |x: f64, y: f64| {
+            let is_folder = |c: &gtk::Widget| folders.borrow().iter().any(|(t, _)| t.upcast_ref::<gtk::Widget>() == c);
+            gap_at(&area.upgrade()?, &grid.upgrade()?, x, y, &is_folder)
+        }
+    };
+    let name_of = {
+        let folders = folders.clone();
+        move |c: &gtk::Widget| folders.borrow().iter().find(|(t, _)| t.upcast_ref::<gtk::Widget>() == c).map(|(_, n)| n.clone())
+    };
+    let drop = gtk::DropTarget::new(FolderDrag::static_type(), gdk::DragAction::MOVE);
+    drop.connect_motion({
+        let (mark, nearest) = (mark.clone(), nearest.clone());
+        move |_, x, y| match nearest(x, y) {
+            Some(gap) => {
+                mark.show(gap);
+                gdk::DragAction::MOVE
+            }
+            None => {
+                mark.clear();
+                gdk::DragAction::empty()
+            }
+        }
+    });
+    drop.connect_leave({
+        let mark = mark.clone();
+        move |_| mark.clear()
+    });
+    drop.connect_drop({
+        let shelf = shelf.clone();
+        move |_, value, x, y| {
+            mark.clear();
+            let Ok(FolderDrag(name)) = value.get::<FolderDrag>() else { return false };
+            let Some((target, after)) = nearest(x, y).and_then(place).and_then(|(c, after)| Some((name_of(&c)?, after)))
+            else {
+                return false;
+            };
+            // After the drop is done: moving builds the grid again, this folder too.
+            let shelf = shelf.clone();
+            glib::idle_add_local_once(move || shelf.move_folder(&name, &target, after));
+            true
+        }
+    });
+    area.as_ref().add_controller(drop);
+}
+
 /// How a folder tile fits in with the tiles around it: its card class, size and title class.
 pub struct TileLook {
     pub card: &'static str,
@@ -482,8 +540,10 @@ fn folder_glass(w: i32, h: i32, back: bool) -> gtk::DrawingArea {
     area
 }
 
-/// What a folder on the grid does besides opening: it takes tiles dropped on it, opens when one is
-/// held over it, and has a right-click menu to open, rename or remove it.
+/// What a folder on the grid does besides opening: it drags to another place among the folders,
+/// takes tiles dropped on it, opens when one is held over it, and has a right-click menu to open,
+/// rename or remove it.
+#[allow(clippy::too_many_arguments)]
 pub fn folder_actions(
     shelf: &Shared,
     child: &gtk::FlowBoxChild,
@@ -493,6 +553,36 @@ pub fn folder_actions(
     open_folder: &Open,
     spring_to: &Open,
 ) {
+    let tile = child.child().and_then(|lift| lift.first_child());
+    let drag = gtk::DragSource::new();
+    drag.set_actions(gdk::DragAction::MOVE);
+    let grabbed = Rc::new(Cell::new((0.0, 0.0)));
+    drag.connect_prepare({
+        let (grabbed, name) = (grabbed.clone(), name.to_string());
+        move |_, x, y| {
+            grabbed.set((x, y));
+            Some(gdk::ContentProvider::for_value(&FolderDrag(name.clone()).to_value()))
+        }
+    });
+    drag.connect_drag_begin({
+        let (child, tile) = (child.downgrade(), tile.clone());
+        move |src, _| {
+            let (Some(child), Some(tile)) = (child.upgrade(), tile.as_ref()) else { return };
+            let (x, y) = grabbed.get();
+            src.set_icon(Some(&gtk::WidgetPaintable::new(Some(tile)).current_image()), x as i32, y as i32);
+            child.add_css_class("vn-dragging");
+        }
+    });
+    drag.connect_drag_end({
+        let child = child.downgrade();
+        move |_, _, _| {
+            if let Some(c) = child.upgrade() {
+                c.remove_css_class("vn-dragging");
+            }
+        }
+    });
+    child.add_controller(drag);
+
     // A tile held over it for a moment opens the folder, to be dropped at a place in it.
     let drop = gtk::DropTarget::new(String::static_type(), gdk::DragAction::MOVE);
     let spring = Spring::default();
