@@ -1106,7 +1106,7 @@ button.suggested-action {
   background-image: var(--vn-grad);
   color: #ffffff;
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.18), 0 6px 18px -8px var(--vn-glow);
-  transition: box-shadow 200ms ease, filter 200ms ease;
+  transition: box-shadow 200ms ease, filter 200ms ease, transform 200ms ease;
 }
 
 button.suggested-action:hover {
@@ -1114,15 +1114,16 @@ button.suggested-action:hover {
   filter: brightness(1.08);
 }
 
+/* A press gives a little, without going dark. */
 button.suggested-action:active {
-  filter: brightness(0.94);
+  transform: scale(0.97);
 }
 
-/* Find sounds stays pressed while its panel is open: a bit darker, sunk in, and still white. */
+/* Find sounds stays on while its panel is open: lit, with a light ring and more glow. Darker
+   looked gray and off. */
 button.suggested-action:checked {
   color: #ffffff;
-  filter: brightness(0.93);
-  box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.28), 0 6px 18px -8px var(--vn-glow);
+  box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.4), 0 8px 24px -6px var(--vn-glow);
 }
 
 button.destructive-action {
