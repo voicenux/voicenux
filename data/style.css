@@ -167,10 +167,12 @@ button.vn-now-button:hover .vn-now {
   transform: translateY(-1px);
 }
 
+/* The light stays inside: a chip moves and pops, and shadows that reach out of a moving thing
+   left broken bits on NVIDIA at 130 % scale. */
 .vn-chip:checked {
   background-color: var(--cat-color);
   color: #ffffff;
-  box-shadow: 0 6px 16px -8px var(--cat-color);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.28), inset 0 0 12px -3px rgba(255, 255, 255, 0.35);
   animation: vn-pop-in 420ms ease-out;
 }
 
@@ -425,10 +427,11 @@ flowboxchild:hover .vn-star,
   transform: scale(0.96);
 }
 
+/* Glows inside, since the pill moves: see .vn-chip:checked. */
 .vn-pill:checked {
   background-image: var(--vn-grad);
   color: #ffffff;
-  box-shadow: 0 8px 22px -10px var(--vn-glow);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.3), inset 0 0 16px -4px rgba(255, 255, 255, 0.4);
   animation: vn-pop-in 420ms ease-out;
 }
 
@@ -696,12 +699,14 @@ scale slider {
   background-color: #ffffff;
   background-image: none;
   box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent-bg-color) 30%, transparent), 0 2px 5px rgba(0, 0, 0, 0.35);
-  transition: transform 260ms cubic-bezier(.2, .9, .3, 1.5);
+  transition: box-shadow 200ms ease;
 }
 
+/* The ring grows, not the knob: a knob that scales with its ring and shadow left broken bits on
+   NVIDIA. */
 scale:hover slider,
 scale slider:active {
-  transform: scale(1.18);
+  box-shadow: 0 0 0 7px color-mix(in srgb, var(--accent-bg-color) 34%, transparent), 0 2px 5px rgba(0, 0, 0, 0.35);
 }
 
 .vn-autoscroll-mark {
@@ -1269,7 +1274,8 @@ toast {
   background-color: rgba(18, 23, 32, 0.97);
   color: #eef2f8;
   font-weight: 650;
-  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent-bg-color) 45%, transparent), 0 12px 32px -8px rgba(0, 0, 0, 0.6), 0 0 22px -10px var(--vn-glow);
+  /* A small shadow only: libadwaita slides the note in, and a big one dragged broken bits along. */
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent-bg-color) 45%, transparent), inset 0 0 18px -8px var(--vn-glow), 0 4px 10px -4px rgba(0, 0, 0, 0.5);
 }
 
 /* Above the bottom bar, so notes never cover its switches. */
