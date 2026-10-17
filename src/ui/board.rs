@@ -252,16 +252,18 @@ fn gap_at(
     Some((left, right))
 }
 
-/// Lights up the tile at a gap, at the edge that faces it, and remembers it to put it out.
+/// Lights up both tiles at a gap, at the edge that faces it, and remembers them to put them out.
 #[derive(Clone, Default)]
 struct GapMark(Rc<RefCell<Vec<gtk::Widget>>>);
 
 impl GapMark {
     fn show(&self, gap: (Option<gtk::Widget>, Option<gtk::Widget>)) {
         self.clear();
-        if let Some((c, after)) = place(gap) {
-            c.add_css_class(if after { "vn-drop-after" } else { "vn-drop-before" });
-            self.0.borrow_mut().push(c);
+        for (c, class) in [(gap.0, "vn-drop-after"), (gap.1, "vn-drop-before")] {
+            if let Some(c) = c {
+                c.add_css_class(class);
+                self.0.borrow_mut().push(c);
+            }
         }
     }
 
@@ -282,8 +284,8 @@ fn place(gap: (Option<gtk::Widget>, Option<gtk::Widget>)) -> Option<(gtk::Widget
     }
 }
 
-/// Drops anywhere on the grid area move tiles: into the gap nearest the pointer, which lights up.
-/// A tile from another folder comes into the one shown, together with the
+/// Drops anywhere on the grid area move tiles: into the gap nearest the pointer, with both tiles
+/// at the gap lit up. A tile from another folder comes into the one shown, together with the
 /// other picked ones, also when the folder is empty. `can_order` says if a place in the order
 /// means anything right now: not when the grid is sorted by name, say. `can_take` says if tiles
 /// from other folders may come in: not in a view that is only a filter, like the favorites.

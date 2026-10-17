@@ -1373,14 +1373,38 @@ statuspage image.icon {
   opacity: 0.35;
 }
 
+/* Where a dragged sound lands: the pads on both sides of the gap light up at the edge that faces
+   it, with a strip in the blue gradient and a soft glow into the pad, and step a little aside to
+   make room. All of it inside the pads, since they move. */
+flowboxchild.vn-drop-before .sound-pad,
+flowboxchild.vn-drop-after .sound-pad,
+flowboxchild.vn-drop-before .voice-card,
+flowboxchild.vn-drop-after .voice-card {
+  background-repeat: no-repeat;
+  background-size: 4px 100%, 100% 100%, 100% 100%;
+  box-shadow: inset 0 1px 0 var(--vn-glass-edge), inset 0 0 0 1px color-mix(in srgb, var(--accent-bg-color) 40%, transparent), inset 0 0 0 0 transparent;
+}
+
 flowboxchild.vn-drop-before .sound-pad,
 flowboxchild.vn-drop-before .voice-card {
-  box-shadow: inset 4px 0 0 var(--accent-bg-color), inset 0 0 0 1px var(--vn-line);
+  background-image: linear-gradient(180deg, #2563eb, #22d3ee), linear-gradient(90deg, color-mix(in srgb, var(--vn-glow) 45%, transparent), transparent 32%), var(--vn-sheen);
+  background-position: left center, center, center;
 }
 
 flowboxchild.vn-drop-after .sound-pad,
 flowboxchild.vn-drop-after .voice-card {
-  box-shadow: inset -4px 0 0 var(--accent-bg-color), inset 0 0 0 1px var(--vn-line);
+  background-image: linear-gradient(180deg, #2563eb, #22d3ee), linear-gradient(270deg, color-mix(in srgb, var(--vn-glow) 45%, transparent), transparent 32%), var(--vn-sheen);
+  background-position: right center, center, center;
+}
+
+flowbox.vn-pads > flowboxchild.vn-drop-before > .vn-lift,
+flowbox.vn-grid > flowboxchild.vn-drop-before > .vn-lift {
+  transform: translateX(6px);
+}
+
+flowbox.vn-pads > flowboxchild.vn-drop-after > .vn-lift,
+flowbox.vn-grid > flowboxchild.vn-drop-after > .vn-lift {
+  transform: translateX(-6px);
 }
 
 /* The note when the audio engine stopped. */
