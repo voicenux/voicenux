@@ -956,18 +956,32 @@ pub fn pick_clicks(grid: &gtk::FlowBox, item_of: &ItemOf, picks: &Rc<Picks>, syn
     grid.add_controller(click);
 }
 
-/// The back button of the mouse goes up out of a folder too, like in a file manager.
+thread_local! {
+    /// How each page with folders goes up out of one, for the back button of the mouse.
+    static UP: RefCell<Vec<(glib::WeakRef<gtk::Widget>, Rc<dyn Fn() -> bool>)>> = RefCell::default();
+}
+
+/// The back button of the mouse goes up out of a folder first, like in a file manager, and only
+/// then back to the page before. The window asks [`up_on`] before it goes back a page.
 pub fn mouse_back(page: &impl IsA<gtk::Widget>, shown: &Rc<RefCell<Option<String>>>, open_folder: &Open) {
-    let back = gtk::GestureClick::new();
-    back.set_button(8);
-    back.connect_pressed({
-        let (shown, open_folder) = (shown.clone(), open_folder.clone());
-        move |g, _, _, _| {
-            if shown.borrow().is_some() {
-                g.set_state(gtk::EventSequenceState::Claimed);
-                open_folder(None);
-            }
+    let (shown, open_folder) = (shown.clone(), open_folder.clone());
+    let up: Rc<dyn Fn() -> bool> = Rc::new(move || {
+        if shown.borrow().is_none() {
+            return false;
         }
+        open_folder(None);
+        true
     });
-    page.as_ref().add_controller(back);
+    UP.with(|u| u.borrow_mut().push((page.as_ref().downgrade(), up)));
+}
+
+/// Goes up out of the folder that `page` shows, or a page in it. False when it shows none.
+pub fn up_on(page: &gtk::Widget) -> bool {
+    let up = UP.with(|u| {
+        u.borrow()
+            .iter()
+            .find(|(w, _)| w.upgrade().is_some_and(|w| &w == page || w.is_ancestor(page)))
+            .map(|(_, up)| up.clone())
+    });
+    up.is_some_and(|up| up())
 }

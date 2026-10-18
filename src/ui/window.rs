@@ -422,6 +422,10 @@ fn history(win: &Window) {
         if win.window.visible_dialog().is_some() {
             return;
         }
+        // In a folder, back goes up out of it first.
+        if back && win.stack.visible_child().is_some_and(|page| super::board::up_on(&page)) {
+            return;
+        }
         let next = {
             let h = &mut *h.borrow_mut();
             let (from, to) = if back { (&mut h.back, &mut h.forward) } else { (&mut h.forward, &mut h.back) };
