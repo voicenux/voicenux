@@ -580,25 +580,46 @@ impl Finder {
     }
 
     fn add(self: &Rc<Self>, f: &Rc<Found>, button: &gtk::Button) {
-        if button.has_css_class("vn-added") {
+        if button.has_css_class("vn-added") || button.child().is_some_and(|c| c.is::<adw::Spinner>()) {
             return;
         }
         let me = self.clone();
         let f2 = f.clone();
         self.with_audio(f, button, download_icon(), move |button, audio| {
-            let icon = super::emoji::guess(&f2.title).unwrap_or("loudspeaker");
-            match me.st.add_found(&f2.title, &f2.ext, &audio.0, icon) {
-                Ok(()) => {
-                    button.set_icon_name("object-select-symbolic");
-                    button.add_css_class("vn-added");
-                    button.set_tooltip_text(Some(t("Added")));
-                    me.st.notify(Change::Notice(fill(t("{} is on your soundboard now"), &[&f2.title])));
+            let add = {
+                let (me, f, button) = (me.clone(), f2.clone(), button.clone());
+                move |stats: Option<&Stats>| {
+                    let icon = picture(&f.title, stats).unwrap_or("loudspeaker");
+                    match me.st.add_found(&f.title, &f.ext, &audio.0, icon) {
+                        Ok(()) => {
+                            button.set_icon_name("object-select-symbolic");
+                            button.add_css_class("vn-added");
+                            button.set_tooltip_text(Some(t("Added")));
+                            me.st.notify(Change::Notice(fill(t("{} is on your soundboard now"), &[&f.title])));
+                        }
+                        Err(e) => {
+                            log::warn!("could not add {}: {e}", f.title);
+                            me.st.notify(Change::Notice(fill(t("Could not add {}"), &[&f.title])));
+                        }
+                    }
                 }
-                Err(e) => {
-                    log::warn!("could not add {}: {e}", f2.title);
-                    me.st.notify(Change::Notice(fill(t("Could not add {}"), &[&f2.title])));
-                }
+            };
+            // A name that says nothing, like "Sven!": its page may tell more. Read it, unless
+            // that happened already for its numbers.
+            let known = me.stats.borrow().get(&f2.url).cloned();
+            if known.is_some() || super::emoji::guess(&f2.title).is_some() {
+                add(known.as_ref());
+                return;
             }
+            button.set_child(Some(&adw::Spinner::new()));
+            let (sent, button) = ((*f2).clone(), button.clone());
+            off_thread(
+                move || online::stats(&sent),
+                move |r| {
+                    button.set_icon_name(download_icon());
+                    add(r.as_ref().ok());
+                },
+            );
         });
     }
 
@@ -844,6 +865,30 @@ fn on_button(g: &gtk::GestureClick, x: f64, y: f64) -> bool {
 /// The place in the list of the row a line of numbers is in.
 fn row_index(line: &gtk::Box) -> i32 {
     line.ancestor(gtk::ListBoxRow::static_type()).and_downcast::<gtk::ListBoxRow>().map_or(i32::MAX, |r| r.index())
+}
+
+/// A picture for a found sound: one its name fits, or else one what its page says fits, or else
+/// one for its category, like a clown for a prank.
+fn picture(title: &str, stats: Option<&Stats>) -> Option<&'static str> {
+    super::emoji::guess(title).or_else(|| {
+        let stats = stats?;
+        super::emoji::guess(&stats.about).or(match stats.category.as_str() {
+            "anime & manga" => Some("fish-cake-with-swirl"),
+            "games" => Some("video-game"),
+            "memes" => Some("joy"),
+            "movies" => Some("clapper-board"),
+            "music" => Some("musical-note"),
+            "politics" => Some("classical-building"),
+            "pranks" => Some("clown"),
+            "reactions" => Some("astonished-face"),
+            "sports" => Some("soccer-ball"),
+            "television" => Some("television"),
+            "tiktok trends" => Some("mobile-phone"),
+            "viral" => Some("fire"),
+            "whatsapp audios" => Some("speech-balloon"),
+            _ => None,
+        })
+    })
 }
 
 /// The icon to add a found sound: a download. Breeze has a plain one, Adwaita only one with a

@@ -25,12 +25,16 @@ pub struct Found {
 }
 
 /// What MyInstants shows on the page of a sound.
-#[derive(Clone, Copy, Debug, Default, PartialEq)]
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct Stats {
     /// People who liked it.
     pub likes: u32,
     /// How often its page was opened. MyInstants counts no downloads, this is the closest.
     pub views: u32,
+    /// What its uploader wrote about it, and its tags. Often empty.
+    pub about: String,
+    /// Its category in lowercase, like "pranks" or "sound effects". Empty for none.
+    pub category: String,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -170,7 +174,44 @@ fn unescape(s: &str) -> String {
 pub fn stats(found: &Found) -> Result<Stats, Error> {
     let Some(page) = found.page.as_ref().filter(|p| from_myinstants(p)) else { return Err(Error::Failed) };
     let page = call(|a| a.get(page).call()).map_err(error)?.body_mut().read_to_string().map_err(error)?;
-    Ok(Stats { likes: parse_likes(&page), views: parse_views(&page) })
+    Ok(Stats {
+        likes: parse_likes(&page),
+        views: parse_views(&page),
+        about: parse_about(&page),
+        category: parse_category(&page),
+    })
+}
+
+/// What the uploader wrote and the tags: `<div id="instant-page-description"><p>Brain Meme</p>`
+/// and `<div id="instant-page-tags"><a href="/en/search/?name=x">#x</a>`.
+fn parse_about(page: &str) -> String {
+    let mut about = String::new();
+    for id in ["instant-page-description", "instant-page-tags"] {
+        let Some(at) = page.find(&format!("id=\"{id}\"")) else { continue };
+        let Some(part) = between(&page[at..], ">", "</div>") else { continue };
+        let mut inside = false;
+        for c in part.chars() {
+            match c {
+                '<' => inside = true,
+                '>' => {
+                    inside = false;
+                    about.push(' ');
+                }
+                c if !inside => about.push(c),
+                _ => {}
+            }
+        }
+        about.push(' ');
+    }
+    unescape(&about.split_whitespace().collect::<Vec<_>>().join(" "))
+}
+
+/// The category in the breadcrumbs: `<a href="/en/categories/sound%20effects/"`. Lowercase.
+fn parse_category(page: &str) -> String {
+    let Some(at) = page.find("id=\"breadcrumbs\"") else { return String::new() };
+    let crumbs = &page[at..];
+    let crumbs = &crumbs[..crumbs.find("</div>").unwrap_or(crumbs.len())];
+    between(crumbs, "/en/categories/", "/").map(|c| unescape(&c.replace("%20", " ")).to_lowercase()).unwrap_or_default()
 }
 
 /// The views on the page of a sound: "<div>11,659,629 views</div>". None there is 0.
@@ -288,6 +329,25 @@ mod tests {
         assert_eq!(parse_views(page), 11_659_629);
         assert_eq!(parse_views("<div>1 views</div>"), 1);
         assert_eq!(parse_views("<html>new sound</html>"), 0);
+    }
+
+    #[test]
+    fn reads_what_the_page_says_about_a_sound() {
+        let page = r#"<div id="breadcrumbs"><ol>
+      <li><a href="/en/search/" title="Sounds" class="link-secondary">Sounds</a> ></li>
+      <li><a href="/en/categories/anime%20&amp;%20manga/" title="Anime &amp; Manga">Anime &amp; Manga</a> ></li>
+      <li><span>Galaxy meme</span></li></ol></div>
+      <h1 id="instant-page-title">Galaxy meme</h1>
+      <div id="instant-page-description">
+        <p>Brain &amp; Meme</p>
+      </div>
+      <div id="instant-page-tags">
+        <a href="/en/search/?name=fart">#fart</a>
+      </div>"#;
+        assert_eq!(parse_category(page), "anime & manga");
+        assert_eq!(parse_about(page), "Brain & Meme #fart");
+        assert_eq!(parse_category("<html>none</html>"), "");
+        assert_eq!(parse_about("<html>none</html>"), "");
     }
 
     #[test]

@@ -41,12 +41,70 @@ fn find(id: &str) -> Option<&'static Emoji> {
     BY_ID.get_or_init(|| index().iter().map(|e| (e.id, e)).collect()).get(id).copied()
 }
 
-/// A picture that fits a sound name, like the dog for "LBS FX Dog Small Alert Bark". Best is a
-/// picture named just like a word ("dog", "dog face"), then one with the word in its name, then
-/// one with it as a keyword. Later words first: in English they are mostly the thing itself.
+/// Words of sound names that say nothing about the sound, in English and German. Some would even
+/// pick a wrong picture: "die" is a die, "bin" a trash can, "hell" (bright) a light bulb.
+const SKIP: &str = "the and with for you your are was not but all out get got getting let lets this that what \
+    from have has had his her its who why how when off one now just like very really yes man bro yeah der die das \
+    den dem des und ein eine einer einen ist bin bist sind mit auf aus fur von zum zur nicht ich sie wir ihr mich \
+    dich mir dir mach muss hab habe jetzt halt nein doch noch mal wie wer oder aber dann denn schon sehr kann hell \
+    sch sound sounds effect effects sfx meme memes loud louder bass boosted boost version remix edit original full \
+    short long funny best new old ultra quality low high button";
+
+/// Words of sound names that the emoji names lack, and their picture. These go before the names of
+/// the pictures: "Fart ringtone" is a fart.
+const STRONG: &[(&str, &str)] = &[
+    ("pile-of-poo", "fart farts furz furze pups pupsen poop poo shit scheisse scheissen kacke kacken dunnpfiff"),
+    ("alarm-clock", "aufstehen steh wake wecker"),
+    ("police-car-light", "siren sirene"),
+    ("zzz", "snore schnarchen"),
+    ("cross-mark", "buzzer wrong falsch"),
+    ("check-mark-button", "correct richtig"),
+    ("warning", "error fehler"),
+    ("party-popper", "yay yippee yippe yippie hurra juhu"),
+    ("unamused-face", "bruh"),
+    ("face-with-raised-eyebrow", "huh"),
+    ("astonished-face", "wow omg god"),
+    ("cat", "meow miau"),
+    ("t-rex", "rawr dinosaur dino"),
+    ("water-pistol", "gun gunshot shotgun schuss"),
+    ("oncoming-fist", "punch"),
+    ("face-screaming-in-fear", "scream schrei schreien fah aaa"),
+    ("trophy", "win victory sieg gewonnen"),
+    ("thumbs-down", "fail lose verloren womp"),
+    ("door", "knock klopfen"),
+    ("sponge", "spongebob"),
+    ("doughnut", "homer"),
+    ("mushroom", "mario"),
+    ("smiling-face-with-hearts", "aww"),
+    ("balloon", "pop"),
+    ("zipper-mouth-face", "shut maul"),
+    ("droplet", "drip"),
+    ("pill", "risiken nebenwirkungen"),
+    ("person-running", "run"),
+    ("broken-heart", "damage"),
+];
+
+/// Words that only say what kind of sound it is. They go after the names of the pictures:
+/// "Elevator music" is an elevator, "German song" a song.
+const WEAK: &[(&str, &str)] = &[
+    ("musical-note", "song songs lied lieder music musik musiic melody melodie jingle intro outro"),
+    ("mobile-phone", "ringtone klingelton handy whatsapp"),
+    ("bell", "notification benachrichtigung ding beep piep"),
+    ("video-game", "fortnite roblox minecraft gaming"),
+];
+
+/// A picture that fits a sound name, like the dog for "LBS FX Dog Small Alert Bark". First the
+/// strong words of sounds, then a picture named just like a word ("dog", "dog face"), one with the
+/// word in its name, one with it as a keyword, the weak words of sounds, and last a picture whose
+/// keyword starts or ends a long word, for German ones like "Katzenvieh".
 pub fn guess(name: &str) -> Option<&'static str> {
-    let folded = fold(name);
-    let words: Vec<&str> = folded.split(|c: char| !c.is_alphanumeric()).filter(|w| w.chars().count() >= 3).rev().collect();
+    let words = sound_words(name);
+    let listed = |list: &[(&'static str, &str)]| {
+        words.iter().find_map(|w| list.iter().find(|(_, ws)| ws.split(' ').any(|x| x == w)).map(|(id, _)| *id))
+    };
+    if let Some(id) = listed(STRONG) {
+        return Some(id);
+    }
     let named = |e: &Emoji, w: &str| e.id == w || e.id.strip_suffix("-face") == Some(w);
     let in_name = |e: &Emoji, w: &str| e.id.split('-').any(|x| x == w);
     let keyword = |e: &Emoji, w: &str| e.words.split(' ').any(|x| x == w);
@@ -55,7 +113,58 @@ pub fn guess(name: &str) -> Option<&'static str> {
             return Some(e.id);
         }
     }
-    None
+    if let Some(id) = listed(WEAK) {
+        return Some(id);
+    }
+    let part = |e: &Emoji, w: &str| {
+        w.len() > 5
+            && e.words.split(' ').any(|k| k.len() >= 5 && w.len() > k.len() && (w.starts_with(k) || w.ends_with(k)))
+    };
+    words.iter().find_map(|w| index().iter().find(|e| part(e, w))).map(|e| e.id)
+}
+
+/// The words of a sound name to look for, the last first: in English they are mostly the thing
+/// itself. A stretched word also counts short ("YAAAY" as "yay"), a plural also without its "s",
+/// and a long cry like "AAAAH" as a scream.
+fn sound_words(name: &str) -> Vec<String> {
+    let mut out: Vec<String> = Vec::new();
+    for w in fold(name).split(|c: char| !c.is_alphanumeric()).rev() {
+        let mut v = vec![w.to_string()];
+        let short = squeeze(w);
+        if short.chars().count() <= 2 && w.chars().count() >= 3 && short.chars().all(|c| "aeiouh".contains(c)) {
+            v.push("aaa".into());
+        } else if short != w {
+            v.push(short);
+        }
+        for x in v.clone() {
+            if x.chars().count() >= 5
+                && let Some(one) = x.strip_suffix('s')
+            {
+                v.push(one.to_string());
+            }
+        }
+        for x in v {
+            if x.chars().count() >= 3 && !SKIP.split_whitespace().any(|s| s == x) && !out.contains(&x) {
+                out.push(x);
+            }
+        }
+    }
+    out
+}
+
+/// Runs of three or more of the same letter as one: "yaaaay" is "yay".
+fn squeeze(w: &str) -> String {
+    let chars: Vec<char> = w.chars().collect();
+    let mut out = String::new();
+    let mut i = 0;
+    while i < chars.len() {
+        let run = chars[i..].iter().take_while(|c| **c == chars[i]).count();
+        for _ in 0..if run >= 3 { 1 } else { run } {
+            out.push(chars[i]);
+        }
+        i += run;
+    }
+    out
 }
 
 /// A button showing a picture. Clicking it opens a grid of all pictures to choose from.
@@ -220,5 +329,34 @@ mod tests {
             assert!(dog.split('-').any(|w| w == "dog"), "{name}: {dog}");
         }
         assert_eq!(guess("xyzzy 01"), None);
+    }
+
+    #[test]
+    fn guesses_pictures_for_meme_sounds() {
+        for (name, picture) in [
+            ("Fart", Some("pile-of-poo")),
+            ("Furz Klingelton", Some("pile-of-poo")),
+            ("Peppa Wutz - Stück Scheiße", Some("pile-of-poo")),
+            ("German song", Some("musical-note")),
+            ("Elevator Music Background", Some("elevator")),
+            ("Aufstehen!!!", Some("alarm-clock")),
+            ("YAAAAAAAAY", Some("party-popper")),
+            ("FAHHHHHHH", Some("face-screaming-in-fear")),
+            ("The Saxophones Getting Louder", Some("saxophone")),
+            ("Gutenmorgen Sonnenschein", Some("sun-with-face")),
+            ("Apple Pay", Some("red-apple")),
+            ("sch… katzenvieh", Some("grinning-cat")),
+            // "die" is no die here.
+            ("Ralf Schumacher - Mitten in die Fresse", None),
+        ] {
+            assert_eq!(guess(name), picture, "{name}");
+        }
+    }
+
+    #[test]
+    fn sound_words_have_pictures() {
+        for (id, _) in STRONG.iter().chain(WEAK) {
+            assert!(find(id).is_some(), "no picture {id}");
+        }
     }
 }

@@ -914,7 +914,7 @@ impl State {
                 match r {
                     Ok((file, name)) => {
                         let mut lib = st.library.borrow_mut();
-                        lib.add_file(file, &name, "loudspeaker");
+                        lib.add_file(file, &name, crate::ui::emoji::guess(&name).unwrap_or("loudspeaker"));
                         lib.save();
                         drop(lib);
                         st.notify(Change::Sounds);

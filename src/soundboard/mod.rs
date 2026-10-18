@@ -128,6 +128,9 @@ pub struct Library {
     /// the field had the first one.
     #[serde(default = "first_pack")]
     pub starter: u32,
+    /// How sounds were given pictures when this soundboard last looked, see [`PICTURES`].
+    #[serde(default)]
+    pub pictures: u32,
     /// Folders by name, in the order of their tabs.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub folders: Vec<String>,
@@ -138,6 +141,10 @@ pub struct Library {
 fn first_pack() -> u32 {
     1
 }
+
+/// Raised when sounds can find better pictures by their names, see [`crate::ui::emoji::guess`].
+/// Sounds that still have the loudspeaker then look again, once.
+pub const PICTURES: u32 = 1;
 
 pub fn dir() -> PathBuf {
     crate::config::config_dir().join("sounds")
@@ -168,10 +175,21 @@ impl Library {
     }
 
     /// Brings a soundboard from an older starter pack up to date: the sounds that are new join
-    /// at the end. Returns whether something changed.
+    /// at the end. Sounds with the loudspeaker look for a better picture. Returns whether
+    /// something changed.
     fn upgrade(&mut self) -> bool {
+        let mut changed = false;
+        if self.pictures < PICTURES {
+            for s in self.sound.iter_mut().filter(|s| s.builtin.is_none() && s.icon == "loudspeaker") {
+                if let Some(icon) = crate::ui::emoji::guess(&s.name) {
+                    s.icon = icon.to_string();
+                }
+            }
+            self.pictures = PICTURES;
+            changed = true;
+        }
         if self.starter >= starter::PACK {
-            return false;
+            return changed;
         }
         // Pack 2 has other audio for the old ids, so their cuts no longer fit.
         if self.starter < 2 {
@@ -192,6 +210,7 @@ impl Library {
     pub fn starter() -> Self {
         Self {
             starter: starter::PACK,
+            pictures: PICTURES,
             folders: Vec::new(),
             sound: starter::BUILTIN.iter().map(starter_sound).collect(),
         }
@@ -634,6 +653,38 @@ mod tests {
         assert!(!lib.upgrade());
         let saved: Library = toml::from_str(&toml::to_string_pretty(&lib).unwrap()).unwrap();
         assert_eq!(saved.starter, starter::PACK);
+    }
+
+    #[test]
+    fn loudspeakers_look_for_a_picture_once() {
+        let text = r#"
+            starter = 2
+
+            [[sound]]
+            id = "sound-1"
+            name = "Fart"
+            icon = "loudspeaker"
+
+            [[sound]]
+            id = "sound-2"
+            name = "Helmut"
+            icon = "loudspeaker"
+
+            [[sound]]
+            id = "sound-3"
+            name = "German song"
+            icon = "dog"
+        "#;
+        let mut lib: Library = toml::from_str(text).unwrap();
+        assert!(lib.upgrade());
+        assert_eq!(lib.find("sound-1").unwrap().icon, "pile-of-poo");
+        // No word for it: it keeps the loudspeaker. A picture someone picked stays.
+        assert_eq!(lib.find("sound-2").unwrap().icon, "loudspeaker");
+        assert_eq!(lib.find("sound-3").unwrap().icon, "dog");
+        // Only once: a loudspeaker picked later stays too.
+        lib.sound[0].icon = "loudspeaker".into();
+        assert!(!lib.upgrade());
+        assert_eq!(lib.find("sound-1").unwrap().icon, "loudspeaker");
     }
 
     #[test]

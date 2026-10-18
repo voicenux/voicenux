@@ -3,7 +3,7 @@
 pub mod ai;
 pub mod board;
 pub mod bottombar;
-mod emoji;
+pub mod emoji;
 mod find_sounds;
 mod glyph;
 pub mod help;
