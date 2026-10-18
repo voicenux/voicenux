@@ -3,6 +3,7 @@
 use std::rc::Rc;
 
 use adw::prelude::*;
+use gtk::glib;
 
 use super::{label, line_icon, smooth_scroll};
 use crate::audio::Device;
@@ -96,9 +97,84 @@ fn scale_row(
     row
 }
 
+/// Device names in full. The list shows them whole (it grows up to the window), the row cuts
+/// them only when they really do not fit. The default of a combo row cuts both at 20 letters,
+/// and names like "Audient iD4 Headphones" lose their end.
+fn full_names(row: &adw::ComboRow) {
+    let item_of = |o: &glib::Object| o.downcast_ref::<gtk::ListItem>().cloned();
+    let text_of = |item: &gtk::ListItem| item.item().and_downcast::<gtk::StringObject>().map(|s| s.string());
+
+    let current = gtk::SignalListItemFactory::new();
+    current.connect_setup(move |_, o| {
+        let Some(item) = item_of(o) else { return };
+        let l = gtk::Label::new(None);
+        l.set_xalign(0.0);
+        l.set_ellipsize(gtk::pango::EllipsizeMode::End);
+        l.set_max_width_chars(44);
+        l.set_width_chars(1);
+        item.set_child(Some(&l));
+    });
+    current.connect_bind(move |_, o| {
+        let Some(item) = item_of(o) else { return };
+        if let (Some(l), Some(text)) = (item.child().and_downcast::<gtk::Label>(), text_of(&item)) {
+            l.set_label(&text);
+        }
+    });
+    row.set_factory(Some(&current));
+
+    // In the list: the whole name and a check at the chosen one, like the default.
+    let list = gtk::SignalListItemFactory::new();
+    list.connect_setup(move |_, o| {
+        let Some(item) = item_of(o) else { return };
+        let b = gtk::Box::new(gtk::Orientation::Horizontal, 12);
+        let l = gtk::Label::new(None);
+        l.set_xalign(0.0);
+        l.set_hexpand(true);
+        l.set_ellipsize(gtk::pango::EllipsizeMode::End);
+        l.set_max_width_chars(64);
+        b.append(&l);
+        b.append(&gtk::Image::from_icon_name("object-select-symbolic"));
+        item.set_child(Some(&b));
+    });
+    let check = {
+        let row = row.downgrade();
+        move |item: &gtk::ListItem| {
+            let (Some(row), Some(b)) = (row.upgrade(), item.child()) else { return };
+            let chosen = row.selected_item().is_some() && row.selected_item() == item.item();
+            if let Some(icon) = b.last_child() {
+                icon.set_opacity(if chosen { 1.0 } else { 0.0 });
+            }
+        }
+    };
+    // The items in the list, to move the check when the choice changes.
+    let shown: Rc<std::cell::RefCell<Vec<glib::WeakRef<gtk::ListItem>>>> = Rc::default();
+    row.connect_selected_item_notify({
+        let (shown, check) = (shown.clone(), check.clone());
+        move |_| {
+            shown.borrow_mut().retain(|w| w.upgrade().is_some());
+            for item in shown.borrow().iter().filter_map(|w| w.upgrade()) {
+                check(&item);
+            }
+        }
+    });
+    list.connect_bind(move |_, o| {
+        let Some(item) = item_of(o) else { return };
+        if let (Some(l), Some(text)) = (item.child().and_then(|b| b.first_child()).and_downcast::<gtk::Label>(), text_of(&item)) {
+            l.set_label(&text);
+        }
+        check(&item);
+        let mut list = shown.borrow_mut();
+        if !list.iter().any(|w| w.upgrade().as_ref() == Some(&item)) {
+            list.push(item.downgrade());
+        }
+    });
+    row.set_list_factory(Some(&list));
+}
+
 /// A combo row for devices, with "System default" on top. Keeps itself up to date.
 fn device_row(st: &St, title: &str, inputs: bool) -> adw::ComboRow {
     let row = adw::ComboRow::builder().title(title).build();
+    full_names(&row);
     let model = gtk::StringList::new(&[]);
     row.set_model(Some(&model));
     let names: Rc<std::cell::RefCell<Vec<Option<String>>>> = Rc::default();
