@@ -1,5 +1,6 @@
-//! Cuts the start and end of a sound, like a video clip: a time ruler, the waveform with two
-//! handles, and a playhead that says where listening starts. Listening plays in the headphones only.
+//! Cuts the start and end of a sound, like a video clip: the waveform with two handles, a time
+//! ruler under it, and a playhead that says where listening starts. Listening plays in the
+//! headphones only.
 //!
 //! Mouse: drag a handle to cut, drag the playhead, click into the cut or the ruler to move it,
 //! click outside the cut to move the nearest handle there. The playhead may leave the cut: it
@@ -25,8 +26,8 @@ use crate::state::{Change, St};
 
 /// Width of a handle.
 const HANDLE: f32 = 14.0;
-/// Height of the time ruler above the waveform.
-const RULER: f32 = 26.0;
+/// Height of the time ruler under the waveform.
+const RULER: f32 = 30.0;
 /// Height of the waveform.
 const WAVE: f32 = 150.0;
 /// The shortest sound a cut leaves, in seconds.
@@ -153,8 +154,8 @@ pub fn open(st: &St, id: &str, parent: &impl IsA<gtk::Widget>) {
     wave.update_property(&[gtk::accessible::Property::Label(t("Waveform"))]);
     let bubble = label("", &["vn-trim-bubble", "numeric"]);
     bubble.set_halign(gtk::Align::Start);
-    bubble.set_valign(gtk::Align::End);
-    bubble.set_margin_bottom(6);
+    bubble.set_valign(gtk::Align::Start);
+    bubble.set_margin_top(6);
     bubble.set_can_target(false);
     bubble.set_visible(false);
     let wave_box = gtk::Overlay::new();
@@ -735,7 +736,7 @@ impl Trim {
         let w = self.wave.width() as f32;
         let (sx, ex, hx) = (self.x(self.start.get(), w), self.x(self.end.get(), w), self.x(self.head.get(), w));
         // The playhead's knob sits in the ruler, the rest of the ruler seeks.
-        if y < RULER {
+        if y >= self.wave.height() as f32 - RULER {
             return if (x - hx).abs() <= HEAD_REACH + 2.0 { Zone::Head } else { Zone::Ruler };
         }
         // The handles themselves come first, then the playhead, then a little room inside the
@@ -910,17 +911,17 @@ impl Trim {
         let ink = (fg.red(), fg.green(), fg.blue());
         let (sx, ex) = (self.x(self.start.get(), w), self.x(self.end.get(), w));
         let (left, right) = (HANDLE, w - HANDLE);
-        let top = RULER;
-        let mid = top + (h - top) / 2.0;
+        let bottom = h - RULER;
+        let mid = bottom / 2.0;
         let dragging = self.dragging.get();
         let hover = if dragging.is_none() { self.hover.get() } else { None };
         // Zoomed in, the handles and the frame can lie outside.
         s.push_clip(&graphene::Rect::new(0.0, 0.0, w, h));
 
-        self.draw_ruler(widget, s, w, ink);
+        self.draw_ruler(widget, s, w, h, ink);
 
         // Ground.
-        fill_round(s, graphene::Rect::new(left, top, right - left, h - top), 10.0, &rgba(ink, 0.05));
+        fill_round(s, graphene::Rect::new(left, 0.0, right - left, bottom), 10.0, &rgba(ink, 0.05));
 
         // Waveform: a bar every 4 pixels, colored inside the cut and grey outside.
         let (inside, outside) = (gsk::PathBuilder::new(), gsk::PathBuilder::new());
@@ -933,7 +934,7 @@ impl Trim {
             let b = index(from + span * (c + 1) as f32 / columns as f32).max(a + 1).min(n);
             let peak = self.peaks[a..b].iter().fold(0.0f32, |m, p| m.max(*p));
             let x = left + 2.0 + c as f32 * 4.0;
-            let half = (peak.powf(0.7) * ((h - top) / 2.0 - 14.0)).max(1.0);
+            let half = (peak.powf(0.7) * (bottom / 2.0 - 14.0)).max(1.0);
             let path = if x >= sx && x <= ex { &inside } else { &outside };
             path.move_to(x, mid - half);
             path.line_to(x, mid + half);
@@ -943,7 +944,7 @@ impl Trim {
         s.append_stroke(&outside.to_path(), &bars, &rgba(ink, 0.22));
         s.push_stroke(&inside.to_path(), &bars);
         s.append_linear_gradient(
-            &graphene::Rect::new(sx, top, (ex - sx).max(1.0), h - top),
+            &graphene::Rect::new(sx, 0.0, (ex - sx).max(1.0), bottom),
             &graphene::Point::new(sx, 0.0),
             &graphene::Point::new(ex.max(sx + 1.0), 0.0),
             &[
@@ -966,11 +967,11 @@ impl Trim {
             (None, Some(Zone::Handle(sd))) => sd == side,
             _ => false,
         };
-        let frame = gsk::RoundedRect::from_rect(graphene::Rect::new(sx - 1.5, top, ex - sx + 3.0, h - top), 0.0);
+        let frame = gsk::RoundedRect::from_rect(graphene::Rect::new(sx - 1.5, 0.0, ex - sx + 3.0, bottom), 0.0);
         s.append_border(&frame, &[3.0; 4], &[rgba(ACCENT, 1.0); 4]);
         for (side, x) in [(Side::Start, sx - HANDLE), (Side::End, ex)] {
             let c = if lit(side) { ACCENT_LIGHT } else { ACCENT };
-            fill_round(s, graphene::Rect::new(x, top, HANDLE, h - top), 6.0, &rgba(c, 1.0));
+            fill_round(s, graphene::Rect::new(x, 0.0, HANDLE, bottom), 6.0, &rgba(c, 1.0));
             for dx in [-2.0, 2.0] {
                 fill_round(s, graphene::Rect::new(x + HANDLE / 2.0 + dx - 1.0, mid - 10.0, 2.0, 20.0), 1.0, &rgba(WHITE, 0.9));
             }
@@ -983,14 +984,16 @@ impl Trim {
         let head = self.head.get();
         let stuck = dragging == Some(Grab::Head) && (head == self.start.get() || head == self.end.get());
         let knob_color = if stuck { ACCENT_LIGHT } else { WHITE };
-        s.append_color(&rgba(WHITE, 1.0), &graphene::Rect::new(x - 1.0, 8.0, 2.0, h - 12.0));
+        s.append_color(&rgba(WHITE, 1.0), &graphene::Rect::new(x - 1.0, 4.0, 2.0, h - 12.0));
         let (half, tall) = if big { (8.0, 17.0) } else { (6.5, 14.0) };
+        // It points up at the waveform from the ruler below.
+        let foot = h - 3.0;
         let knob = gsk::PathBuilder::new();
-        knob.move_to(x - half, 3.0);
-        knob.line_to(x + half, 3.0);
-        knob.line_to(x + half, 3.0 + tall - half);
-        knob.line_to(x, 3.0 + tall);
-        knob.line_to(x - half, 3.0 + tall - half);
+        knob.move_to(x - half, foot);
+        knob.line_to(x + half, foot);
+        knob.line_to(x + half, foot - tall + half);
+        knob.line_to(x, foot - tall);
+        knob.line_to(x - half, foot - tall + half);
         knob.close();
         let knob = knob.to_path();
         let round = gsk::Stroke::new(2.0);
@@ -1001,14 +1004,15 @@ impl Trim {
         s.pop();
     }
 
-    /// The time ruler: the cut tinted, ticks, and a label on every big tick.
-    fn draw_ruler(&self, widget: &gtk::Widget, s: &gtk::Snapshot, w: f32, ink: (f32, f32, f32)) {
+    /// The time ruler under the waveform: the cut tinted, ticks hanging down from a line, and a
+    /// label on every big tick.
+    fn draw_ruler(&self, widget: &gtk::Widget, s: &gtk::Snapshot, w: f32, h: f32, ink: (f32, f32, f32)) {
         let (left, right) = (HANDLE, w - HANDLE);
-        let base = RULER - 4.0;
+        let base = h - RULER + 4.0;
         let (sx, ex) = (self.x(self.start.get(), w), self.x(self.end.get(), w));
         let corner = graphene::Size::new(5.0, 5.0);
         let none = graphene::Size::new(0.0, 0.0);
-        let cut = gsk::RoundedRect::new(graphene::Rect::new(sx, 0.0, ex - sx, base), corner, corner, none, none);
+        let cut = gsk::RoundedRect::new(graphene::Rect::new(sx, base + 1.0, ex - sx, h - base - 1.0), none, none, corner, corner);
         s.push_rounded_clip(&cut);
         s.append_color(&rgba(ACCENT, 0.14), cut.bounds());
         s.pop();
@@ -1028,7 +1032,7 @@ impl Trim {
             let x = self.x(v, w).round();
             let major = i % parts == 0;
             let (len, alpha) = if major { (8.0, 0.5) } else { (4.0, 0.25) };
-            s.append_color(&rgba(ink, alpha), &graphene::Rect::new(x - 0.5, base - len, 1.0, len));
+            s.append_color(&rgba(ink, alpha), &graphene::Rect::new(x - 0.5, base + 1.0, 1.0, len));
             if !major {
                 continue;
             }
@@ -1040,7 +1044,7 @@ impl Trim {
                 continue;
             }
             s.save();
-            s.translate(&graphene::Point::new(x + 4.0, base - 8.0 - logical.height() as f32 * 0.55));
+            s.translate(&graphene::Point::new(x + 4.0, base + 9.0 - logical.height() as f32 * 0.45));
             s.append_layout(&layout, &rgba(ink, 0.6));
             s.restore();
         }
