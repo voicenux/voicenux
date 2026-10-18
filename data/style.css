@@ -219,7 +219,9 @@ flowbox.vn-grid > flowboxchild {
   transition: transform 360ms cubic-bezier(.2, .9, .3, 1.35);
 }
 
-flowbox.vn-grid > flowboxchild:hover > .vn-lift {
+/* Tiles light up on hover, but not while the pointer is in their menu: GTK counts that as
+   hovering the tile (see popup::menu). */
+flowbox.vn-grid > flowboxchild:hover:not(.vn-menu-hover) > .vn-lift {
   transform: translateY(-5px) scale(1.04);
 }
 
@@ -231,7 +233,7 @@ flowbox.vn-grid > flowboxchild:active:not(.vn-menu-open) > .vn-lift {
   transition: transform 90ms ease-out;
 }
 
-flowboxchild:hover .voice-card {
+flowboxchild:hover:not(.vn-menu-hover) .voice-card {
   background-color: var(--vn-card-hover);
   box-shadow: inset 0 1px 0 var(--vn-glass-edge), inset 0 0 0 1px color-mix(in srgb, var(--cat-color) 45%, transparent);
 }
@@ -245,8 +247,8 @@ flowboxchild:focus-visible .voice-card {
   transition: transform 320ms cubic-bezier(.2, .9, .3, 1.5);
 }
 
-flowboxchild:hover .voice-card .voice-icon,
-flowboxchild:hover .vn-pad-icon {
+flowboxchild:hover:not(.vn-menu-hover) .voice-card .voice-icon,
+flowboxchild:hover:not(.vn-menu-hover) .vn-pad-icon {
   transform: scale(1.1);
 }
 
@@ -304,7 +306,7 @@ flowboxchild .voice-card.active.off .voice-icon {
   transition: opacity 200ms ease;
 }
 
-flowboxchild:hover .vn-star,
+flowboxchild:hover:not(.vn-menu-hover) .vn-star,
 .vn-star.on {
   opacity: 1;
 }
@@ -542,7 +544,7 @@ flowbox.vn-pads > flowboxchild {
   transition: box-shadow 220ms ease;
 }
 
-flowbox.vn-pads > flowboxchild:hover > .vn-lift {
+flowbox.vn-pads > flowboxchild:hover:not(.vn-menu-hover) > .vn-lift {
   transform: translateY(-4px) scale(1.03);
 }
 
@@ -551,7 +553,7 @@ flowbox.vn-pads > flowboxchild:active:not(.vn-menu-open) > .vn-lift {
   transition: transform 90ms ease-out;
 }
 
-flowboxchild:hover .sound-pad {
+flowboxchild:hover:not(.vn-menu-hover) .sound-pad {
   box-shadow: inset 0 1px 0 var(--vn-glass-edge), inset 0 0 0 1px color-mix(in srgb, var(--accent-bg-color) 45%, transparent), inset 0 0 0 0 transparent;
 }
 
@@ -594,19 +596,19 @@ flowboxchild:hover .sound-pad {
   transform: rotate(14deg);
 }
 
-flowboxchild:hover .vn-folder .vn-folder-front {
+flowboxchild:hover:not(.vn-menu-hover) .vn-folder .vn-folder-front {
   transform: translateY(3px);
 }
 
-flowboxchild:hover .vn-peek-left {
+flowboxchild:hover:not(.vn-menu-hover) .vn-peek-left {
   transform: translateY(-3px) rotate(-17deg);
 }
 
-flowboxchild:hover .vn-peek-mid {
+flowboxchild:hover:not(.vn-menu-hover) .vn-peek-mid {
   transform: translateY(-4px);
 }
 
-flowboxchild:hover .vn-peek-right {
+flowboxchild:hover:not(.vn-menu-hover) .vn-peek-right {
   transform: translateY(-3px) rotate(17deg);
 }
 
@@ -722,7 +724,7 @@ flowboxchild.vn-drop-into .voice-card {
 }
 
 .sound-pad.playing,
-flowboxchild:hover .sound-pad.playing {
+flowboxchild:hover:not(.vn-menu-hover) .sound-pad.playing {
   box-shadow: inset 0 1px 0 var(--vn-glass-edge), inset 0 0 0 2px var(--accent-bg-color), inset 0 0 22px -4px var(--vn-glow);
 }
 
@@ -770,7 +772,7 @@ flowboxchild .sound-pad.playing .vn-pad-icon {
   transition: opacity 200ms ease;
 }
 
-flowboxchild:hover .vn-pad-menu {
+flowboxchild:hover:not(.vn-menu-hover) .vn-pad-menu {
   opacity: 1;
 }
 

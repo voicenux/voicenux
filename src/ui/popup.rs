@@ -56,8 +56,21 @@ pub fn menu(p: &gtk::Popover) {
     p.connect_unmap(|p| {
         if let Some(parent) = p.parent() {
             parent.remove_css_class("vn-menu-open");
+            parent.remove_css_class("vn-menu-hover");
         }
     });
+    // The pointer in the menu counts as on the tile too, so the tile lit up whenever the pointer
+    // came back into its menu. It knows when the pointer is in the menu, and stays dark then.
+    let inside = gtk::EventControllerMotion::new();
+    inside.connect_contains_pointer_notify(|m| {
+        let Some(parent) = m.widget().and_then(|p| p.parent()) else { return };
+        if m.contains_pointer() {
+            parent.add_css_class("vn-menu-hover");
+        } else {
+            parent.remove_css_class("vn-menu-hover");
+        }
+    });
+    p.add_controller(inside);
     p.connect_closed(|p| {
         let Some(pointer) = p.display().default_seat().and_then(|s| s.pointer()) else { return };
         let (Some(surface), x, y) = pointer.surface_at_position() else { return };
