@@ -1162,7 +1162,10 @@ impl Detail {
         fav.connect_clicked({
             let st = st.clone();
             let shown = d.shown.clone();
-            move |_| st.toggle_favorite(&shown.borrow())
+            move |_| {
+                let id = shown.borrow().clone();
+                st.toggle_favorite(&id);
+            }
         });
         // The AI tells how it is doing while it starts and loads.
         glib::timeout_add_local(std::time::Duration::from_millis(500), {

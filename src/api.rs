@@ -386,9 +386,19 @@ fn handle(st: &St, action: &str, arg: Option<&str>) -> Result<Value, String> {
         "random-voice" => st.random_voice(),
         "next-voice" => st.step_voice(true),
         "previous-voice" => st.step_voice(false),
-        "voice-changer" => st.set_voice_on(switch(arg, st.config.borrow().voice_on)?),
-        "hear-myself" => st.set_hear_myself(switch(arg, st.config.borrow().hear_myself)?),
-        "background" => st.set_background(switch(arg, st.config.borrow().background)?),
+        // Read the switch first: a borrow in the argument would last through the call.
+        "voice-changer" => {
+            let on = switch(arg, st.config.borrow().voice_on)?;
+            st.set_voice_on(on);
+        }
+        "hear-myself" => {
+            let on = switch(arg, st.config.borrow().hear_myself)?;
+            st.set_hear_myself(on);
+        }
+        "background" => {
+            let on = switch(arg, st.config.borrow().background)?;
+            st.set_background(on);
+        }
         "mute" => st.set_muted(switch(arg, st.muted.get())?),
         "favorite" => {
             let id = find_voice(st, need()?)?;

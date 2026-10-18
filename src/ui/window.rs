@@ -79,15 +79,18 @@ impl Window {
             gdk::Key::_3 | gdk::Key::KP_3 => self.show_page("voicelab"),
             gdk::Key::_4 | gdk::Key::KP_4 | gdk::Key::comma => self.show_page("settings"),
             gdk::Key::t => {
-                st.set_voice_on(!st.config.borrow().voice_on);
+                let on = !st.config.borrow().voice_on;
+                st.set_voice_on(on);
                 self.toast(if st.config.borrow().voice_on { t("Voice changer on") } else { t("Voice changer off") });
             }
             gdk::Key::h => {
-                st.set_hear_myself(!st.config.borrow().hear_myself);
+                let on = !st.config.borrow().hear_myself;
+                st.set_hear_myself(on);
                 self.toast(if st.config.borrow().hear_myself { t("Hear myself on") } else { t("Hear myself off") });
             }
             gdk::Key::b => {
-                st.set_background(!st.config.borrow().background);
+                let on = !st.config.borrow().background;
+                st.set_background(on);
                 self.toast(if st.config.borrow().background { t("Background on") } else { t("Background off") });
             }
             gdk::Key::m => {

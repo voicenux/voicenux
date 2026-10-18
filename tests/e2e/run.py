@@ -162,6 +162,18 @@ def main():
         time.sleep(0.5)
         y = capture(3, tone)
         check("robot keeps a voice going", rms(y) > in_rms * 0.2, f"rms ratio {rms(y) / in_rms:.2f}")
+
+        # Background starts off in the test settings: the switch turns it on and off again.
+        sh(BIN, "voice", "storm")
+        sh(BIN, "background")
+        time.sleep(0.8)
+        y = capture(2)
+        check("background plays into the mic", rms(y) > 0.002, f"rms {rms(y):.4f}")
+        sh(BIN, "background")
+        time.sleep(0.5)
+        y = capture(1)
+        app = procs[-1].poll() is None
+        check("background turns off", rms(y) < 1e-4 and app, f"rms {rms(y):.5f}, app {'runs' if app else 'is gone'}")
     finally:
         for p in procs:
             p.terminate()

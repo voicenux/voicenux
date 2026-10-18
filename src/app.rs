@@ -75,15 +75,21 @@ impl Ctx {
         let note = |text: String| st.notify(Change::Notice(text));
         match id {
             "voice-toggle" => {
-                st.set_voice_on(!st.config.borrow().voice_on);
+                // Read first: a borrow in the argument would last through the call.
+                let on = !st.config.borrow().voice_on;
+                st.set_voice_on(on);
                 note(if st.config.borrow().voice_on { t("Voice changer on") } else { t("Voice changer off") }.into());
             }
             "hear-toggle" => {
-                st.set_hear_myself(!st.config.borrow().hear_myself);
+                // Read first: a borrow in the argument would last through the call.
+                let on = !st.config.borrow().hear_myself;
+                st.set_hear_myself(on);
                 note(if st.config.borrow().hear_myself { t("Hear myself on") } else { t("Hear myself off") }.into());
             }
             "background-toggle" => {
-                st.set_background(!st.config.borrow().background);
+                // Read first: a borrow in the argument would last through the call.
+                let on = !st.config.borrow().background;
+                st.set_background(on);
                 note(if st.config.borrow().background { t("Background on") } else { t("Background off") }.into());
             }
             "mute-toggle" => {
