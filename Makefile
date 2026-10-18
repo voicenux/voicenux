@@ -28,6 +28,7 @@ install:
 	install -Dm644 data/$(APP_ID).metainfo.xml $(DESTDIR)$(PREFIX)/share/metainfo/$(APP_ID).metainfo.xml
 	install -Dm644 data/app/$(APP_ID).svg $(DESTDIR)$(PREFIX)/share/icons/hicolor/scalable/apps/$(APP_ID).svg
 	install -Dm644 data/app/$(APP_ID)-symbolic.svg $(DESTDIR)$(PREFIX)/share/icons/hicolor/symbolic/apps/$(APP_ID)-symbolic.svg
+	install -Dm644 data/app/$(APP_ID)-background-symbolic.svg $(DESTDIR)$(PREFIX)/share/icons/hicolor/symbolic/apps/$(APP_ID)-background-symbolic.svg
 	install -Dm644 LICENSE $(DESTDIR)$(PREFIX)/share/licenses/voicenux/LICENSE
 	install -Dm644 data/lucide/LICENSE $(DESTDIR)$(PREFIX)/share/licenses/voicenux/LICENSE.lucide
 
@@ -37,6 +38,7 @@ uninstall:
 	rm -f $(DESTDIR)$(PREFIX)/share/metainfo/$(APP_ID).metainfo.xml
 	rm -f $(DESTDIR)$(PREFIX)/share/icons/hicolor/scalable/apps/$(APP_ID).svg
 	rm -f $(DESTDIR)$(PREFIX)/share/icons/hicolor/symbolic/apps/$(APP_ID)-symbolic.svg
+	rm -f $(DESTDIR)$(PREFIX)/share/icons/hicolor/symbolic/apps/$(APP_ID)-background-symbolic.svg
 	rm -rf $(DESTDIR)$(PREFIX)/share/licenses/voicenux
 
 # Downloads missing Fluent Emoji pictures listed in the script, and makes the pictures of the AI

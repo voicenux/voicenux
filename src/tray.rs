@@ -39,6 +39,9 @@ pub struct Tray {
 /// its `ColorScheme-Text` class, GNOME because the name ends in "-symbolic".
 const MONO: &str = "io.github.voicenux.Voicenux-symbolic";
 const MONO_SVG: &str = include_str!("../data/app/io.github.voicenux.Voicenux-symbolic.svg");
+/// Waves for the background sounds, the Lucide icon of the bottom bar, colored the same way.
+const BACKGROUND: &str = "io.github.voicenux.Voicenux-background-symbolic";
+const BACKGROUND_SVG: &str = include_str!("../data/app/io.github.voicenux.Voicenux-background-symbolic.svg");
 
 pub type Handle = ksni::blocking::Handle<Tray>;
 
@@ -133,7 +136,7 @@ impl ksni::Tray for Tray {
             MenuItem::Separator,
             toggle(t("Voice changer"), "audio-input-microphone-symbolic", self.s.voice_on, "voice-toggle"),
             toggle(t("Hear myself"), "audio-headphones-symbolic", self.s.hear, "hear-toggle"),
-            toggle(t("Background"), "weather-few-clouds-symbolic", self.s.background, "background-toggle"),
+            toggle(t("Background"), BACKGROUND, self.s.background, "background-toggle"),
             toggle(t("Mute microphone"), "microphone-sensitivity-muted-symbolic", self.s.muted, "mute-toggle"),
             MenuItem::Separator,
             SubMenu {
@@ -181,7 +184,9 @@ fn logo_pixmap() -> Vec<Icon> {
 fn write_theme() -> String {
     let root = gtk::glib::user_runtime_dir().join("voicenux").join("icons");
     let dir = root.join("hicolor").join("scalable").join("apps");
-    let written = std::fs::create_dir_all(&dir).and_then(|_| std::fs::write(dir.join(format!("{MONO}.svg")), MONO_SVG));
+    let written = std::fs::create_dir_all(&dir)
+        .and_then(|_| std::fs::write(dir.join(format!("{MONO}.svg")), MONO_SVG))
+        .and_then(|_| std::fs::write(dir.join(format!("{BACKGROUND}.svg")), BACKGROUND_SVG));
     match written {
         Ok(()) => root.to_string_lossy().into_owned(),
         Err(e) => {

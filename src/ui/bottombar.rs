@@ -7,9 +7,13 @@ use super::visuals::level_meter;
 use crate::i18n::{fill, t};
 use crate::state::{Change, St};
 
+/// A big switch, with a Lucide icon like the sidebar.
 fn pill(icon: &str, text: &str, tip: &str, key: &str) -> gtk::ToggleButton {
     let b = gtk::ToggleButton::new();
-    b.set_child(Some(&adw::ButtonContent::builder().icon_name(icon).label(text).build()));
+    let content = gtk::Box::new(gtk::Orientation::Horizontal, 6);
+    content.append(&super::line_icon(icon, 16));
+    content.append(&gtk::Label::new(Some(text)));
+    b.set_child(Some(&content));
     b.add_css_class("vn-pill");
     b.set_tooltip_text(Some(&super::with_key(tip, key)));
     b
@@ -47,9 +51,9 @@ pub fn build(st: &St) -> (gtk::CenterBox, [gtk::Widget; 2]) {
     // Middle: the switches.
     let mid = gtk::Box::new(gtk::Orientation::Horizontal, 8);
     mid.set_halign(gtk::Align::Center);
-    let voice = pill("audio-input-microphone-symbolic", t("Voice changer"), t("Turn your voice changer on or off"), "T");
-    let hear = pill("audio-headphones-symbolic", t("Hear myself"), t("Hear your changed voice in your headphones"), "H");
-    let bg = pill("weather-few-clouds-symbolic", t("Background"), t("Play the background sounds of a voice"), "B");
+    let voice = pill("mic", t("Voice changer"), t("Turn your voice changer on or off"), "T");
+    let hear = pill("headphones", t("Hear myself"), t("Hear your changed voice in your headphones"), "H");
+    let bg = pill("waves", t("Background"), t("Play the background sounds of a voice"), "B");
     mid.append(&voice);
     mid.append(&hear);
     mid.append(&bg);
