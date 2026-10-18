@@ -988,6 +988,11 @@ floating-sheet > sheet.vn-nudge-b {
   font-weight: 650;
   font-feature-settings: "tnum";
   opacity: 0.75;
+  transition: opacity 200ms ease-out;
+}
+
+.vn-find-stats.unknown {
+  opacity: 0;
 }
 
 .vn-find-likes image {

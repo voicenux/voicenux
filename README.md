@@ -69,7 +69,7 @@ Type to search your sounds. When none matches, one click searches MyInstants for
 
 **Trim sound** in the menu cuts the start and end, like a video clip. Drag the handles over the waveform, or type the times. The ruler on top shows the seconds. **Listen** plays the cut sound in your headphones only, from the white playhead: drag it, or click into the cut or the ruler. The playhead can leave the cut too: it sticks to its ends for a moment, then tears away. Behind the cut, Listen plays on to the end of the sound. Space listens or pauses, ← and → move the playhead (with Shift a second, with Ctrl a hundredth), I and O set the start and end at the playhead, and Ctrl+Z undoes. For exact cuts, zoom in with Ctrl and the mouse wheel, or with + and −. The wheel then scrolls along the sound.
 
-**Find sounds** searches [MyInstants](https://www.myinstants.com). ▶ plays a sound in your headphones only, + adds it to your soundboard. Only the words you search for are sent, and only when you search.
+**Find sounds** searches [MyInstants](https://www.myinstants.com). ▶ plays a sound in your headphones only, the download button adds it to your soundboard. At the end of the list, more sounds load. Only the words you search for are sent, and only when you search.
 
 ### Voicelab
 

@@ -77,29 +77,33 @@ fn error(e: ureq::Error) -> Error {
     }
 }
 
-/// Sounds for `query`, best first. Blocks: call it off the main thread.
-pub fn search(query: &str) -> Result<Vec<Found>, Error> {
+/// Sounds for `query`, best first, page `page` counted from 1. Past the last page there are
+/// none. Blocks: call it off the main thread.
+pub fn search(query: &str, page: u32) -> Result<Vec<Found>, Error> {
     let started = std::time::Instant::now();
-    let page = call(|a| a.get(format!("{SITE}/en/search/")).query("name", query).call());
-    let page = match page {
-        // MyInstants answers a search without results with "not found".
-        Err(ureq::Error::StatusCode(404)) => String::new(),
-        r => r.map_err(error)?.body_mut().read_to_string().map_err(error)?,
-    };
-    let found = parse(&page);
-    log::info!("sound search \"{query}\": {} sounds in {:?}", found.len(), started.elapsed());
+    let text =
+        read(|a| a.get(format!("{SITE}/en/search/")).query("name", query).query("page", page.to_string()).call())?;
+    let found = parse(&text);
+    log::info!("sound search \"{query}\" page {page}: {} sounds in {:?}", found.len(), started.elapsed());
     Ok(found)
 }
 
-/// The sounds on the front page of MyInstants for your country, most played first. Blocks: call
-/// it off the main thread.
-pub fn popular() -> Result<Vec<Found>, Error> {
+/// The page a request answers with. MyInstants answers a search without results, or a page past
+/// the last one, with "not found": that is an empty page.
+fn read(request: impl Fn(&ureq::Agent) -> Result<Response, ureq::Error>) -> Result<String, Error> {
+    match call(request) {
+        Err(ureq::Error::StatusCode(404)) => Ok(String::new()),
+        r => r.map_err(error)?.body_mut().read_to_string().map_err(error),
+    }
+}
+
+/// The sounds on the front page of MyInstants for your country, most played first, page `page`
+/// counted from 1. Blocks: call it off the main thread.
+pub fn popular(page: u32) -> Result<Vec<Found>, Error> {
     let mut last = Ok(Vec::new());
     for region in [region(), "us".into()] {
-        last = call(|a| a.get(format!("{SITE}/en/index/{region}/")).call())
-            .map_err(error)
-            .and_then(|mut r| r.body_mut().read_to_string().map_err(error))
-            .map(|page| parse(&page));
+        last = read(|a| a.get(format!("{SITE}/en/index/{region}/")).query("page", page.to_string()).call())
+            .map(|text| parse(&text));
         if last.as_ref().is_ok_and(|f| !f.is_empty()) {
             break;
         }
@@ -311,17 +315,20 @@ mod tests {
     #[ignore]
     fn finds_and_downloads_a_sound() {
         let _ = env_logger::builder().is_test(true).try_init();
-        let found = search("vine boom").unwrap();
+        let found = search("vine boom", 1).unwrap();
         assert!(!found.is_empty());
         let stats = stats(&found[0]).unwrap();
         assert!(stats.likes > 0 && stats.views > stats.likes);
-        assert!(popular().unwrap().len() > 10);
+        assert!(popular(1).unwrap().len() > 10);
+        let more = search("vine boom", 2).unwrap();
+        assert!(!more.is_empty() && more[0] != found[0]);
+        assert!(search("vine boom", 999).unwrap().is_empty());
         let bytes = download(&found[0]).unwrap();
         assert!(super::super::decode_bytes(bytes, &found[0].ext).is_ok());
-        assert!(search("qwxzzk").unwrap().is_empty());
+        assert!(search("qwxzzk", 1).unwrap().is_empty());
         // Titles in other scripts once crashed the search.
         for q in ["привет", "шш", "日本", "ñ"] {
-            search(q).unwrap();
+            search(q, 1).unwrap();
         }
     }
 }

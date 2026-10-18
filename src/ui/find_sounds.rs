@@ -20,9 +20,20 @@ use crate::state::{Change, St};
 type Audio = Rc<(Vec<u8>, Arc<SoundData>)>;
 type Waiting = Vec<Box<dyn FnOnce(Result<Audio, online::Error>)>>;
 
-/// How many sounds at the top of the list load ahead, and how many stay in memory.
-const AHEAD: i32 = 8;
-const KEEP: usize = 16;
+/// MyInstants shows 36 sounds a page. A page with fewer than this was the last one: a few can go
+/// missing, like videos.
+const FULL_PAGE: usize = 20;
+
+/// Sounds load ahead, so they play at once: the top of the list, what scrolls into sight and the
+/// one under the pointer, six at a time. One download takes up to a second, so one after the
+/// other was too slow.
+const AHEAD: i32 = 10;
+const PARALLEL: usize = 6;
+/// The likes and views of each sound are on a page of their own: eight are read at a time, those
+/// in sight first. Three at a time took 9 s for a list of 36.
+const NUMBERS_PARALLEL: usize = 8;
+/// How much audio stays in memory. A sound of a few seconds takes 1 to 2 MB, 30 s take 11 MB.
+const KEEP_BYTES: usize = 100 << 20;
 
 /// The ways to sort, with their names in the config.
 const SORTS: [(&str, &str); 5] =
@@ -53,6 +64,26 @@ struct Finder {
     /// The play button of the sound you hear, and which listen it is.
     playing: RefCell<Option<gtk::Button>>,
     listen_no: Cell<u32>,
+    /// The search words of the list shown, "" for the popular sounds.
+    shown: RefCell<String>,
+    /// Where each page starts in the list shown. Each page stays a block of its own, sorted in
+    /// itself: a sorted list that took in new sounds jumped around.
+    blocks: RefCell<Vec<usize>>,
+    /// Pages read for each search, and whether MyInstants has more.
+    pages: RefCell<HashMap<String, (u32, bool)>>,
+    /// The spinner under the list while the next page loads, and whether it loads.
+    more: adw::Spinner,
+    loading_more: Cell<bool>,
+    /// Sounds to load ahead, the next one first, and how many load right now. A new list starts a
+    /// new round: what still loads for the old one takes no place from it.
+    ahead: RefCell<VecDeque<Rc<Found>>>,
+    loading: Cell<usize>,
+    round: Cell<u32>,
+    /// Sounds whose numbers are still to read, the next one first, with the line that shows
+    /// them, and how many are read right now. They go by rounds too.
+    numbers: RefCell<VecDeque<(Rc<Found>, gtk::Box)>>,
+    reading: Cell<usize>,
+    in_sight_soon: Cell<bool>,
 }
 
 /// The panel, and its search field to focus.
@@ -69,7 +100,18 @@ pub fn panel(st: &St) -> (gtk::Box, gtk::SearchEntry) {
     let list = gtk::ListBox::new();
     list.set_selection_mode(gtk::SelectionMode::None);
     list.add_css_class("vn-find-list");
-    let scroll = gtk::ScrolledWindow::builder().hscrollbar_policy(gtk::PolicyType::Never).vexpand(true).child(&list).build();
+    // Under the list while the next page loads. It loads by itself before the end comes in sight.
+    let more = adw::Spinner::new();
+    more.set_size_request(24, 24);
+    more.set_halign(gtk::Align::Center);
+    more.set_margin_top(10);
+    more.set_margin_bottom(14);
+    more.set_visible(false);
+    let content = gtk::Box::new(gtk::Orientation::Vertical, 0);
+    content.append(&list);
+    content.append(&more);
+    let scroll =
+        gtk::ScrolledWindow::builder().hscrollbar_policy(gtk::PolicyType::Never).vexpand(true).child(&content).build();
     smooth_scroll(&scroll);
 
     let message = label("", &["dim-label"]);
@@ -150,12 +192,35 @@ pub fn panel(st: &St) -> (gtk::Box, gtk::SearchEntry) {
         resort_soon: Cell::new(false),
         playing: RefCell::default(),
         listen_no: Cell::new(0),
+        shown: RefCell::default(),
+        pages: RefCell::default(),
+        blocks: RefCell::default(),
+        more,
+        loading_more: Cell::new(false),
+        ahead: RefCell::default(),
+        loading: Cell::new(0),
+        round: Cell::new(0),
+        numbers: RefCell::default(),
+        reading: Cell::new(0),
+        in_sight_soon: Cell::new(false),
+    });
+    // What scrolls into sight loads ahead too.
+    scroll.vadjustment().connect_value_changed({
+        let finder = Rc::downgrade(&finder);
+        move |adj| {
+            let Some(f) = finder.upgrade() else { return };
+            f.load_in_sight(adj);
+            // One screen before the end, so the next sounds are there when it comes.
+            if adj.value() + 2.0 * adj.page_size() >= adj.upper() {
+                f.load_more();
+            }
+        }
     });
     finder.list.set_sort_func({
         let finder = Rc::downgrade(&finder);
         move |a, b| finder.upgrade().map_or(std::cmp::Ordering::Equal, |f| f.order(a, b)).into()
     });
-    // A click anywhere on a row listens, like its play button. Clicks on the buttons stay theirs.
+    // Enter on a row listens, like its play button. Clicks are the row's own, see `row`.
     finder.list.connect_row_activated({
         let finder = Rc::downgrade(&finder);
         move |_, row| {
@@ -209,13 +274,14 @@ impl Finder {
         let me = self.clone();
         let q = query.clone();
         off_thread(
-            move || if q.is_empty() { online::popular() } else { online::search(&q) },
+            move || if q.is_empty() { online::popular(1) } else { online::search(&q, 1) },
             move |r| {
                 if me.search_no.get() != no {
                     return;
                 }
                 match r {
                     Ok(found) => {
+                        me.pages.borrow_mut().insert(query.clone(), (1, found.len() >= FULL_PAGE));
                         me.results.borrow_mut().insert(query.clone(), found.clone());
                         me.show(&query, found);
                     }
@@ -237,6 +303,9 @@ impl Finder {
     fn show(self: &Rc<Self>, query: &str, found: Vec<Found>) {
         clear(&self.list);
         self.rows.borrow_mut().clear();
+        self.shown.replace(query.to_string());
+        self.more.set_visible(false);
+        self.blocks.replace(vec![0]);
         if found.is_empty() {
             self.heading.set_label("");
             self.say(t("No sounds found. Try other words."));
@@ -248,55 +317,129 @@ impl Finder {
             fill(t("{} sounds"), &[&found.len().to_string()])
         };
         self.heading.set_label(&heading);
+        let waiting = self.append(found, 0);
+        self.list.invalidate_sort();
+        self.stack.set_visible_child_name("results");
+        // The sounds at the top load ahead, the first one first. Those of an older search wait no
+        // longer.
+        self.ahead.borrow_mut().clear();
+        self.round.set(self.round.get() + 1);
+        self.loading.set(0);
+        for i in (0..AHEAD).rev() {
+            let found = self.list.row_at_index(i).and_then(|r| self.rows.borrow().get(&r).map(|(_, f)| f.clone()));
+            if let Some(f) = found {
+                self.load_ahead(f);
+            }
+        }
+        // The numbers in the order of the list as it is sorted.
+        let mut waiting: Vec<_> = waiting.into_iter().collect();
+        waiting.sort_by_key(|(_, line)| row_index(line));
+        self.numbers.replace(waiting.into());
+        self.reading.set(0);
+        self.next_stats();
+    }
+
+    /// Puts rows for `found` in the list, the first one at place `start` in the order MyInstants
+    /// gave. Returns the sounds whose numbers are not read yet.
+    fn append(self: &Rc<Self>, found: Vec<Found>, start: usize) -> VecDeque<(Rc<Found>, gtk::Box)> {
         let mut waiting = VecDeque::new();
         for (i, f) in found.into_iter().enumerate() {
             let line = stats_line();
             let row = self.row(&f, &line);
             self.list.append(&row);
             let f = Rc::new(f);
-            self.rows.borrow_mut().insert(row, (i, f.clone()));
+            self.rows.borrow_mut().insert(row, (start + i, f.clone()));
             match self.stats.borrow().get(&f.url) {
-                Some(s) => show_stats(&line, *s),
+                Some(s) => show_stats(&line, s),
                 None => waiting.push_back((f, line)),
             }
         }
-        self.list.invalidate_sort();
-        self.stack.set_visible_child_name("results");
-        // The sounds at the top load ahead, so they play at once.
-        let ahead: VecDeque<Rc<Found>> = (0..AHEAD)
-            .filter_map(|i| self.list.row_at_index(i))
-            .filter_map(|r| self.rows.borrow().get(&r).map(|(_, f)| f.clone()))
-            .collect();
-        self.load_ahead(self.search_no.get(), Rc::new(RefCell::new(ahead)));
-        // Each sound's numbers are a page of their own: read a few at a time, top first.
-        let waiting = Rc::new(RefCell::new(waiting));
-        for _ in 0..3 {
-            self.next_stats(self.search_no.get(), waiting.clone());
-        }
+        waiting
     }
 
-    /// Reads the numbers of the next sound in `waiting`, then goes on, until a new search starts.
-    fn next_stats(self: &Rc<Self>, no: u32, waiting: Rc<RefCell<VecDeque<(Rc<Found>, gtk::Box)>>>) {
-        if self.search_no.get() != no {
+    /// Reads the next page of the list shown and puts its sounds at the end.
+    fn load_more(self: &Rc<Self>) {
+        let query = self.shown.borrow().clone();
+        let Some((page, true)) = self.pages.borrow().get(&query).copied() else { return };
+        if self.loading_more.replace(true) {
             return;
         }
-        let Some((found, line)) = waiting.borrow_mut().pop_front() else { return };
-        let me = self.clone();
-        let sent = (*found).clone();
+        self.more.set_visible(true);
+        let (me, no, q) = (self.clone(), self.search_no.get(), query.clone());
         off_thread(
-            move || online::stats(&sent),
-            move |r| match r {
-                Ok(s) => {
-                    me.stats.borrow_mut().insert(found.url.clone(), s);
-                    show_stats(&line, s);
-                    me.resort();
-                    me.next_stats(no, waiting);
+            move || if q.is_empty() { online::popular(page + 1) } else { online::search(&q, page + 1) },
+            move |r| {
+                me.loading_more.set(false);
+                me.more.set_visible(false);
+                if me.search_no.get() != no {
+                    return;
                 }
-                // MyInstants wants a break: the rest stays without numbers.
-                Err(online::Error::TooMany) => waiting.borrow_mut().clear(),
-                Err(_) => me.next_stats(no, waiting),
+                let found = match r {
+                    Ok(found) => found,
+                    Err(e) => {
+                        me.st.notify(Change::Notice(error_text(e).to_string()));
+                        return;
+                    }
+                };
+                let full = found.len() >= FULL_PAGE;
+                let mut results = me.results.borrow_mut();
+                let all = results.entry(query.clone()).or_default();
+                let new: Vec<Found> = found.into_iter().filter(|f| !all.iter().any(|a| a.url == f.url)).collect();
+                let start = all.len();
+                all.extend(new.iter().cloned());
+                let total = all.len();
+                drop(results);
+                // A short page, or one with nothing new: that was all.
+                let more = full && !new.is_empty();
+                me.pages.borrow_mut().insert(query.clone(), (page + 1, more));
+                me.blocks.borrow_mut().push(start);
+                if !query.is_empty() {
+                    me.heading.set_label(&fill(t("{} sounds"), &[&total.to_string()]));
+                }
+                let waiting = me.append(new, start);
+                me.list.invalidate_sort();
+                me.numbers.borrow_mut().extend(waiting);
+                me.next_stats();
             },
         );
+    }
+
+    /// Reads the numbers of the next sounds in line, as long as fewer than [`NUMBERS_PARALLEL`]
+    /// are read.
+    fn next_stats(self: &Rc<Self>) {
+        while self.reading.get() < NUMBERS_PARALLEL {
+            let Some((found, line)) = self.numbers.borrow_mut().pop_front() else { return };
+            let known = self.stats.borrow().get(&found.url).cloned();
+            if let Some(s) = known {
+                show_stats(&line, &s);
+                continue;
+            }
+            self.reading.set(self.reading.get() + 1);
+            let (me, round, sent) = (self.clone(), self.round.get(), (*found).clone());
+            off_thread(
+                move || online::stats(&sent),
+                move |r| {
+                    // Kept for an older list too: they show when it comes back.
+                    if let Ok(s) = &r {
+                        me.stats.borrow_mut().insert(found.url.clone(), s.clone());
+                    }
+                    if me.round.get() != round {
+                        return;
+                    }
+                    me.reading.set(me.reading.get() - 1);
+                    match r {
+                        Ok(s) => {
+                            show_stats(&line, &s);
+                            me.resort();
+                        }
+                        // MyInstants wants a break: the rest stays without numbers.
+                        Err(online::Error::TooMany) => me.numbers.borrow_mut().clear(),
+                        Err(_) => {}
+                    }
+                    me.next_stats();
+                },
+            );
+        }
     }
 
     /// Sorts again for numbers that came in, at most a few times a second, so rows do not jump
@@ -312,8 +455,8 @@ impl Finder {
         });
     }
 
-    /// The order of two rows. Sounds without numbers yet go after those with, and the order
-    /// MyInstants gave settles the rest.
+    /// The order of two rows: by their block first, see `blocks`. In it, sounds without numbers
+    /// yet go after those with, and the order MyInstants gave settles the rest.
     fn order(&self, a: &gtk::ListBoxRow, b: &gtk::ListBoxRow) -> std::cmp::Ordering {
         use std::cmp::Ordering::Equal;
         let rows = self.rows.borrow();
@@ -327,7 +470,9 @@ impl Finder {
             "az" => fa.title.to_lowercase().cmp(&fb.title.to_lowercase()),
             _ => Equal,
         };
-        by.then(ia.cmp(ib))
+        let blocks = self.blocks.borrow();
+        let block = |i: &usize| blocks.iter().rev().find(|start| *start <= i).copied().unwrap_or(0);
+        block(ia).cmp(&block(ib)).then(by).then(ia.cmp(ib))
     }
 
     fn row(self: &Rc<Self>, f: &Found, stats: &gtk::Box) -> gtk::ListBoxRow {
@@ -347,7 +492,7 @@ impl Finder {
         text.append(&title);
         text.append(stats);
 
-        let add = gtk::Button::from_icon_name("list-add-symbolic");
+        let add = gtk::Button::from_icon_name(download_icon());
         add.add_css_class("suggested-action");
         add.add_css_class("circular");
         add.set_valign(gtk::Align::Center);
@@ -367,6 +512,33 @@ impl Finder {
             let (me, f) = (self.clone(), f.clone());
             move |b| me.listen(&f, b)
         });
+        // A click anywhere on the row listens or stops, like its play button, each of quick
+        // clicks too: the list would take the second one as a double click and do nothing.
+        // Clicks on the buttons stay theirs: a button takes a click only when it ends, so taking
+        // every press here stole them, and the add button only played the sound.
+        let click = gtk::GestureClick::new();
+        click.connect_pressed(|g, _, x, y| {
+            let state =
+                if on_button(g, x, y) { gtk::EventSequenceState::Denied } else { gtk::EventSequenceState::Claimed };
+            g.set_state(state);
+        });
+        click.connect_released({
+            let (me, f, play) = (self.clone(), f.clone(), play.clone());
+            move |g, _, x, y| {
+                if g.widget().is_some_and(|w| w.contains(x, y)) && !on_button(g, x, y) {
+                    me.listen(&f, &play);
+                }
+            }
+        });
+        row.add_controller(click);
+        // The pointer on a row comes before a click on it: the sound loads already, without waiting
+        // in line.
+        let hover = gtk::EventControllerMotion::new();
+        hover.connect_enter({
+            let (me, f) = (self.clone(), f.clone());
+            move |_, _, _| me.fetch(&f, |_| {})
+        });
+        row.add_controller(hover);
         add.connect_clicked({
             let me = self.clone();
             move |b| me.add(&f, b)
@@ -413,7 +585,7 @@ impl Finder {
         }
         let me = self.clone();
         let f2 = f.clone();
-        self.with_audio(f, button, "list-add-symbolic", move |button, audio| {
+        self.with_audio(f, button, download_icon(), move |button, audio| {
             let icon = super::emoji::guess(&f2.title).unwrap_or("loudspeaker");
             match me.st.add_found(&f2.title, &f2.ext, &audio.0, icon) {
                 Ok(()) => {
@@ -491,19 +663,74 @@ impl Finder {
         );
     }
 
-    /// Loads the sounds in `next` one after the other, until a new search starts.
-    fn load_ahead(self: &Rc<Self>, no: u32, next: Rc<RefCell<VecDeque<Rc<Found>>>>) {
-        if self.search_no.get() != no {
+    /// Loads a sound ahead, before it is played: it goes first in line.
+    fn load_ahead(self: &Rc<Self>, f: Rc<Found>) {
+        if self.has(&f.url) || self.pending.borrow().contains_key(&f.url) {
             return;
         }
-        let Some(f) = next.borrow_mut().pop_front() else { return };
-        let me = self.clone();
-        self.fetch(&f, move |r| {
-            // MyInstants wants a break: the rest loads when you listen.
-            if !matches!(r, Err(online::Error::TooMany)) {
-                me.load_ahead(no, next);
+        let mut ahead = self.ahead.borrow_mut();
+        ahead.retain(|x| x.url != f.url);
+        ahead.push_front(f);
+        // What scrolled out of sight long ago waits no longer.
+        ahead.truncate(30);
+        drop(ahead);
+        self.next_ahead();
+    }
+
+    /// Starts loading the next sounds in line, as long as fewer than [`PARALLEL`] load.
+    fn next_ahead(self: &Rc<Self>) {
+        while self.loading.get() < PARALLEL {
+            let Some(f) = self.ahead.borrow_mut().pop_front() else { return };
+            if self.has(&f.url) || self.pending.borrow().contains_key(&f.url) {
+                continue;
             }
+            self.loading.set(self.loading.get() + 1);
+            let (me, round) = (self.clone(), self.round.get());
+            self.fetch(&f, move |r| {
+                if me.round.get() != round {
+                    return;
+                }
+                me.loading.set(me.loading.get() - 1);
+                // MyInstants wants a break: the rest loads when you listen.
+                if matches!(r, Err(online::Error::TooMany)) {
+                    me.ahead.borrow_mut().clear();
+                }
+                me.next_ahead();
+            });
+        }
+    }
+
+    /// Loads the rows in sight ahead, and a few below them, a moment after scrolling.
+    fn load_in_sight(self: &Rc<Self>, adj: &gtk::Adjustment) {
+        if self.in_sight_soon.replace(true) {
+            return;
+        }
+        let (me, adj) = (self.clone(), adj.clone());
+        glib::timeout_add_local_once(Duration::from_millis(120), move || {
+            me.in_sight_soon.set(false);
+            let first = me.list.row_at_y(adj.value() as i32).map_or(0, |r| r.index());
+            let last = me.list.row_at_y((adj.value() + adj.page_size()) as i32).map_or(first + 12, |r| r.index()) + 3;
+            // Bottom up, so the top one goes first in line.
+            for i in (first..=last).rev() {
+                let found = me.list.row_at_index(i).and_then(|r| me.rows.borrow().get(&r).map(|(_, f)| f.clone()));
+                if let Some(f) = found {
+                    me.load_ahead(f);
+                }
+            }
+            // Their numbers go first too, top to bottom. The others stay in their order.
+            let mut numbers: Vec<_> = me.numbers.borrow_mut().drain(..).collect();
+            numbers.sort_by_key(|(_, line)| {
+                let i = row_index(line);
+                if (first..=last).contains(&i) { (0, i) } else { (1, 0) }
+            });
+            me.numbers.borrow_mut().extend(numbers);
+            me.next_stats();
         });
+    }
+
+    /// Whether a sound is in memory already.
+    fn has(&self, url: &str) -> bool {
+        self.audio.borrow().iter().any(|(u, _)| u == url)
     }
 
     fn cached(&self, url: &str) -> Option<Audio> {
@@ -515,19 +742,24 @@ impl Finder {
         Some(found)
     }
 
-    /// Keeps a sound in memory. The ones not used for longest go, since a long one takes a lot.
+    /// Keeps a sound in memory. The ones not used for longest go when they take more than
+    /// [`KEEP_BYTES`] together.
     fn keep(&self, url: &str, a: Audio) {
         let mut audio = self.audio.borrow_mut();
         audio.retain(|(u, _)| u != url);
         audio.push_back((url.to_string(), a));
-        while audio.len() > KEEP {
-            audio.pop_front();
+        let size = |a: &Audio| a.0.len() + a.1.frames.len() * std::mem::size_of::<[f32; 2]>();
+        let mut total: usize = audio.iter().map(|(_, a)| size(a)).sum();
+        while total > KEEP_BYTES && audio.len() > 1 {
+            if let Some((_, gone)) = audio.pop_front() {
+                total -= size(&gone);
+            }
         }
     }
 }
 
-/// The likes and views of a sound under its title: a heart and an eye with their counts. Hidden
-/// until they are known.
+/// The likes and views of a sound under its title: a heart and an eye with their counts. Not to
+/// be seen until they are known.
 fn stats_line() -> gtk::Box {
     let line = gtk::Box::new(gtk::Orientation::Horizontal, 12);
     line.add_css_class("vn-find-stats");
@@ -538,11 +770,12 @@ fn stats_line() -> gtk::Box {
         b.append(&gtk::Label::new(None));
         line.append(&b);
     }
-    line.set_visible(false);
+    // Its place is kept while the numbers load, so the rows below do not move down when they come.
+    line.add_css_class("unknown");
     line
 }
 
-fn show_stats(line: &gtk::Box, s: Stats) {
+fn show_stats(line: &gtk::Box, s: &Stats) {
     let parts = [
         (s.likes, t("{} people like this on MyInstants")),
         (s.views, t("{} views on MyInstants")),
@@ -556,7 +789,7 @@ fn show_stats(line: &gtk::Box, s: Stats) {
         b.set_tooltip_text(Some(&fill(tip, &[&n.to_string()])));
         child = b.next_sibling();
     }
-    line.set_visible(true);
+    line.remove_css_class("unknown");
 }
 
 /// A count in few letters: 950, 3.2K, 12K, 1.2M. German writes a comma.
@@ -599,6 +832,26 @@ fn off_thread<T: Send + 'static>(
     glib::spawn_future_local(async move {
         done(rx.recv().await.unwrap_or(Err(online::Error::Failed)));
     });
+}
+
+/// Whether a click at `x`, `y` in the widget of `g` is on one of the buttons in it.
+fn on_button(g: &gtk::GestureClick, x: f64, y: f64) -> bool {
+    let Some(w) = g.widget() else { return false };
+    let hit = w.pick(x, y, gtk::PickFlags::DEFAULT);
+    std::iter::successors(hit, |h| h.parent()).take_while(|h| *h != w).any(|h| h.is::<gtk::Button>())
+}
+
+/// The place in the list of the row a line of numbers is in.
+fn row_index(line: &gtk::Box) -> i32 {
+    line.ancestor(gtk::ListBoxRow::static_type()).and_downcast::<gtk::ListBoxRow>().map_or(i32::MAX, |r| r.index())
+}
+
+/// The icon to add a found sound: a download. Breeze has a plain one, Adwaita only one with a
+/// folder.
+fn download_icon() -> &'static str {
+    let plain =
+        gtk::gdk::Display::default().is_some_and(|d| gtk::IconTheme::for_display(&d).has_icon("download-symbolic"));
+    if plain { "download-symbolic" } else { "folder-download-symbolic" }
 }
 
 #[cfg(test)]
