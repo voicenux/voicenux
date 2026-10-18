@@ -75,7 +75,7 @@ Type to search your sounds. When none matches, one click searches MyInstants for
 
 <img width="720" src="res/voicelab.png" alt="Voicelab with a custom voice called Space Pirate: a pitch effect and a ring modulator, each with its settings">
 
-Build your own voice from 25 effects: pitch and formant, harmony, robot, whisper, auto-tune, vocoder, echo, reverb, chorus, flanger, phaser, vibrato, tremolo, ring modulator, distortion, bit crusher, filters, compressor, noise gate, noise, background sounds, radio beeps and glitches. Effects run from top to bottom. With Hear myself on, you hear every change right away. Right-click a voice in the list to use, duplicate or delete it.
+Build your own voice from 26 effects: pitch and formant, AI voices, harmony, robot, whisper, auto-tune, vocoder, echo, reverb, chorus, flanger, phaser, vibrato, tremolo, ring modulator, distortion, bit crusher, filters, compressor, noise gate, noise, background sounds, radio beeps and glitches. Effects run from top to bottom. With Hear myself on, you hear every change right away. Right-click a voice in the list to use, duplicate or delete it.
 
 ### Shortcuts
 
