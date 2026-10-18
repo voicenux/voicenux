@@ -74,11 +74,44 @@ pub fn show(st: &St, parent: &adw::ApplicationWindow) {
     mic.append(&meter);
     carousel.append(&mic);
 
+    // Only for people who use EasyEffects, found by its settings or because it runs: a switch,
+    // like on the other pages. Everybody else never sees this step.
+    let ee = if st.easyeffects.get() != crate::audio::easyeffects::Use::Missing
+        || crate::audio::easyeffects::installed()
+    {
+        let ee = page(
+            icon("control-knobs", 96).upcast(),
+            t("EasyEffects found"),
+            t(
+                "You use EasyEffects. Should your EasyEffects microphone effects, like noise reduction, run before the voice?",
+            ),
+        );
+        let row = gtk::Box::new(gtk::Orientation::Horizontal, 12);
+        row.set_halign(gtk::Align::Center);
+        row.set_margin_top(10);
+        let on = gtk::Switch::new();
+        on.set_active(st.config.borrow().easyeffects);
+        row.append(&label(t("Use EasyEffects"), &["heading"]));
+        row.append(&on);
+        on.connect_active_notify({
+            let st = st.clone();
+            move |s| st.update(|c| c.easyeffects = s.is_active())
+        });
+        ee.append(&row);
+        carousel.append(&ee);
+        Some(on)
+    } else {
+        None
+    };
+
+    // After EasyEffects, since that changes the answer: when EasyEffects works on the default
+    // microphone, Voicenux as the default would take its place. Then you pick it in each app.
     let apps = page(
         icon("headphone", 96).upcast(),
         t("Use it in your apps"),
         t("Apps hear your new voice through the “Voicenux Microphone”. Make it the default, or pick it in each app."),
     );
+    let text = apps.last_child().and_downcast::<gtk::Label>().expect("the text of the page");
     let default = gtk::Box::new(gtk::Orientation::Horizontal, 12);
     default.set_halign(gtk::Align::Center);
     default.set_margin_top(10);
@@ -87,28 +120,38 @@ pub fn show(st: &St, parent: &adw::ApplicationWindow) {
     default.append(&label(t("Use as default microphone"), &["heading"]));
     default.append(&sw);
     apps.append(&default);
+    let note = label("", &["dim-label", "caption"]);
+    note.set_wrap(true);
+    note.set_justify(gtk::Justification::Center);
+    note.set_max_width_chars(46);
+    note.set_margin_top(10);
+    apps.append(&note);
     carousel.append(&apps);
-
-    // Only for people who have EasyEffects: what the switch does, and what to pick in Discord.
-    if st.easyeffects.get() != crate::audio::easyeffects::Use::Missing || crate::audio::easyeffects::installed() {
-        let ee = page(
-            icon("control-knobs", 96).upcast(),
-            t("Do you use EasyEffects?"),
-            t("Then keep this on: your EasyEffects microphone effects, like noise reduction, run before the voice. In Discord, still pick “Voicenux Microphone”, not “Easy Effects Source”. Only that one has your new voice."),
-        );
-        let row = gtk::Box::new(gtk::Orientation::Horizontal, 12);
-        row.set_halign(gtk::Align::Center);
-        row.set_margin_top(10);
-        let on = gtk::Switch::new();
-        on.set_active(st.config.borrow().easyeffects);
-        on.connect_active_notify({
-            let st = st.clone();
-            move |s| st.update(|c| c.easyeffects = s.is_active())
-        });
-        row.append(&label(t("Use EasyEffects"), &["heading"]));
-        row.append(&on);
-        ee.append(&row);
-        carousel.append(&ee);
+    let follows_default = crate::audio::easyeffects::configured_input().is_none();
+    let sync = {
+        let (ee, sw, default, text, note) = (ee.clone(), sw.clone(), default.clone(), text.clone(), note.clone());
+        move || {
+            let ee_on = ee.as_ref().is_some_and(|s| s.is_active());
+            let pick_in_apps = ee_on && follows_default;
+            text.set_label(if pick_in_apps {
+                t("Apps hear your new voice through the “Voicenux Microphone”. Pick it in each app, like Discord.")
+            } else {
+                t("Apps hear your new voice through the “Voicenux Microphone”. Make it the default, or pick it in each app.")
+            });
+            default.set_visible(!pick_in_apps);
+            sw.set_active(!pick_in_apps);
+            note.set_visible(ee_on);
+            note.set_label(if pick_in_apps {
+                t("Your default microphone stays as it is, so EasyEffects keeps working on it.")
+            } else {
+                // The one thing people get wrong in Discord.
+                t("In Discord, still pick “Voicenux Microphone”, not “Easy Effects Source”. Only that one has your new voice.")
+            });
+        }
+    };
+    sync();
+    if let Some(on) = &ee {
+        on.connect_active_notify(move |_| sync());
     }
 
     let try_it = page(

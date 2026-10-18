@@ -1478,12 +1478,6 @@ msgstr "Lass deine Mikrofon-Effekte aus EasyEffects, etwa die Rauschunterdrücku
 msgid "Not in use: EasyEffects works on another microphone. Pick the same one above as in EasyEffects."
 msgstr "Nicht aktiv: EasyEffects bearbeitet ein anderes Mikrofon. Wähle oben dasselbe wie in EasyEffects."
 
-msgid "Do you use EasyEffects?"
-msgstr "Nutzt du EasyEffects?"
-
-msgid "Then keep this on: your EasyEffects microphone effects, like noise reduction, run before the voice. In Discord, still pick “Voicenux Microphone”, not “Easy Effects Source”. Only that one has your new voice."
-msgstr "Dann lass das hier an: Deine Mikrofon-Effekte aus EasyEffects, etwa die Rauschunterdrückung, laufen vor der Stimme. Wähle in Discord trotzdem „Voicenux Microphone“, nicht „Easy Effects Source“. Nur dort ist deine neue Stimme drauf."
-
 msgid "Find sounds"
 msgstr "Sounds finden"
 
@@ -2117,6 +2111,15 @@ msgstr "Übereinander"
 msgid "{} of {}"
 msgstr "{} von {}"
 
+msgid "EasyEffects found"
+msgstr "EasyEffects gefunden"
+
+msgid "You use EasyEffects. Should your EasyEffects microphone effects, like noise reduction, run before the voice?"
+msgstr "Du nutzt EasyEffects. Sollen deine EasyEffects-Mikrofoneffekte, wie die Rauschunterdrückung, vor der Stimme laufen?"
+
+msgid "In Discord, still pick “Voicenux Microphone”, not “Easy Effects Source”. Only that one has your new voice."
+msgstr "Wähl in Discord trotzdem „Voicenux-Mikrofon“, nicht „Easy Effects Source“. Nur das hat deine neue Stimme."
+
 msgid "For everyone"
 msgstr "Für alle"
 
@@ -2131,6 +2134,12 @@ msgstr "Lautstärke dieses Sounds"
 
 msgid "Only this sound. It comes on top of the volume for everyone under the sounds."
 msgstr "Nur für diesen Sound. Sie kommt zur Lautstärke „Für alle“ unter den Sounds dazu."
+
+msgid "Apps hear your new voice through the “Voicenux Microphone”. Pick it in each app, like Discord."
+msgstr "Apps hören deine neue Stimme über das „Voicenux-Mikrofon“. Wähle es in jeder App aus, etwa in Discord."
+
+msgid "Your default microphone stays as it is, so EasyEffects keeps working on it."
+msgstr "Dein Standardmikrofon bleibt, wie es ist. So arbeitet EasyEffects weiter damit."
 
 msgid "about {} s left"
 msgstr "noch etwa {} s"
