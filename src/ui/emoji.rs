@@ -35,7 +35,6 @@ fn index() -> &'static [Emoji] {
     })
 }
 
-
 fn find(id: &str) -> Option<&'static Emoji> {
     static BY_ID: OnceLock<HashMap<&'static str, &'static Emoji>> = OnceLock::new();
     BY_ID.get_or_init(|| index().iter().map(|e| (e.id, e)).collect()).get(id).copied()
@@ -307,7 +306,9 @@ mod tests {
         let root = env!("CARGO_MANIFEST_DIR");
         assert!(index().len() > 1500);
         for e in index() {
-            let found = ["icons", "emoji"].iter().any(|d| std::path::Path::new(&format!("{root}/data/{d}/{}.png", e.id)).exists());
+            let found = ["icons", "emoji"]
+                .iter()
+                .any(|d| std::path::Path::new(&format!("{root}/data/{d}/{}.png", e.id)).exists());
             assert!(found, "no picture for {}", e.id);
         }
     }

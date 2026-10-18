@@ -303,7 +303,9 @@ pub fn build(st: &St) -> SoundboardPage {
     let landing = Rc::new(board::Landing::default());
     let item_of: board::ItemOf = Rc::new({
         let pads = pads.clone();
-        move |w: &gtk::Widget| pads.borrow().iter().find(|(_, p)| p.child.upcast_ref::<gtk::Widget>() == w).map(|(id, _)| id.clone())
+        move |w: &gtk::Widget| {
+            pads.borrow().iter().find(|(_, p)| p.child.upcast_ref::<gtk::Widget>() == w).map(|(id, _)| id.clone())
+        }
     });
     let faces: board::Faces = Rc::new({
         let pads = pads.clone();
@@ -382,7 +384,9 @@ pub fn build(st: &St) -> SoundboardPage {
             ask_online.set_visible(!empty_folder);
             if empty_folder {
                 none.set_title(t("Nothing in this folder yet"));
-                none.set_description(Some(t("Drag sounds onto the folder, or pick some with Ctrl+click and move them here.")));
+                none.set_description(Some(t(
+                    "Drag sounds onto the folder, or pick some with Ctrl+click and move them here.",
+                )));
             } else {
                 none.set_title(t("No sounds found"));
                 none.set_description(Some(&fill(t("Nothing on your soundboard is called “{}”."), &[&query])));
@@ -435,7 +439,8 @@ pub fn build(st: &St) -> SoundboardPage {
     let rebuild = {
         let (st, grid, pads, refilter) = (st.clone(), grid.clone(), pads.clone(), refilter.clone());
         let (picks, sync_picks, sync_path) = (picks.clone(), sync_picks.clone(), sync_path.clone());
-        let (shown, tiles, open_folder, spring_to) = (shown.clone(), tiles.clone(), open_folder.clone(), spring_to.clone());
+        let (shown, tiles, open_folder, spring_to) =
+            (shown.clone(), tiles.clone(), open_folder.clone(), spring_to.clone());
         let (shelf, faces, landing) = (shelf.clone(), faces.clone(), landing.clone());
         Rc::new(move |animate: bool| {
             // Keeps the focus on the same sound, or the one that took its place.
@@ -455,7 +460,8 @@ pub fn build(st: &St) -> SoundboardPage {
             }
             sync_path();
             for name in folders {
-                let inside: Vec<&Sound> = sounds.iter().filter(|s| s.folder.as_deref() == Some(name.as_str())).collect();
+                let inside: Vec<&Sound> =
+                    sounds.iter().filter(|s| s.folder.as_deref() == Some(name.as_str())).collect();
                 let icons: Vec<String> = inside.iter().take(3).map(|s| s.icon.clone()).collect();
                 let count = match inside.len() {
                     0 => t("Empty").to_string(),
@@ -481,7 +487,11 @@ pub fn build(st: &St) -> SoundboardPage {
             sync_picks();
             landing.play(|id| pads.borrow().get(id).map(|p| p.child.clone().upcast()), &tiles);
             if let Some((id, index)) = focused {
-                let child = pads.borrow().get(&id).map(|p| p.child.clone()).or_else(|| grid.child_at_index(index.min(sounds.len() as i32 - 1)));
+                let child = pads
+                    .borrow()
+                    .get(&id)
+                    .map(|p| p.child.clone())
+                    .or_else(|| grid.child_at_index(index.min(sounds.len() as i32 - 1)));
                 if let Some(c) = child {
                     c.grab_focus();
                 }
@@ -535,7 +545,11 @@ pub fn build(st: &St) -> SoundboardPage {
             let mut child = grid.first_child();
             while let Some(c) = child {
                 if c.is_visible()
-                    && let Some(id) = pads.borrow().iter().find(|(_, p)| p.child.upcast_ref::<gtk::Widget>() == &c).map(|(id, _)| id.clone())
+                    && let Some(id) = pads
+                        .borrow()
+                        .iter()
+                        .find(|(_, p)| p.child.upcast_ref::<gtk::Widget>() == &c)
+                        .map(|(id, _)| id.clone())
                 {
                     picks.ids.borrow_mut().insert(id);
                 }
@@ -605,7 +619,18 @@ pub fn build(st: &St) -> SoundboardPage {
         // Sorted by name, a place in the order means nothing, but a folder still does.
         move || !st.config.borrow().sounds_by_name
     });
-    board::drop_on_grid(&shelf, &stack, &grid, &item_of, &shown, &picks, &sync_picks, can_order, Rc::new(|| true), &landing);
+    board::drop_on_grid(
+        &shelf,
+        &stack,
+        &grid,
+        &item_of,
+        &shown,
+        &picks,
+        &sync_picks,
+        can_order,
+        Rc::new(|| true),
+        &landing,
+    );
     board::drop_folders_on_grid(&shelf, &stack, &grid, &tiles, &landing);
     board::up_takes_drops(&path.up, &shelf, &picks, &sync_picks, &spring_to);
     path.up.connect_clicked({
@@ -802,7 +827,8 @@ pub fn build(st: &St) -> SoundboardPage {
     });
     // The first visit shows what nothing on screen tells: the right click, dragging, the deck.
     super::tour::on_first_visit(st, "soundboard", &view, {
-        let (find, scroll, grid, deck) = (find.downgrade(), scroll.downgrade(), grid.downgrade(), deck_widget.downgrade());
+        let (find, scroll, grid, deck) =
+            (find.downgrade(), scroll.downgrade(), grid.downgrade(), deck_widget.downgrade());
         move || {
             let (Some(find), Some(scroll), Some(grid), Some(deck)) =
                 (find.upgrade(), scroll.upgrade(), grid.upgrade(), deck.upgrade())
@@ -869,7 +895,9 @@ fn deck(st: &St) -> (gtk::Box, Vec<(glib::Object, &'static str)>, Vec<gtk::Widge
         let st = st.clone();
         move |v| st.update(|c| c.sound_volume = v as f32)
     });
-    let tip = t("How loud the sounds play for everyone: for others in the Voicenux Microphone, and for you when Hear them myself is on.");
+    let tip = t(
+        "How loud the sounds play for everyone: for others in the Voicenux Microphone, and for you when Hear them myself is on.",
+    );
     everyone.set_tooltip_text(Some(tip));
     volume.set_tooltip_text(Some(tip));
     volume.set_width_request(190);

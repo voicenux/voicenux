@@ -60,10 +60,13 @@ fn scale_row(
     scale.set_draw_value(false);
     scale.set_width_request(220);
     scale.set_valign(gtk::Align::Center);
-    super::notches(&scale, match unit {
-        Unit::Db => &[0.0],
-        Unit::Percent => &[0.5, 1.0],
-    });
+    super::notches(
+        &scale,
+        match unit {
+            Unit::Db => &[0.0],
+            Unit::Percent => &[0.5, 1.0],
+        },
+    );
     let shown = super::value_field(
         {
             let scale = scale.clone();
@@ -159,7 +162,9 @@ fn full_names(row: &adw::ComboRow) {
     });
     list.connect_bind(move |_, o| {
         let Some(item) = item_of(o) else { return };
-        if let (Some(l), Some(text)) = (item.child().and_then(|b| b.first_child()).and_downcast::<gtk::Label>(), text_of(&item)) {
+        if let (Some(l), Some(text)) =
+            (item.child().and_then(|b| b.first_child()).and_downcast::<gtk::Label>(), text_of(&item))
+        {
             l.set_label(&text);
         }
         check(&item);
@@ -355,11 +360,18 @@ pub fn build(st: &St, window: &adw::ApplicationWindow) -> adw::ToolbarView {
         .subtitle(t("Mutes the microphone while you are quiet."))
         .active(c.gate)
         .build();
-    let gate_level =
-        scale_row(t("Gate level"), t("Sounds below this level are muted."), -80.0, -20.0, c.gate_db as f64, Unit::Db, {
+    let gate_level = scale_row(
+        t("Gate level"),
+        t("Sounds below this level are muted."),
+        -80.0,
+        -20.0,
+        c.gate_db as f64,
+        Unit::Db,
+        {
             let st = st.clone();
             move |v| st.update(|c| c.gate_db = v as f32)
-        });
+        },
+    );
     gate_level.set_visible(c.gate);
     gate.connect_active_notify({
         let st = st.clone();
@@ -409,7 +421,8 @@ pub fn build(st: &St, window: &adw::ApplicationWindow) -> adw::ToolbarView {
     page.append(&virt.widget);
 
     // Hear myself.
-    let hear = Group::new("headphones", t("Hear myself"), t("Where you hear your own changed voice and the soundboard."));
+    let hear =
+        Group::new("headphones", t("Hear myself"), t("Where you hear your own changed voice and the soundboard."));
     hear.add(&device_row(st, t("Headphones"), false));
     hear.add(&scale_row(
         t("Volume"),
@@ -550,7 +563,9 @@ pub fn build(st: &St, window: &adw::ApplicationWindow) -> adw::ToolbarView {
     looks.add_css_class("vn-segmented");
     looks.set_valign(gtk::Align::Center);
     // Lucide like the rest of the settings: the theme's own sun is a plain dot in Breeze.
-    for (name, icon, text) in [("system", "monitor", t("System")), ("light", "sun", t("Light")), ("dark", "moon", t("Dark"))] {
+    for (name, icon, text) in
+        [("system", "monitor", t("System")), ("light", "sun", t("Light")), ("dark", "moon", t("Dark"))]
+    {
         let content = gtk::Box::new(gtk::Orientation::Horizontal, 6);
         content.append(&line_icon(icon, 16));
         content.append(&gtk::Label::new(Some(text)));
@@ -622,7 +637,8 @@ fn gigabytes(bytes: u64) -> String {
 
 /// AI voices: on the processor or not, what the engine takes on disk, and a button to remove it.
 fn ai_group(st: &St) -> Group {
-    let group = Group::new("sparkles", t("AI voices"), t("Character voices made by AI, like SpongeBob or Darth Vader."));
+    let group =
+        Group::new("sparkles", t("AI voices"), t("Character voices made by AI, like SpongeBob or Darth Vader."));
     let cpu = adw::SwitchRow::builder()
         .title(t("Run on the processor"))
         .subtitle(t(
@@ -716,8 +732,11 @@ fn ai_group(st: &St) -> Group {
 
 /// Other apps on this computer, like a Stream Deck plugin, may control Voicenux. See `src/api.rs`.
 fn api_group(st: &St) -> Group {
-    let group =
-        Group::new("plug", t("Other apps"), t("Stream Deck plugins, for example for OpenDeck, and scripts can use your voices and sounds."));
+    let group = Group::new(
+        "plug",
+        t("Other apps"),
+        t("Stream Deck plugins, for example for OpenDeck, and scripts can use your voices and sounds."),
+    );
     let on = adw::SwitchRow::builder()
         .title(t("Let other apps control Voicenux"))
         .subtitle(t("Only apps on this computer. Web pages can not use it."))
@@ -771,7 +790,10 @@ fn api_group(st: &St) -> Group {
             match &s.error {
                 Some(e) => {
                     status.set_title(t("Could not start"));
-                    status.set_subtitle(&fill(t("Port {} is taken, maybe by another Voicenux. {}"), &[&crate::api::PORT.to_string(), e]));
+                    status.set_subtitle(&fill(
+                        t("Port {} is taken, maybe by another Voicenux. {}"),
+                        &[&crate::api::PORT.to_string(), e],
+                    ));
                     apps.set_label("");
                 }
                 None => {

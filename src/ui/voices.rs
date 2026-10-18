@@ -192,7 +192,9 @@ pub fn build(st: &St, open_lab: OpenLab) -> VoicesPage {
     let first: Rc<RefCell<Option<String>>> = Rc::default();
     let item_of: board::ItemOf = Rc::new({
         let cards = cards.clone();
-        move |w: &gtk::Widget| cards.borrow().iter().find(|(_, c)| c.child.upcast_ref::<gtk::Widget>() == w).map(|(id, _)| id.clone())
+        move |w: &gtk::Widget| {
+            cards.borrow().iter().find(|(_, c)| c.child.upcast_ref::<gtk::Widget>() == w).map(|(id, _)| id.clone())
+        }
     });
     let faces: board::Faces = Rc::new({
         let cards = cards.clone();
@@ -325,7 +327,9 @@ pub fn build(st: &St, open_lab: OpenLab) -> VoicesPage {
             // An empty folder says how voices get in, not that the search found nothing.
             if folder.is_some() && query.is_empty() {
                 empty.set_title(t("Nothing in this folder yet"));
-                empty.set_description(Some(t("Drag voices onto the folder, or pick some with Ctrl+click and move them here.")));
+                empty.set_description(Some(t(
+                    "Drag voices onto the folder, or pick some with Ctrl+click and move them here.",
+                )));
             } else {
                 empty.set_title(t("No voices found"));
                 empty.set_description(Some(t("Try another word or category.")));
@@ -385,7 +389,8 @@ pub fn build(st: &St, open_lab: OpenLab) -> VoicesPage {
             sync_path();
             let order = st.voices_shown();
             for name in folders {
-                let inside: Vec<&String> = order.iter().filter(|id| st.voice_folder(id).as_deref() == Some(name.as_str())).collect();
+                let inside: Vec<&String> =
+                    order.iter().filter(|id| st.voice_folder(id).as_deref() == Some(name.as_str())).collect();
                 let icons: Vec<String> = inside.iter().take(3).filter_map(|id| st.voice(id).map(|v| v.icon)).collect();
                 let count = match inside.len() {
                     0 => t("Empty").to_string(),
@@ -405,7 +410,8 @@ pub fn build(st: &St, open_lab: OpenLab) -> VoicesPage {
         let filter = filter.clone();
         let refilter = refilter.clone();
         let st = st.clone();
-        let (shown, sync_path, picks, sync_picks) = (shown.clone(), sync_path.clone(), picks.clone(), sync_picks.clone());
+        let (shown, sync_path, picks, sync_picks) =
+            (shown.clone(), sync_path.clone(), picks.clone(), sync_picks.clone());
         Rc::new(move || {
             clear(&chips);
             let has_custom = st.voices.borrow().iter().any(|v| !v.builtin);
@@ -448,7 +454,8 @@ pub fn build(st: &St, open_lab: OpenLab) -> VoicesPage {
                 let id = id.to_string();
                 b.connect_toggled({
                     let picked = picked.clone();
-                    let (shown, sync_path, picks, sync_picks) = (shown.clone(), sync_path.clone(), picks.clone(), sync_picks.clone());
+                    let (shown, sync_path, picks, sync_picks) =
+                        (shown.clone(), sync_path.clone(), picks.clone(), sync_picks.clone());
                     move |b| {
                         if b.is_active() {
                             picked.set(true);
@@ -515,8 +522,15 @@ pub fn build(st: &St, open_lab: OpenLab) -> VoicesPage {
     // After the folders or the order changed: tiles, order and what shows, and the bounce of
     // what just moved.
     let reshelve = {
-        let (rebuild_tiles, resort, refilter, sync_picks, landing, cards, tiles) =
-            (rebuild_tiles.clone(), resort.clone(), refilter.clone(), sync_picks.clone(), landing.clone(), cards.clone(), tiles.clone());
+        let (rebuild_tiles, resort, refilter, sync_picks, landing, cards, tiles) = (
+            rebuild_tiles.clone(),
+            resort.clone(),
+            refilter.clone(),
+            sync_picks.clone(),
+            landing.clone(),
+            cards.clone(),
+            tiles.clone(),
+        );
         let (picks, st) = (picks.clone(), st.clone());
         Rc::new(move || {
             rebuild_tiles();
@@ -533,7 +547,8 @@ pub fn build(st: &St, open_lab: OpenLab) -> VoicesPage {
         let cards = cards.clone();
         let st = st.clone();
         let open_lab = open_lab.clone();
-        let (update_active, reshelve, picks, faces) = (update_active.clone(), reshelve.clone(), picks.clone(), faces.clone());
+        let (update_active, reshelve, picks, faces) =
+            (update_active.clone(), reshelve.clone(), picks.clone(), faces.clone());
         let refilter = refilter.clone();
         Rc::new(move || {
             for (_, c) in cards.borrow_mut().drain() {
@@ -556,7 +571,8 @@ pub fn build(st: &St, open_lab: OpenLab) -> VoicesPage {
     grid.connect_child_activated({
         let st = st.clone();
         let cards = cards.clone();
-        let (tiles, open_folder, picks, sync_picks) = (tiles.clone(), open_folder.clone(), picks.clone(), sync_picks.clone());
+        let (tiles, open_folder, picks, sync_picks) =
+            (tiles.clone(), open_folder.clone(), picks.clone(), sync_picks.clone());
         move |_, child| {
             let folder = tiles.borrow().iter().find(|(c, _)| c == child).map(|(_, n)| n.clone());
             if let Some(folder) = folder {
@@ -584,7 +600,18 @@ pub fn build(st: &St, open_lab: OpenLab) -> VoicesPage {
         let filter = filter.clone();
         move || filter.borrow().0 == "all"
     });
-    board::drop_on_grid(&shelf, &grid_stack, &grid, &item_of, &shown, &picks, &sync_picks, can_order, can_take, &landing);
+    board::drop_on_grid(
+        &shelf,
+        &grid_stack,
+        &grid,
+        &item_of,
+        &shown,
+        &picks,
+        &sync_picks,
+        can_order,
+        can_take,
+        &landing,
+    );
     board::drop_folders_on_grid(&shelf, &grid_stack, &grid, &tiles, &landing);
     board::up_takes_drops(&path.up, &shelf, &picks, &sync_picks, &spring_to);
     path.up.connect_clicked({
@@ -602,13 +629,11 @@ pub fn build(st: &St, open_lab: OpenLab) -> VoicesPage {
         }
     });
     let delete_picks: Rc<dyn Fn()> = Rc::new({
-        let (st, shelf, picks, sync_picks, widget) = (st.clone(), shelf.clone(), picks.clone(), sync_picks.clone(), widget.downgrade());
+        let (st, shelf, picks, sync_picks, widget) =
+            (st.clone(), shelf.clone(), picks.clone(), sync_picks.clone(), widget.downgrade());
         move || {
-            let own: Vec<String> = picks
-                .in_order(&shelf)
-                .into_iter()
-                .filter(|id| st.voice(id).is_some_and(|v| !v.builtin))
-                .collect();
+            let own: Vec<String> =
+                picks.in_order(&shelf).into_iter().filter(|id| st.voice(id).is_some_and(|v| !v.builtin)).collect();
             let Some(parent) = widget.upgrade() else { return };
             ask_delete_voices(&st, &own, &parent, {
                 let (picks, sync_picks) = (picks.clone(), sync_picks.clone());
@@ -656,7 +681,8 @@ pub fn build(st: &St, open_lab: OpenLab) -> VoicesPage {
     let keys = gtk::EventControllerKey::new();
     keys.set_propagation_phase(gtk::PropagationPhase::Capture);
     keys.connect_key_pressed({
-        let (grid, picks, pick_all, delete_picks) = (grid.clone(), picks.clone(), pick_all.clone(), delete_picks.clone());
+        let (grid, picks, pick_all, delete_picks) =
+            (grid.clone(), picks.clone(), pick_all.clone(), delete_picks.clone());
         move |_, key, _, mods| {
             if grid.focus_child().filter(|c| c.has_focus()).is_none() {
                 return glib::Propagation::Proceed;
@@ -717,11 +743,15 @@ pub fn build(st: &St, open_lab: OpenLab) -> VoicesPage {
                 st1.set_voice(&v.id);
                 open_lab(&v.id);
             }));
-            items.push(popup::Item::new("media-playlist-shuffle-symbolic", t("Random voice"), move || st2.random_voice()));
+            items.push(popup::Item::new("media-playlist-shuffle-symbolic", t("Random voice"), move || {
+                st2.random_voice()
+            }));
             items.push(if st3.config.borrow().voices_by_name {
                 popup::Item::new("view-list-symbolic", t("Your own order"), move || st3.set_voices_by_name(false))
             } else {
-                popup::Item::new("view-sort-ascending-symbolic", t("Sort by name"), move || st3.set_voices_by_name(true))
+                popup::Item::new("view-sort-ascending-symbolic", t("Sort by name"), move || {
+                    st3.set_voices_by_name(true)
+                })
             });
             popup::show_list(&scroll, x, y, items);
         }
@@ -839,7 +869,8 @@ pub fn build(st: &St, open_lab: OpenLab) -> VoicesPage {
 
     // The card of the voice in use. In a folder, the folder opens for it.
     let show_current: Rc<dyn Fn()> = Rc::new({
-        let (st, cards, open_folder, filter, shown) = (st.clone(), cards.clone(), open_folder.clone(), filter.clone(), shown.clone());
+        let (st, cards, open_folder, filter, shown) =
+            (st.clone(), cards.clone(), open_folder.clone(), filter.clone(), shown.clone());
         move || {
             let id = st.config.borrow().voice.clone();
             let folder = st.voice_folder(&id);
@@ -883,7 +914,9 @@ pub fn build(st: &St, open_lab: OpenLab) -> VoicesPage {
                 at: grid.clone().upcast(),
                 area: Some(board::spot_finder(&grid, &scroll)),
                 title: t("Right-click an empty spot"),
-                text: t("There you make folders and sort the voices. Drag voices to move them, Ctrl+click picks several."),
+                text: t(
+                    "There you make folders and sort the voices. Drag voices to move them, Ctrl+click picks several.",
+                ),
             });
             // The first setting, not the whole panel: the bubble sits next to it.
             tips.push(super::tour::Tip {
@@ -902,7 +935,8 @@ pub fn build(st: &St, open_lab: OpenLab) -> VoicesPage {
 /// voice. Unless it is an AI voice that is not downloaded: then the click offers the download.
 fn use_voice(st: &St, id: &str) {
     let on = st.config.borrow().voice == id && st.config.borrow().voice_on;
-    let missing = st.voice(id).and_then(|v| crate::ai::model_of(&v.block_values())).is_some_and(|m| !crate::ai::ready(m));
+    let missing =
+        st.voice(id).and_then(|v| crate::ai::model_of(&v.block_values())).is_some_and(|m| !crate::ai::ready(m));
     if on && !missing { st.set_voice_on(false) } else { st.set_voice(id) }
 }
 
@@ -1008,7 +1042,8 @@ fn card(st: &St, v: &Voice, open_lab: &OpenLab) -> Card {
         corner.append(&mark);
         if !crate::ai::usable() {
             card.add_css_class("vn-ai-off");
-            tip = format!("{tip}\n{}", t("AI voices need an NVIDIA graphics card, or Run on the processor in Settings."));
+            tip =
+                format!("{tip}\n{}", t("AI voices need an NVIDIA graphics card, or Run on the processor in Settings."));
         } else if !crate::ai::ready(model) {
             let get = gtk::Image::from_icon_name("folder-download-symbolic");
             get.add_css_class("vn-ai-get");
@@ -1357,14 +1392,16 @@ impl Detail {
                 continue;
             }
             let values = b.values();
-            let first = original.as_ref().and_then(|o| o.blocks.get(bi)).filter(|o| o.kind == b.kind).map(|o| o.values());
+            let first =
+                original.as_ref().and_then(|o| o.blocks.get(bi)).filter(|o| o.kind == b.kind).map(|o| o.values());
             for (pi, p) in spec.params.iter().enumerate() {
                 if !p.main {
                     continue;
                 }
                 any = true;
                 let was = first.as_ref().and_then(|f| f.get(pi).copied());
-                let undo = gtk::Button::builder().child(&line_icon("rotate-ccw", 14)).valign(gtk::Align::Center).build();
+                let undo =
+                    gtk::Button::builder().child(&line_icon("rotate-ccw", 14)).valign(gtk::Align::Center).build();
                 undo.add_css_class("flat");
                 undo.add_css_class("circular");
                 undo.add_css_class("vn-param-undo");

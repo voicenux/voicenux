@@ -171,7 +171,9 @@ fn serve(tx: async_channel::Sender<Request>, clients: Clients) -> std::io::Resul
                             }
                         });
                     }
-                    Err(e) if e.kind() == std::io::ErrorKind::WouldBlock => std::thread::sleep(Duration::from_millis(100)),
+                    Err(e) if e.kind() == std::io::ErrorKind::WouldBlock => {
+                        std::thread::sleep(Duration::from_millis(100))
+                    }
                     Err(e) => {
                         log::warn!("API: {e}");
                         std::thread::sleep(Duration::from_millis(100));
@@ -184,7 +186,12 @@ fn serve(tx: async_channel::Sender<Request>, clients: Clients) -> std::io::Resul
 }
 
 /// One connection: a WebSocket, or a single HTTP request.
-fn client(mut stream: TcpStream, tx: &async_channel::Sender<Request>, clients: &Clients, stop: &AtomicBool) -> anyhow::Result<()> {
+fn client(
+    mut stream: TcpStream,
+    tx: &async_channel::Sender<Request>,
+    clients: &Clients,
+    stop: &AtomicBool,
+) -> anyhow::Result<()> {
     stream.set_nonblocking(false)?;
     stream.set_read_timeout(Some(Duration::from_secs(5)))?;
     // Look at the head without taking it: a WebSocket handshake reads it again.
@@ -212,7 +219,12 @@ fn client(mut stream: TcpStream, tx: &async_channel::Sender<Request>, clients: &
     let body_len = header("content-length").and_then(|v| v.trim().parse::<usize>().ok()).unwrap_or(0);
     let (method, path) = (req.method.unwrap_or("GET").to_string(), req.path.unwrap_or("/").to_string());
     if !ok {
-        return respond(&mut stream, 403, "application/json", br#"{"ok":false,"error":"only apps on this computer may use the API"}"#);
+        return respond(
+            &mut stream,
+            403,
+            "application/json",
+            br#"{"ok":false,"error":"only apps on this computer may use the API"}"#,
+        );
     }
     if upgrade {
         return websocket(stream, tx, clients, stop);
@@ -250,7 +262,12 @@ fn allowed(host: Option<&str>, origin: Option<&str>) -> bool {
     host_ok && origin_ok
 }
 
-fn websocket(stream: TcpStream, tx: &async_channel::Sender<Request>, clients: &Clients, stop: &AtomicBool) -> anyhow::Result<()> {
+fn websocket(
+    stream: TcpStream,
+    tx: &async_channel::Sender<Request>,
+    clients: &Clients,
+    stop: &AtomicBool,
+) -> anyhow::Result<()> {
     static NEXT: AtomicU64 = AtomicU64::new(1);
     let mut ws = tungstenite::accept(stream).map_err(|e| anyhow::anyhow!("handshake: {e}"))?;
     // Short, so events go out between questions.
@@ -317,7 +334,13 @@ fn command(tx: &async_channel::Sender<Request>, text: &str) -> String {
     .to_string()
 }
 
-fn http(stream: &mut TcpStream, method: &str, path: &str, body: &[u8], tx: &async_channel::Sender<Request>) -> anyhow::Result<()> {
+fn http(
+    stream: &mut TcpStream,
+    method: &str,
+    path: &str,
+    body: &[u8],
+    tx: &async_channel::Sender<Request>,
+) -> anyhow::Result<()> {
     let path = path.split('?').next().unwrap_or("");
     let parts: Vec<String> = path.split('/').filter(|p| !p.is_empty()).map(unescape).collect();
     let parts: Vec<&str> = parts.iter().map(String::as_str).collect();
@@ -368,7 +391,8 @@ fn respond(stream: &mut TcpStream, status: u16, kind: &str, body: &[u8]) -> anyh
 /// Asks the main thread.
 fn ask(tx: &async_channel::Sender<Request>, action: &str, arg: Option<String>) -> Result<Value, String> {
     let (reply, answer) = mpsc::channel();
-    tx.send_blocking(Request { action: action.to_string(), arg, reply }).map_err(|_| "Voicenux is closing".to_string())?;
+    tx.send_blocking(Request { action: action.to_string(), arg, reply })
+        .map_err(|_| "Voicenux is closing".to_string())?;
     answer.recv_timeout(Duration::from_secs(5)).map_err(|_| "no answer".to_string())?
 }
 
@@ -414,7 +438,8 @@ fn handle(st: &St, action: &str, arg: Option<&str>) -> Result<Value, String> {
         }
         "stop-sounds" => st.stop_sounds(),
         "sound-volume" => {
-            let v: f32 = need()?.trim_end_matches('%').trim().parse().map_err(|_| "sound-volume needs 0 to 100".to_string())?;
+            let v: f32 =
+                need()?.trim_end_matches('%').trim().parse().map_err(|_| "sound-volume needs 0 to 100".to_string())?;
             st.update(|c| c.sound_volume = (v / 100.0).clamp(0.0, 1.0));
         }
         "hear-sounds" => {
@@ -529,7 +554,10 @@ fn unescape(part: &str) -> String {
     let mut out = Vec::with_capacity(bytes.len());
     let mut i = 0;
     while i < bytes.len() {
-        match (bytes[i], bytes.get(i + 1..i + 3).and_then(|h| u8::from_str_radix(std::str::from_utf8(h).ok()?, 16).ok())) {
+        match (
+            bytes[i],
+            bytes.get(i + 1..i + 3).and_then(|h| u8::from_str_radix(std::str::from_utf8(h).ok()?, 16).ok()),
+        ) {
             (b'%', Some(b)) => {
                 out.push(b);
                 i += 3;

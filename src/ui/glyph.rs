@@ -102,7 +102,8 @@ pub fn glyph(name: &str) -> Glyph {
                 let glyph: Glyph = glib::Object::new();
                 let imp = glyph.imp();
                 let _ = imp.stroke.set(gsk::Path::parse(stroke).expect("icons.tsv has good paths"));
-                let _ = imp.fill.set((!fill.is_empty()).then(|| gsk::Path::parse(fill).expect("icons.tsv has good paths")));
+                let _ =
+                    imp.fill.set((!fill.is_empty()).then(|| gsk::Path::parse(fill).expect("icons.tsv has good paths")));
                 glyph
             })
             .clone()

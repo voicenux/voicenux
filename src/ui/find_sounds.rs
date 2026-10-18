@@ -36,8 +36,13 @@ const NUMBERS_PARALLEL: usize = 8;
 const KEEP_BYTES: usize = 100 << 20;
 
 /// The ways to sort, with their names in the config.
-const SORTS: [(&str, &str); 5] =
-    [("suggested", "Suggested"), ("views", "Most views"), ("likes", "Most likes"), ("newest", "Newest"), ("az", "A to Z")];
+const SORTS: [(&str, &str); 5] = [
+    ("suggested", "Suggested"),
+    ("views", "Most views"),
+    ("likes", "Most likes"),
+    ("newest", "Newest"),
+    ("az", "A to Z"),
+];
 
 struct Finder {
     st: St,
@@ -797,10 +802,7 @@ fn stats_line() -> gtk::Box {
 }
 
 fn show_stats(line: &gtk::Box, s: &Stats) {
-    let parts = [
-        (s.likes, t("{} people like this on MyInstants")),
-        (s.views, t("{} views on MyInstants")),
-    ];
+    let parts = [(s.likes, t("{} people like this on MyInstants")), (s.views, t("{} views on MyInstants"))];
     let mut child = line.first_child();
     for (n, tip) in parts {
         let Some(b) = child else { break };

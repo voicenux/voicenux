@@ -34,7 +34,10 @@ pub enum Change {
     /// Voice folders, or your order of the voices.
     VoiceShelf,
     /// Sounds were removed, with the text for the note. They can come back until it is gone.
-    SoundRemoved { ids: Vec<String>, title: String },
+    SoundRemoved {
+        ids: Vec<String>,
+        title: String,
+    },
     Settings,
     /// The engine is up, or failed with a message.
     Engine(Option<String>),
@@ -311,7 +314,8 @@ impl State {
         // Also for the voice in use: an AI voice can be missing since the last start.
         if let Some(model) = crate::ai::model_of(&v.block_values()) {
             if !crate::ai::usable() {
-                let text = crate::i18n::t("AI voices need an NVIDIA graphics card, or Run on the processor in Settings.");
+                let text =
+                    crate::i18n::t("AI voices need an NVIDIA graphics card, or Run on the processor in Settings.");
                 self.notify(Change::Notice(text.into()));
                 return;
             }
@@ -367,7 +371,8 @@ impl State {
         let pos = list.iter().position(|id| *id == current).unwrap_or(0) as i64;
         let len = list.len() as i64;
         let step = if forward { 1 } else { -1 };
-        let next = (1..=len).map(|i| list[(pos + i * step).rem_euclid(len) as usize].clone()).find(|id| self.playable(id));
+        let next =
+            (1..=len).map(|i| list[(pos + i * step).rem_euclid(len) as usize].clone()).find(|id| self.playable(id));
         if let Some(id) = next {
             self.set_voice(&id);
         }

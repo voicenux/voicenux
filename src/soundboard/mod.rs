@@ -266,7 +266,8 @@ impl Library {
     pub fn add_bytes(&mut self, name: &str, ext: &str, data: &[u8], icon: &str) -> anyhow::Result<Sound> {
         let dir = dir();
         std::fs::create_dir_all(&dir)?;
-        let stem: String = name.chars().map(|c| if c.is_alphanumeric() { c.to_ascii_lowercase() } else { '-' }).collect();
+        let stem: String =
+            name.chars().map(|c| if c.is_alphanumeric() { c.to_ascii_lowercase() } else { '-' }).collect();
         let stem = stem.trim_matches('-');
         let target = free_path(&dir, if stem.is_empty() { "sound" } else { stem }, &format!(".{ext}"));
         std::fs::write(&target, data)?;
@@ -351,8 +352,7 @@ pub fn delete_file(sound: &Sound) {
     }
 }
 
-impl Library {
-}
+impl Library {}
 
 /// `dir/stem.ext`, or with a number added when that file is there already.
 fn free_path(dir: &Path, stem: &str, ext: &str) -> PathBuf {

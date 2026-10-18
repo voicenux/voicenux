@@ -2,8 +2,8 @@
 
 use adw::prelude::*;
 
-use super::{popup, label};
 use super::visuals::level_meter;
+use super::{label, popup};
 use crate::i18n::{fill, t};
 use crate::state::{Change, St};
 

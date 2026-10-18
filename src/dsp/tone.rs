@@ -184,7 +184,8 @@ pub struct Bitcrush {
 impl Bitcrush {
     pub fn new(p: &[f32], ctx: &BuildCtx) -> Self {
         let release = (-1.0 / (0.15 * ctx.rate)).exp();
-        let mut b = Self { rate: ctx.rate, step: 1.0, phase: 0.0, hold: 0.0, levels: 128.0, mix: 1.0, env: 0.0, release };
+        let mut b =
+            Self { rate: ctx.rate, step: 1.0, phase: 0.0, hold: 0.0, levels: 128.0, mix: 1.0, env: 0.0, release };
         for (i, v) in p.iter().enumerate() {
             b.set_param(i, *v);
         }

@@ -220,7 +220,10 @@ fn run(rx: Receiver<Event>, back: Sender<Event>) {
                         h.cushion = samples("cushion");
                         h.loading = false;
                         let delay = (info["delay"].as_f64().unwrap_or(0.0) * 1000.0).round() as u32;
-                        log::info!("AI blocks of {} ms, about {delay} ms delay", info["block"].as_f64().unwrap_or(0.0) * 1000.0);
+                        log::info!(
+                            "AI blocks of {} ms, about {delay} ms delay",
+                            info["block"].as_f64().unwrap_or(0.0) * 1000.0
+                        );
                         set_status(Status::Running(delay));
                     }
                     b'A' => {

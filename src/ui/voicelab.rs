@@ -6,7 +6,7 @@ use std::rc::Rc;
 use adw::prelude::*;
 
 use super::voices::param_row;
-use super::{popup, clear, icon, icon_picker, label, smooth_scroll};
+use super::{clear, icon, icon_picker, label, popup, smooth_scroll};
 use crate::dsp::blocks::{self, BLOCKS, Group};
 use crate::i18n::{fill, t, t_dyn};
 use crate::state::{Change, St};
@@ -179,16 +179,21 @@ pub fn build(st: &St) -> Lab {
                         let (st1, st2, st3, id1, id2, id3, name) =
                             (st.clone(), st.clone(), st.clone(), id.clone(), id.clone(), id.clone(), name.clone());
                         let parent = r.downgrade();
-                        popup::show_list(&r, x, y, vec![
-                            popup::Item::new("object-select-symbolic", t("Use voice"), move || st1.set_voice(&id1)),
-                            popup::Item::new("edit-copy-symbolic", t("Duplicate"), move || duplicate(&st2, &id2)),
-                            popup::Item::new("user-trash-symbolic", t("Delete"), move || {
-                                if let Some(p) = parent.upgrade() {
-                                    ask_delete(&st3, &id3, &name, &p);
-                                }
-                            })
-                            .danger(),
-                        ]);
+                        popup::show_list(
+                            &r,
+                            x,
+                            y,
+                            vec![
+                                popup::Item::new("object-select-symbolic", t("Use voice"), move || st1.set_voice(&id1)),
+                                popup::Item::new("edit-copy-symbolic", t("Duplicate"), move || duplicate(&st2, &id2)),
+                                popup::Item::new("user-trash-symbolic", t("Delete"), move || {
+                                    if let Some(p) = parent.upgrade() {
+                                        ask_delete(&st3, &id3, &name, &p);
+                                    }
+                                })
+                                .danger(),
+                            ],
+                        );
                     }
                 });
                 list.append(&r);
@@ -612,7 +617,8 @@ fn effect_picker(st: &St, editor: &gtk::Box, id: &str) -> gtk::Popover {
                 fill_editor(&st, &editor, &id);
             });
             grid.append(&b);
-            let words = super::fold(&format!("{} {} {} {}", t_dyn(spec.name), spec.name, t_dyn(spec.about), spec.about));
+            let words =
+                super::fold(&format!("{} {} {} {}", t_dyn(spec.name), spec.name, t_dyn(spec.about), spec.about));
             tiles.push((b, words));
         }
         col.append(&grid);
@@ -661,7 +667,8 @@ fn effect_picker(st: &St, editor: &gtk::Box, id: &str) -> gtk::Popover {
     search.connect_activate({
         let groups = groups.clone();
         move |_| {
-            let first = groups.iter().flat_map(|(_, _, tiles)| tiles).find(|(b, _)| b.parent().is_some_and(|c| c.is_visible()));
+            let first =
+                groups.iter().flat_map(|(_, _, tiles)| tiles).find(|(b, _)| b.parent().is_some_and(|c| c.is_visible()));
             if let Some((b, _)) = first {
                 b.emit_clicked();
             }

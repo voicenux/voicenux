@@ -123,7 +123,13 @@ impl Scroller {
         if let Some(anchor) = self.anchor.get() {
             let d = self.pointer.get() - anchor;
             let far = d.abs() > DEAD_ZONE;
-            self.set_cursor(if !far { Pan::Both } else if d < 0.0 { Pan::Up } else { Pan::Down });
+            self.set_cursor(if !far {
+                Pan::Both
+            } else if d < 0.0 {
+                Pan::Up
+            } else {
+                Pan::Down
+            });
             // Pixels a second, like Chrome: 0.04 × distance^2.2.
             let speed = if far { d.signum() * 0.04 * d.abs().powf(2.2) } else { 0.0 };
             let v = (self.set.get() + speed * dt).clamp(self.adj.lower(), self.max());

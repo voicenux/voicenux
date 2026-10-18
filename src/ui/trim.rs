@@ -505,7 +505,11 @@ fn ruler_label(v: f32, step: f32, long: bool) -> String {
     let decimals = (0..3).find(|d| ((step * 10f32.powi(*d)).fract()).abs() < 1e-3).unwrap_or(2) as usize;
     if long {
         let whole = v.floor() as u32;
-        let rest = if decimals > 0 { format!("{:.*}", decimals, v.fract()).trim_start_matches('0').to_string() } else { String::new() };
+        let rest = if decimals > 0 {
+            format!("{:.*}", decimals, v.fract()).trim_start_matches('0').to_string()
+        } else {
+            String::new()
+        };
         format!("{}:{:02}{rest}", whole / 60, whole % 60)
     } else {
         format!("{v:.decimals$} s")
@@ -973,7 +977,12 @@ impl Trim {
             let c = if lit(side) { ACCENT_LIGHT } else { ACCENT };
             fill_round(s, graphene::Rect::new(x, 0.0, HANDLE, bottom), 6.0, &rgba(c, 1.0));
             for dx in [-2.0, 2.0] {
-                fill_round(s, graphene::Rect::new(x + HANDLE / 2.0 + dx - 1.0, mid - 10.0, 2.0, 20.0), 1.0, &rgba(WHITE, 0.9));
+                fill_round(
+                    s,
+                    graphene::Rect::new(x + HANDLE / 2.0 + dx - 1.0, mid - 10.0, 2.0, 20.0),
+                    1.0,
+                    &rgba(WHITE, 0.9),
+                );
             }
         }
 
@@ -1012,7 +1021,13 @@ impl Trim {
         let (sx, ex) = (self.x(self.start.get(), w), self.x(self.end.get(), w));
         let corner = graphene::Size::new(5.0, 5.0);
         let none = graphene::Size::new(0.0, 0.0);
-        let cut = gsk::RoundedRect::new(graphene::Rect::new(sx, base + 1.0, ex - sx, h - base - 1.0), none, none, corner, corner);
+        let cut = gsk::RoundedRect::new(
+            graphene::Rect::new(sx, base + 1.0, ex - sx, h - base - 1.0),
+            none,
+            none,
+            corner,
+            corner,
+        );
         s.push_rounded_clip(&cut);
         s.append_color(&rgba(ACCENT, 0.14), cut.bounds());
         s.pop();

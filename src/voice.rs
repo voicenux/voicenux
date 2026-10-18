@@ -205,7 +205,13 @@ pub fn new_id(name: &str, taken: &[&str]) -> String {
 /// The order of the voice page: by name, in your own order, or favorites first in the order you
 /// starred them, then your own voices, then the built-in ones. Voices that came after you set
 /// your order keep their usual place behind it. `name` is the name people read.
-pub fn shown_order(voices: &[Voice], favorites: &[String], order: &[String], by_name: bool, name: impl Fn(&Voice) -> String) -> Vec<String> {
+pub fn shown_order(
+    voices: &[Voice],
+    favorites: &[String],
+    order: &[String],
+    by_name: bool,
+    name: impl Fn(&Voice) -> String,
+) -> Vec<String> {
     if by_name {
         let mut ids: Vec<(String, String)> = voices.iter().map(|v| (name(v).to_lowercase(), v.id.clone())).collect();
         ids.sort();
@@ -360,10 +366,14 @@ mod tests {
                 }
                 let mut wav = Vec::new();
                 let len = x.len() as u32 * 2;
-                for part in [&b"RIFF"[..], &(36 + len).to_le_bytes(), b"WAVEfmt ", &16u32.to_le_bytes(), &1u16.to_le_bytes()] {
+                for part in
+                    [&b"RIFF"[..], &(36 + len).to_le_bytes(), b"WAVEfmt ", &16u32.to_le_bytes(), &1u16.to_le_bytes()]
+                {
                     wav.extend_from_slice(part);
                 }
-                for part in [&1u16.to_le_bytes()[..], &48000u32.to_le_bytes(), &96000u32.to_le_bytes(), &2u16.to_le_bytes()] {
+                for part in
+                    [&1u16.to_le_bytes()[..], &48000u32.to_le_bytes(), &96000u32.to_le_bytes(), &2u16.to_le_bytes()]
+                {
                     wav.extend_from_slice(part);
                 }
                 for part in [&16u16.to_le_bytes()[..], b"data", &len.to_le_bytes()] {

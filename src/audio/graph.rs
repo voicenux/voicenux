@@ -218,7 +218,11 @@ impl Graph {
             return Use::After;
         }
         let mic = self.pick_input().and_then(|id| self.nodes.get(&id));
-        if self.easyeffects && mic.is_some_and(|m| Some(&m.name) == ee_input.as_ref()) { Use::Before } else { Use::Unused }
+        if self.easyeffects && mic.is_some_and(|m| Some(&m.name) == ee_input.as_ref()) {
+            Use::Before
+        } else {
+            Use::Unused
+        }
     }
 
     /// Where the engine records from: the microphone, or EasyEffects working on it.

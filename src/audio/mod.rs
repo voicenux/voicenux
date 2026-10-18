@@ -61,7 +61,11 @@ impl Meters {
 /// Commands for the realtime side.
 pub enum RtCmd {
     Chain(Box<Chain>),
-    Param { block: u16, index: u16, value: f32 },
+    Param {
+        block: u16,
+        index: u16,
+        value: f32,
+    },
     VoiceOn(bool),
     HearMyself(bool),
     Mute(bool),
@@ -74,10 +78,19 @@ pub enum RtCmd {
     Denoise(bool),
     Gate(Option<f32>),
     /// A preview goes to the headphones only, never into the Voicenux Microphone.
-    Play { id: u32, data: Arc<SoundData>, volume: f32, restart: bool, preview: bool },
+    Play {
+        id: u32,
+        data: Arc<SoundData>,
+        volume: f32,
+        restart: bool,
+        preview: bool,
+    },
     Stop(u32),
     StopAll,
-    SoundVolumeOf { id: u32, volume: f32 },
+    SoundVolumeOf {
+        id: u32,
+        volume: f32,
+    },
 }
 
 /// Things the realtime side is done with. They are freed on another thread.

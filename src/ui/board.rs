@@ -230,7 +230,8 @@ pub fn drag_source(child: &gtk::FlowBoxChild, face: &gtk::Widget, id: &str, pick
         }
     });
     drag.connect_drag_begin({
-        let (face, picks, faces, id, dimmed) = (face.downgrade(), picks.clone(), faces.clone(), id.to_string(), dimmed.clone());
+        let (face, picks, faces, id, dimmed) =
+            (face.downgrade(), picks.clone(), faces.clone(), id.to_string(), dimmed.clone());
         move |src, _| {
             let Some(face) = face.upgrade() else { return };
             let ids: Vec<String> = if picks.ids.borrow().contains(&id) { picks.list() } else { vec![id.clone()] };
@@ -370,8 +371,10 @@ struct GapMark(Rc<RefCell<Vec<(gtk::Widget, &'static str)>>>);
 
 impl GapMark {
     fn show(&self, gap: (Option<gtk::Widget>, Option<gtk::Widget>)) {
-        let lit: Vec<(gtk::Widget, &'static str)> =
-            [(gap.0, "vn-drop-after"), (gap.1, "vn-drop-before")].into_iter().filter_map(|(c, k)| Some((c?, k))).collect();
+        let lit: Vec<(gtk::Widget, &'static str)> = [(gap.0, "vn-drop-after"), (gap.1, "vn-drop-before")]
+            .into_iter()
+            .filter_map(|(c, k)| Some((c?, k)))
+            .collect();
         if *self.0.borrow() == lit {
             return;
         }
@@ -511,7 +514,13 @@ struct FolderDrag(String);
 
 /// Folders stay at the start of the grid, but move among themselves: a dragged folder lands in
 /// the gap between two others, and both of them light up like for tiles.
-pub fn drop_folders_on_grid(shelf: &Shared, area: &impl IsA<gtk::Widget>, grid: &gtk::FlowBox, folders: &Folders, landing: &Rc<Landing>) {
+pub fn drop_folders_on_grid(
+    shelf: &Shared,
+    area: &impl IsA<gtk::Widget>,
+    grid: &gtk::FlowBox,
+    folders: &Folders,
+    landing: &Rc<Landing>,
+) {
     let mark = GapMark::default();
     let nearest = {
         let (area, grid, folders) = (area.as_ref().downgrade(), grid.downgrade(), folders.clone());
@@ -526,7 +535,8 @@ pub fn drop_folders_on_grid(shelf: &Shared, area: &impl IsA<gtk::Widget>, grid: 
         let (shelf, folders) = (shelf.clone(), folders.clone());
         move |name: Option<&str>, gap: (Option<gtk::Widget>, Option<gtk::Widget>)| {
             let (c, after) = place(gap)?;
-            let target = folders.borrow().iter().find(|(t, _)| t.upcast_ref::<gtk::Widget>() == &c).map(|(_, n)| n.clone())?;
+            let target =
+                folders.borrow().iter().find(|(t, _)| t.upcast_ref::<gtk::Widget>() == &c).map(|(_, n)| n.clone())?;
             let Some(name) = name else { return Some((target, after)) };
             let list = shelf.folders();
             let mut moved = list.clone();
@@ -783,28 +793,46 @@ pub fn folder_actions(
     let (shelf, name, open_folder, weak) = (shelf.clone(), name.to_string(), open_folder.clone(), child.downgrade());
     popup::context(child, move |x, y| {
         let Some(child) = weak.upgrade() else { return };
-        let (s1, s2, n0, n1, n2, open_folder, parent) =
-            (shelf.clone(), shelf.clone(), name.clone(), name.clone(), name.clone(), open_folder.clone(), child.downgrade());
-        popup::show_list(&child, x, y, vec![
-            popup::Item::new("folder-open-symbolic", t("Open"), move || open_folder(Some(n0.clone()))),
-            popup::Item::new("document-edit-symbolic", t("Rename"), move || {
-                let Some(parent) = parent.upgrade() else { return };
-                let (shelf, old) = (s1.clone(), n1.clone());
-                ask_folder_name(&parent, t("Rename folder"), &n1, t("Rename"), move |new| {
-                    if new != old && shelf.folders().contains(&new) {
-                        shelf.note(fill(t("There is a folder called “{}” already"), &[&new]));
-                        return;
-                    }
-                    shelf.rename_folder(&old, &new);
-                });
-            }),
-            popup::Item::new("user-trash-symbolic", t("Delete folder"), move || s2.remove_folder(&n2)).danger(),
-        ]);
+        let (s1, s2, n0, n1, n2, open_folder, parent) = (
+            shelf.clone(),
+            shelf.clone(),
+            name.clone(),
+            name.clone(),
+            name.clone(),
+            open_folder.clone(),
+            child.downgrade(),
+        );
+        popup::show_list(
+            &child,
+            x,
+            y,
+            vec![
+                popup::Item::new("folder-open-symbolic", t("Open"), move || open_folder(Some(n0.clone()))),
+                popup::Item::new("document-edit-symbolic", t("Rename"), move || {
+                    let Some(parent) = parent.upgrade() else { return };
+                    let (shelf, old) = (s1.clone(), n1.clone());
+                    ask_folder_name(&parent, t("Rename folder"), &n1, t("Rename"), move |new| {
+                        if new != old && shelf.folders().contains(&new) {
+                            shelf.note(fill(t("There is a folder called “{}” already"), &[&new]));
+                            return;
+                        }
+                        shelf.rename_folder(&old, &new);
+                    });
+                }),
+                popup::Item::new("user-trash-symbolic", t("Delete folder"), move || s2.remove_folder(&n2)).danger(),
+            ],
+        );
     });
 }
 
 /// Asks for the name of a folder. `done` gets it trimmed, and only when it is not empty.
-pub fn ask_folder_name(parent: &impl IsA<gtk::Widget>, heading: &str, current: &str, ok: &str, done: impl Fn(String) + 'static) {
+pub fn ask_folder_name(
+    parent: &impl IsA<gtk::Widget>,
+    heading: &str,
+    current: &str,
+    ok: &str,
+    done: impl Fn(String) + 'static,
+) {
     let entry = gtk::Entry::builder().text(current).activates_default(true).build();
     entry.set_placeholder_text(Some(t("Folder name")));
     let dialog = adw::AlertDialog::builder()
@@ -850,12 +878,19 @@ pub fn new_folder_item(shelf: &Shared, parent: &gtk::Widget) -> popup::Item {
 }
 
 /// The menu of the Move to folder button for picked tiles: each folder, none, or a new one.
-pub fn move_to_menu(button: &gtk::MenuButton, shelf: &Shared, picks: &Rc<Picks>, sync_picks: &Rc<dyn Fn()>, landing: &Rc<Landing>) {
+pub fn move_to_menu(
+    button: &gtk::MenuButton,
+    shelf: &Shared,
+    picks: &Rc<Picks>,
+    sync_picks: &Rc<dyn Fn()>,
+    landing: &Rc<Landing>,
+) {
     let (shelf, picks, sync_picks, landing) = (shelf.clone(), picks.clone(), sync_picks.clone(), landing.clone());
     button.set_create_popup_func(move |b| {
         let folders = shelf.folders();
         let put = |folder: Option<String>| {
-            let (shelf, picks, sync_picks, landing) = (shelf.clone(), picks.clone(), sync_picks.clone(), landing.clone());
+            let (shelf, picks, sync_picks, landing) =
+                (shelf.clone(), picks.clone(), sync_picks.clone(), landing.clone());
             move || {
                 let ids = picks.in_order(&shelf);
                 picks.clear();
@@ -873,7 +908,8 @@ pub fn move_to_menu(button: &gtk::MenuButton, shelf: &Shared, picks: &Rc<Picks>,
             (shelf.clone(), picks.clone(), sync_picks.clone(), landing.clone(), b.downgrade());
         items.push(popup::Item::new("list-add-symbolic", t("New folder"), move || {
             let Some(parent) = parent.upgrade() else { return };
-            let (shelf, picks, sync_picks, landing) = (shelf.clone(), picks.clone(), sync_picks.clone(), landing.clone());
+            let (shelf, picks, sync_picks, landing) =
+                (shelf.clone(), picks.clone(), sync_picks.clone(), landing.clone());
             ask_folder_name(&parent, t("New folder"), "", t("Create"), move |name| {
                 let name = shelf.add_folder(&name);
                 let ids = picks.in_order(&shelf);
@@ -940,7 +976,13 @@ pub fn path_bar(all: &str, tip: &str) -> PathBar {
 
 /// A tile dropped on the way back up leaves its folder, and one held over it goes up along, to be
 /// dropped elsewhere.
-pub fn up_takes_drops(up: &gtk::Button, shelf: &Shared, picks: &Rc<Picks>, sync_picks: &Rc<dyn Fn()>, spring_to: &Open) {
+pub fn up_takes_drops(
+    up: &gtk::Button,
+    shelf: &Shared,
+    picks: &Rc<Picks>,
+    sync_picks: &Rc<dyn Fn()>,
+    spring_to: &Open,
+) {
     let out = gtk::DropTarget::new(String::static_type(), gdk::DragAction::MOVE);
     let spring = Spring::default();
     out.connect_enter({

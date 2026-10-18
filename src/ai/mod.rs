@@ -30,18 +30,66 @@ pub struct Model {
 
 // Pitches and indexes were picked by comparing the voices with recordings of the characters.
 pub static MODELS: &[Model] = &[
-    m("spongebob", "SpongeBob", "binant/spongebob_squarepants", "b18b978411f2eef0b3091954adcb8cb8e44c69ed", 230.0, true, 220),
-    m("patrick", "Patrick", "binant/Patrick_Star__RVC_v2_", "f2995ee3d2a03af1f4ec37cedb0fa37d20258f78", 150.0, false, 55),
-    m("squidward", "Squidward", "binant/squidward_tentacles", "16214a28c9e89576f180d9f8579d17d596e559bf", 140.0, false, 55),
-    m("plankton", "Plankton", "binant/plankton_spongebob", "e1506b932883e4faf7fcc492f02ba9b3d423fc24", 170.0, false, 55),
+    m(
+        "spongebob",
+        "SpongeBob",
+        "binant/spongebob_squarepants",
+        "b18b978411f2eef0b3091954adcb8cb8e44c69ed",
+        230.0,
+        true,
+        220,
+    ),
+    m(
+        "patrick",
+        "Patrick",
+        "binant/Patrick_Star__RVC_v2_",
+        "f2995ee3d2a03af1f4ec37cedb0fa37d20258f78",
+        150.0,
+        false,
+        55,
+    ),
+    m(
+        "squidward",
+        "Squidward",
+        "binant/squidward_tentacles",
+        "16214a28c9e89576f180d9f8579d17d596e559bf",
+        140.0,
+        false,
+        55,
+    ),
+    m(
+        "plankton",
+        "Plankton",
+        "binant/plankton_spongebob",
+        "e1506b932883e4faf7fcc492f02ba9b3d423fc24",
+        170.0,
+        false,
+        55,
+    ),
     m("vader", "Darth Vader", "binant/darth_vader-male", "8c10be58c06fc41ec94389ebb939309d2f4f5ee5", 108.0, true, 140),
     m("yoda", "Yoda", "binant/grand_master_yoda", "2b769fae9fc1c9ba3371f0873e5af8b7460a140c", 120.0, false, 55),
-    m("optimus", "Optimus Prime", "binant/optimus_prime-male", "85285365c4a2b44e84adfb3b538e516bc333da03", 105.0, false, 55),
+    m(
+        "optimus",
+        "Optimus Prime",
+        "binant/optimus_prime-male",
+        "85285365c4a2b44e84adfb3b538e516bc333da03",
+        105.0,
+        false,
+        55,
+    ),
     m("glados", "GLaDOS", "binant/glados_portal", "ff48705119ea34456ea243fbbe09c368ecaf0e98", 178.0, false, 55),
     m("rick", "Rick Sanchez", "binant/rick_sanchez", "3744d2e1f1438c4acd81bfe6f2dadf0c6cf198b1", 135.0, false, 55),
     // Other Homer models only reach 3.4 kHz, like a telephone.
-    m("homer", "Homer Simpson", "Sunwest/Homer_Simpson_300", "dceff7b632f95613e8e5beed01af753bb112b8a4", 125.0, true, 100)
-        .files("homer.pth", "added_IVF342_Flat_nprobe_1_homer_v2.index"),
+    m(
+        "homer",
+        "Homer Simpson",
+        "Sunwest/Homer_Simpson_300",
+        "dceff7b632f95613e8e5beed01af753bb112b8a4",
+        125.0,
+        true,
+        100,
+    )
+    .files("homer.pth", "added_IVF342_Flat_nprobe_1_homer_v2.index"),
 ];
 
 /// The names of [`MODELS`] in the same order, for the choice in Voicelab.
