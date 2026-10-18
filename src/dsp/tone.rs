@@ -175,11 +175,16 @@ pub struct Bitcrush {
     hold: f32,
     levels: f32,
     mix: f32,
+    /// How loud you are right now. The steps are a share of it: fixed steps turned a normal
+    /// voice into silence between them, so it kept cutting out.
+    env: f32,
+    release: f32,
 }
 
 impl Bitcrush {
     pub fn new(p: &[f32], ctx: &BuildCtx) -> Self {
-        let mut b = Self { rate: ctx.rate, step: 1.0, phase: 0.0, hold: 0.0, levels: 128.0, mix: 1.0 };
+        let release = (-1.0 / (0.15 * ctx.rate)).exp();
+        let mut b = Self { rate: ctx.rate, step: 1.0, phase: 0.0, hold: 0.0, levels: 128.0, mix: 1.0, env: 0.0, release };
         for (i, v) in p.iter().enumerate() {
             b.set_param(i, *v);
         }
@@ -190,10 +195,12 @@ impl Bitcrush {
 impl Effect for Bitcrush {
     fn process(&mut self, buf: &mut [f32], _ctx: &Ctx) {
         for x in buf.iter_mut() {
+            self.env = x.abs().max(self.env * self.release);
             self.phase += self.step;
             if self.phase >= 1.0 {
                 self.phase -= 1.0;
-                self.hold = (*x * self.levels).round() / self.levels;
+                let scale = self.env.max(0.003);
+                self.hold = (*x / scale * self.levels).round() / self.levels * scale;
             }
             *x = self.hold * self.mix + *x * (1.0 - self.mix);
         }
@@ -206,5 +213,28 @@ impl Effect for Bitcrush {
             2 => self.mix = v.clamp(0.0, 1.0),
             _ => {}
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn a_quiet_voice_does_not_cut_out_in_few_bits() {
+        let ctx = BuildCtx::test();
+        let mut b = Bitcrush::new(&[5.0, 6000.0, 1.0], &ctx);
+        // A voice around -30 dBFS, quieter than one step of a 5-bit crusher.
+        let input: Vec<f32> =
+            (0..48000).map(|i| 0.03 * (i as f32 * 0.02).sin() * (0.5 + 0.5 * (i as f32 * 0.0004).sin())).collect();
+        let mut x = input.clone();
+        b.process(&mut x, &Ctx::default());
+        let peak = crate::dsp::util::peak;
+        let dead = (0..input.len() / 480).filter(|i| {
+            let r = i * 480..(i + 1) * 480;
+            peak(&input[r.clone()]) > 0.005 && peak(&x[r]) < 0.002
+        });
+        let dead = dead.count();
+        assert!(dead == 0, "{dead} silent bits of 10 ms while the voice goes on");
     }
 }
