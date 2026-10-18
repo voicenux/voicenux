@@ -15,13 +15,17 @@ const GLIDE: f64 = 0.07;
 const DEAD_ZONE: f64 = 15.0;
 /// Size of the mark where the middle click was.
 const MARK: i32 = 28;
+/// How far the value may be off the one we set without something else having moved it. Lists
+/// like the picture grid put it on their own steps, a pixel or two off.
+const SLACK: f64 = 6.0;
 
 struct Scroller {
     /// Weak: the scrolled window owns the controllers that own this.
     sw: glib::WeakRef<gtk::ScrolledWindow>,
     adj: gtk::Adjustment,
     target: Cell<f64>,
-    /// The value we set last. Something else moved it when it differs: the glide stops then.
+    /// The value we set last, before a list rounds it. Glides go on from here, or a list would
+    /// round every small step back. Something else moved it when it is far off: the glide stops.
     set: Cell<f64>,
     /// Autoscroll: where the middle click was, and where the pointer is.
     anchor: Cell<Option<f64>>,
@@ -111,7 +115,7 @@ impl Scroller {
 
     /// One frame of autoscroll or glide. False when there is nothing left to do.
     fn step(&self, dt: f64) -> bool {
-        if (self.adj.value() - self.set.get()).abs() > 1.0 {
+        if (self.adj.value() - self.set.get()).abs() > SLACK {
             // A scrollbar drag or the keyboard took over.
             self.target.set(self.adj.value());
             self.set.set(self.adj.value());
@@ -122,17 +126,18 @@ impl Scroller {
             self.set_cursor(if !far { Pan::Both } else if d < 0.0 { Pan::Up } else { Pan::Down });
             // Pixels a second, like Chrome: 0.04 × distance^2.2.
             let speed = if far { d.signum() * 0.04 * d.abs().powf(2.2) } else { 0.0 };
-            let v = (self.adj.value() + speed * dt).clamp(self.adj.lower(), self.max());
+            let v = (self.set.get() + speed * dt).clamp(self.adj.lower(), self.max());
             self.target.set(v);
             self.set_value(v);
             return true;
         }
-        let left = self.target.get() - self.adj.value();
+        let at = self.set.get();
+        let left = self.target.get() - at;
         if left.abs() < 0.5 {
             self.set_value(self.target.get());
             return false;
         }
-        self.set_value(self.adj.value() + left * (1.0 - (-dt / GLIDE).exp()));
+        self.set_value(at + left * (1.0 - (-dt / GLIDE).exp()));
         true
     }
 
