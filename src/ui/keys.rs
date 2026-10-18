@@ -41,7 +41,14 @@ pub fn button(st: &St, id: &str, what: &str) -> gtk::Button {
         let st = st.clone();
         let id = id.to_string();
         let what = what.to_string();
-        move |b| record(&st, b, &id, &what)
+        move |b| {
+            // In a menu, the menu closes first: the dialog opens on the window, under the menu.
+            let Some(window) = b.root() else { return };
+            if let Some(menu) = b.ancestor(gtk::Popover::static_type()).and_downcast::<gtk::Popover>() {
+                menu.popdown();
+            }
+            record(&st, &window, &id, &what)
+        }
     });
     let weak = b.downgrade();
     st.subscribe(move |c| {
