@@ -1367,10 +1367,56 @@ pub fn param_row(p: &'static blocks::ParamSpec, value: f32, on_change: impl Fn(f
             shown.add_css_class("vn-param-value");
             shown.set_text(&blocks::format_value(p, value));
             top.append(&shown);
+            // While you drag, only the number moves: the voice changes when you let go. A voice
+            // that slides while you talk sounds like a DJ scratching. Keys, the wheel and typed
+            // values change it after a short pause, so a held key does not slide it either.
+            let sent = Rc::new(Cell::new(value));
+            let apply: Rc<dyn Fn(f32)> = Rc::new(move |v: f32| {
+                if (v - sent.replace(v)).abs() > f32::EPSILON {
+                    on_change(v);
+                }
+            });
+            let held = Rc::new(Cell::new(false));
+            let press = gtk::EventControllerLegacy::new();
+            press.set_propagation_phase(gtk::PropagationPhase::Capture);
+            press.connect_event({
+                let (held, apply) = (held.clone(), apply.clone());
+                move |c, e| {
+                    use gdk::EventType::*;
+                    match e.event_type() {
+                        ButtonPress | TouchBegin => held.set(true),
+                        ButtonRelease | TouchEnd | TouchCancel if held.replace(false) => {
+                            // After the slider took the release and its last move.
+                            let (scale, apply) = (c.widget().and_downcast::<gtk::Scale>(), apply.clone());
+                            glib::idle_add_local_once(move || {
+                                if let Some(s) = scale {
+                                    apply(from_scale(&s));
+                                }
+                            });
+                        }
+                        _ => {}
+                    }
+                    glib::Propagation::Proceed
+                }
+            });
+            scale.add_controller(press);
+            let pause: Rc<RefCell<Option<glib::SourceId>>> = Rc::default();
             scale.connect_value_changed(move |s| {
                 let v = from_scale(s);
                 shown.set_text(&blocks::format_value(p, v));
-                on_change(v);
+                if held.get() {
+                    return;
+                }
+                if let Some(id) = pause.take() {
+                    id.remove();
+                }
+                let (scale, apply, again) = (s.downgrade(), apply.clone(), pause.clone());
+                pause.replace(Some(glib::timeout_add_local_once(std::time::Duration::from_millis(250), move || {
+                    again.take();
+                    if let Some(s) = scale.upgrade() {
+                        apply(from_scale(&s));
+                    }
+                })));
             });
             row.append(&scale);
         }
