@@ -359,20 +359,40 @@ pub fn drop_on_grid(
         let (shelf, shown) = (shelf.clone(), shown.clone());
         move |id: &str| can_take() && shelf.folder_of(id) != *shown.borrow()
     };
+    // Where a drop of `from` would land, by the gap. None when it would change nothing, like the
+    // gaps right next to the dragged tile: those do not light up or open.
+    let spot_for = {
+        let (shelf, picks, grid, item_of) = (shelf.clone(), picks.clone(), grid.downgrade(), item_of.clone());
+        move |from: Option<&str>, gap: (Option<gtk::Widget>, Option<gtk::Widget>)| {
+            let (c, after) = place(gap)?;
+            let target = item_of(&c)?;
+            let (Some(from), Some(grid)) = (from, grid.upgrade()) else { return Some((target, after)) };
+            let shown = shown_items(&grid, &item_of);
+            // Tiles from another folder come in at any gap.
+            if !shown.iter().any(|s| s == from) {
+                return Some((target, after));
+            }
+            let mut moved = shown.clone();
+            crate::order::move_group(&mut moved, |s| s.as_str(), &group_of(&shelf, &picks, from), &target, after);
+            (moved != shown).then_some((target, after))
+        }
+    };
     let drop = gtk::DropTarget::new(String::static_type(), gdk::DragAction::MOVE);
     // The dragged id, already while it moves over: a tile from elsewhere may come in anywhere.
     drop.set_preload(true);
     drop.connect_motion({
-        let (mark, nearest, elsewhere, can_order) = (mark.clone(), nearest.clone(), elsewhere.clone(), can_order.clone());
+        let (mark, nearest, elsewhere, can_order, spot_for) =
+            (mark.clone(), nearest.clone(), elsewhere.clone(), can_order.clone(), spot_for.clone());
         move |target, x, y| {
-            mark.clear();
+            let id = target.value().and_then(|v| v.get::<String>().ok());
             if can_order()
                 && let Some(gap) = nearest(x, y)
+                && spot_for(id.as_deref(), gap.clone()).is_some()
             {
                 mark.show(gap);
                 return gdk::DragAction::MOVE;
             }
-            let id = target.value().and_then(|v| v.get::<String>().ok());
+            mark.clear();
             if id.is_some_and(|id| elsewhere(&id)) { gdk::DragAction::MOVE } else { gdk::DragAction::empty() }
         }
     });
@@ -381,16 +401,12 @@ pub fn drop_on_grid(
         move |_| mark.clear()
     });
     drop.connect_drop({
-        let (shelf, item_of, shown, picks, sync_picks, landing) =
-            (shelf.clone(), item_of.clone(), shown.clone(), picks.clone(), sync_picks.clone(), landing.clone());
+        let (shelf, shown, picks, sync_picks, landing) =
+            (shelf.clone(), shown.clone(), picks.clone(), sync_picks.clone(), landing.clone());
         move |_, value, x, y| {
             mark.clear();
             let Ok(from) = value.get::<String>() else { return false };
-            let spot = can_order()
-                .then(|| nearest(x, y))
-                .flatten()
-                .and_then(place)
-                .and_then(|(c, after)| Some((item_of(&c)?, after)));
+            let spot = can_order().then(|| nearest(x, y)).flatten().and_then(|gap| spot_for(Some(&from), gap));
             let group = group_of(&shelf, &picks, &from);
             let into = elsewhere(&from);
             if !into && spot.is_none() {
@@ -434,21 +450,36 @@ pub fn drop_folders_on_grid(shelf: &Shared, area: &impl IsA<gtk::Widget>, grid: 
             gap_at(&area.upgrade()?, &grid.upgrade()?, x, y, &is_folder)
         }
     };
-    let name_of = {
-        let folders = folders.clone();
-        move |c: &gtk::Widget| folders.borrow().iter().find(|(t, _)| t.upcast_ref::<gtk::Widget>() == c).map(|(_, n)| n.clone())
+    // Where a drop of the folder `name` would land. None when it would change nothing, like the
+    // gaps right next to it: those do not light up.
+    let spot_for = {
+        let (shelf, folders) = (shelf.clone(), folders.clone());
+        move |name: Option<&str>, gap: (Option<gtk::Widget>, Option<gtk::Widget>)| {
+            let (c, after) = place(gap)?;
+            let target = folders.borrow().iter().find(|(t, _)| t.upcast_ref::<gtk::Widget>() == &c).map(|(_, n)| n.clone())?;
+            let Some(name) = name else { return Some((target, after)) };
+            let list = shelf.folders();
+            let mut moved = list.clone();
+            crate::order::move_one(&mut moved, name, &target, after);
+            (moved != list).then_some((target, after))
+        }
     };
     let drop = gtk::DropTarget::new(FolderDrag::static_type(), gdk::DragAction::MOVE);
+    // The dragged folder, already while it moves over.
+    drop.set_preload(true);
     drop.connect_motion({
-        let (mark, nearest) = (mark.clone(), nearest.clone());
-        move |_, x, y| match nearest(x, y) {
-            Some(gap) => {
-                mark.show(gap);
-                gdk::DragAction::MOVE
-            }
-            None => {
-                mark.clear();
-                gdk::DragAction::empty()
+        let (mark, nearest, spot_for) = (mark.clone(), nearest.clone(), spot_for.clone());
+        move |target, x, y| {
+            let name = target.value().and_then(|v| v.get::<FolderDrag>().ok()).map(|FolderDrag(n)| n);
+            match nearest(x, y) {
+                Some(gap) if spot_for(name.as_deref(), gap.clone()).is_some() => {
+                    mark.show(gap);
+                    gdk::DragAction::MOVE
+                }
+                _ => {
+                    mark.clear();
+                    gdk::DragAction::empty()
+                }
             }
         }
     });
@@ -461,10 +492,7 @@ pub fn drop_folders_on_grid(shelf: &Shared, area: &impl IsA<gtk::Widget>, grid: 
         move |_, value, x, y| {
             mark.clear();
             let Ok(FolderDrag(name)) = value.get::<FolderDrag>() else { return false };
-            let Some((target, after)) = nearest(x, y).and_then(place).and_then(|(c, after)| Some((name_of(&c)?, after)))
-            else {
-                return false;
-            };
+            let Some((target, after)) = nearest(x, y).and_then(|gap| spot_for(Some(&name), gap)) else { return false };
             *landing.moved_folder.borrow_mut() = Some(name.clone());
             // After the drop is done: moving builds the grid again, this folder too.
             let shelf = shelf.clone();
