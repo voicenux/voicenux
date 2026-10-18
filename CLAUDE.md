@@ -154,6 +154,9 @@ The list of commits follows on its own.
 
 ## README
 
+- Keep it short, like face-unlock: install as one-liners per distribution (`yay -S voicenux-bin`,
+  the apt and dnf repositories), three steps to use it, and the rest in `<details>` blocks with a
+  sentence or two and their screenshot.
 - New UI (a page, a dialog) gets a screenshot in the README, next to the text about it. A real
   screenshot of it running, in English, in dark mode.
 - Screenshots are only made right before a release (see Releases), not after each change. So a
