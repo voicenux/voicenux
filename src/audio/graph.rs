@@ -500,7 +500,8 @@ fn run(
         &properties! {
             "factory.name" => "support.null-audio-sink",
             "node.name" => MIC_NODE,
-            "node.description" => MIC_DESCRIPTION,
+            // In the language of the app, like the texts that tell people to pick it.
+            "node.description" => crate::i18n::t(MIC_DESCRIPTION),
             "media.class" => "Audio/Source/Virtual",
             "audio.position" => "FL,FR",
             "monitor.channel-volumes" => "true",

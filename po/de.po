@@ -159,7 +159,7 @@ msgid "Use your new voice in apps"
 msgstr "Deine neue Stimme in Apps nutzen"
 
 msgid "In Discord, OBS, games or your browser, pick “Voicenux Microphone” as the microphone."
-msgstr "Wähle in Discord, OBS, Spielen oder im Browser „Voicenux Microphone“ als Mikrofon."
+msgstr "Wähle in Discord, OBS, Spielen oder im Browser „Voicenux-Mikrofon“ als Mikrofon."
 
 msgid "Or turn on “Use as default microphone” in Settings. Then every app gets your changed voice."
 msgstr "Oder schalte in den Einstellungen „Als Standardmikrofon nutzen“ ein. Dann bekommt jede App deine veränderte Stimme."
@@ -249,7 +249,7 @@ msgid "Use it in your apps"
 msgstr "In deinen Apps nutzen"
 
 msgid "Apps hear your new voice through the “Voicenux Microphone”. Make it the default, or pick it in each app."
-msgstr "Apps hören deine neue Stimme über das „Voicenux Microphone“. Mach es zum Standard oder wähle es in jeder App aus."
+msgstr "Apps hören deine neue Stimme über das „Voicenux-Mikrofon“. Mach es zum Standard oder wähle es in jeder App aus."
 
 msgid "Use as default microphone"
 msgstr "Als Standardmikrofon nutzen"
@@ -360,7 +360,7 @@ msgid "Sounds below this level are muted."
 msgstr "Alles unter dieser Lautstärke wird stummgeschaltet."
 
 msgid "Voicenux Microphone"
-msgstr "Voicenux Microphone"
+msgstr "Voicenux-Mikrofon"
 
 msgid "Apps hear your new voice through this microphone. Pick it in Discord, OBS or your game."
 msgstr "Über dieses Mikrofon hören Apps deine neue Stimme. Wähle es in Discord, OBS oder deinem Spiel aus."
@@ -1485,7 +1485,7 @@ msgid "EasyEffects works on the Voicenux Microphone, so its effects come after t
 msgstr "EasyEffects bearbeitet das Voicenux-Mikrofon, seine Effekte kommen also nach der Stimme. Wähle in Discord und anderen Apps „Easy Effects Source“."
 
 msgid "Your EasyEffects microphone effects, like noise reduction, come before the voice. In Discord and other apps, still pick “Voicenux Microphone”, not “Easy Effects Source”."
-msgstr "Deine Mikrofon-Effekte aus EasyEffects, etwa die Rauschunterdrückung, kommen vor der Stimme. Wähle in Discord und anderen Apps trotzdem „Voicenux Microphone“, nicht „Easy Effects Source“."
+msgstr "Deine Mikrofon-Effekte aus EasyEffects, etwa die Rauschunterdrückung, kommen vor der Stimme. Wähle in Discord und anderen Apps trotzdem „Voicenux-Mikrofon“, nicht „Easy Effects Source“."
 
 msgid "Run your EasyEffects microphone effects, like noise reduction, before the voice. Pick your real microphone above, not EasyEffects."
 msgstr "Lass deine Mikrofon-Effekte aus EasyEffects, etwa die Rauschunterdrückung, vor der Stimme laufen. Wähle oben dein echtes Mikrofon, nicht EasyEffects."
