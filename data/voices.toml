@@ -90,7 +90,7 @@ blocks = [
   { effect = "pitch", semitones = -3, formant = -2 },
   { effect = "filter", type = "Low shelf", freq = 200, gain = 3 },
   { effect = "reverb", size = 0.4, mix = 0.15 },
-  { effect = "ambience", type = "Campfire", level = -20 },
+  { effect = "ambience", type = "Campfire", level = -12 },
 ]
 
 [[voice]]
@@ -115,7 +115,7 @@ blocks = [
   { effect = "pitch", semitones = 9, formant = 6 },
   { effect = "chorus", mix = 0.4 },
   { effect = "reverb", size = 0.6, mix = 0.3 },
-  { effect = "ambience", type = "Birds", level = -14 },
+  { effect = "ambience", type = "Birds", level = -26 },
 ]
 
 [[voice]]
@@ -170,7 +170,7 @@ blocks = [
   { effect = "harmony", voice_a = -12, voice_b = -7, level = 0.8, dry = 0.35, follow = 0.6 },
   { effect = "distortion", drive = 14, mix = 0.5, tone = 3500 },
   { effect = "reverb", size = 0.8, damping = 0.6, mix = 0.3 },
-  { effect = "ambience", type = "Campfire", level = -20 },
+  { effect = "ambience", type = "Campfire", level = -9 },
 ]
 
 [[voice]]
@@ -196,7 +196,7 @@ blocks = [
   { effect = "distortion", drive = 18, type = "Fuzz", mix = 0.6, tone = 2500 },
   { effect = "vibrato", rate = 3, depth = 40, random = 0.8 },
   { effect = "reverb", size = 0.5, mix = 0.2 },
-  { effect = "ambience", type = "Wind", level = -24 },
+  { effect = "ambience", type = "Wind", level = -19 },
 ]
 
 [[voice]]
@@ -210,7 +210,7 @@ blocks = [
   { effect = "whisper", mix = 0.55 },
   { effect = "echo", time = 450, feedback = 0.45, mix = 0.35 },
   { effect = "reverb", size = 0.95, mix = 0.5 },
-  { effect = "ambience", type = "Wind", level = -18 },
+  { effect = "ambience", type = "Wind", level = -21 },
 ]
 
 [[voice]]
@@ -223,7 +223,7 @@ blocks = [
   { effect = "pitch", semitones = -3, formant = -2 },
   { effect = "chorus", mix = 0.25 },
   { effect = "reverb", size = 0.9, damping = 0.3, mix = 0.4, predelay = 30 },
-  { effect = "ambience", type = "Heartbeat", level = -16 },
+  { effect = "ambience", type = "Heartbeat", level = -17 },
 ]
 
 [[voice]]
@@ -237,7 +237,7 @@ blocks = [
   { effect = "vibrato", rate = 6.5, depth = 60, random = 0.4 },
   { effect = "distortion", drive = 6, mix = 0.25 },
   { effect = "reverb", size = 0.5, mix = 0.2 },
-  { effect = "ambience", type = "Bubbles", level = -20 },
+  { effect = "ambience", type = "Cauldron", level = -20 },
 ]
 
 [[voice]]
@@ -250,7 +250,7 @@ blocks = [
   { effect = "pitch", semitones = -12, formant = -8 },
   { effect = "distortion", drive = 16, type = "Fuzz", mix = 0.55 },
   { effect = "reverb", size = 0.85, mix = 0.35 },
-  { effect = "ambience", type = "Campfire", level = -14 },
+  { effect = "ambience", type = "Campfire", level = -5 },
 ]
 
 [[voice]]
@@ -305,7 +305,7 @@ blocks = [
   { effect = "ringmod", freq = 35, mix = 0.3 },
   { effect = "filter", type = "Peak", freq = 1500, q = 1, gain = 3 },
   { effect = "compressor", threshold = -24, ratio = 3, makeup = 3 },
-  { effect = "ambience", type = "Computer", level = -18 },
+  { effect = "ambience", type = "Computer", level = -23 },
 ]
 
 [[voice]]
@@ -319,7 +319,7 @@ blocks = [
   { effect = "ringmod", freq = 420, wobble = 0.3, mix = 0.35 },
   { effect = "flanger", mix = 0.35 },
   { effect = "reverb", size = 0.5, mix = 0.2 },
-  { effect = "ambience", type = "Space", level = -18 },
+  { effect = "ambience", type = "Space", level = -24 },
 ]
 
 [[voice]]
@@ -406,7 +406,7 @@ icon = "rock"
 category = "places"
 description = "Deep inside, where the water drips."
 blocks = [
-  { effect = "ambience", type = "Cave drips", level = -14 },
+  { effect = "ambience", type = "Cave drips", level = -6 },
   { effect = "echo", time = 260, feedback = 0.35, mix = 0.3, tone = 3000 },
   { effect = "reverb", size = 0.9, damping = 0.5, mix = 0.4 },
 ]
@@ -430,7 +430,7 @@ description = "Everyone sings better in here."
 blocks = [
   { effect = "filter", type = "High shelf", freq = 4000, gain = 3 },
   { effect = "reverb", size = 0.35, damping = 0.1, mix = 0.35 },
-  { effect = "ambience", type = "Rain", level = -18 },
+  { effect = "ambience", type = "Shower", level = -17 },
 ]
 
 [[voice]]
@@ -442,7 +442,7 @@ description = "Thousands of fans and a big echo."
 blocks = [
   { effect = "echo", time = 600, feedback = 0.3, mix = 0.3, tone = 3000 },
   { effect = "reverb", size = 0.9, mix = 0.35 },
-  { effect = "ambience", type = "Crowd", level = -12 },
+  { effect = "ambience", type = "Crowd", level = -15 },
 ]
 
 [[voice]]
@@ -457,7 +457,7 @@ blocks = [
   { effect = "chorus", mix = 0.4 },
   { effect = "gain", gain = 4 },
   { effect = "reverb", size = 0.3, mix = 0.15 },
-  { effect = "ambience", type = "Bubbles", level = -10 },
+  { effect = "ambience", type = "Bubbles", level = -13 },
 ]
 
 [[voice]]
@@ -482,7 +482,7 @@ description = "Out in the rain, with thunder."
 blocks = [
   { effect = "band", low = 150, high = 8000 },
   { effect = "reverb", size = 0.3, mix = 0.1 },
-  { effect = "ambience", type = "Storm", level = -12 },
+  { effect = "ambience", type = "Storm", level = -15 },
 ]
 
 [[voice]]
@@ -494,7 +494,7 @@ description = "Stories by the fire."
 blocks = [
   { effect = "filter", type = "Low shelf", freq = 250, gain = 2 },
   { effect = "reverb", size = 0.2, mix = 0.1 },
-  { effect = "ambience", type = "Campfire", level = -12 },
+  { effect = "ambience", type = "Campfire", level = -6 },
 ]
 
 [[voice]]
@@ -505,7 +505,7 @@ category = "places"
 description = "Birds, leaves and fresh air."
 blocks = [
   { effect = "reverb", size = 0.4, damping = 0.7, mix = 0.12 },
-  { effect = "ambience", type = "Birds", level = -12 },
+  { effect = "ambience", type = "Birds", level = -18 },
 ]
 
 # Devices
@@ -520,7 +520,7 @@ blocks = [
   { effect = "band", low = 450, high = 3800, boost = 5 },
   { effect = "distortion", drive = 12, mix = 0.4, tone = 4000 },
   { effect = "compressor", threshold = -24, ratio = 4, makeup = 4 },
-  { effect = "ambience", type = "Radio static", level = -22 },
+  { effect = "ambience", type = "Radio static", level = -24 },
 ]
 
 [[voice]]

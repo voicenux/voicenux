@@ -127,7 +127,7 @@ Inside the app, F1 shows all keys. Ctrl+F searches, Ctrl+1 to 4 switch pages, Ct
 | Funny | Chipmunk, Helium, Drunk, Dizzy, Whisper, Frog, Duck |
 | AI | SpongeBob, Patrick, Squidward, Plankton, Darth Vader, Yoda, Optimus Prime, GLaDOS, Rick Sanchez, Homer Simpson |
 
-Many of them come with a background sound: rain, bubbles, a campfire, a stadium crowd, wind, a heartbeat and more. All background sounds are made in code. The starter soundboard has well-known sounds and memes from MyInstants, downloaded on the first start.
+Many of them come with a background sound: a campfire, a stadium crowd, a thunderstorm, waves, wind, a heartbeat and more. They are real recordings. The starter soundboard has well-known sounds and memes from MyInstants, downloaded on the first start.
 
 The AI voices turn your voice into the character with an [RVC](https://github.com/RVC-Project/Retrieval-based-Voice-Conversion-WebUI) model. They learn your pitch while you talk and move it to the character's, so they fit deep and high voices. They run best on an NVIDIA graphics card, with about 0.3 s of delay. Without one, turn on **Run on the processor** in Settings: it takes much of the processor and adds about half a second of delay. The first AI voice you pick downloads the AI engine once (about 5 GB with PyTorch for the graphics card, about 2 GB for the processor), then each voice is 55 to 220 MB. Settings can remove it all again.
 
@@ -135,6 +135,6 @@ The AI voices turn your voice into the character with an [RVC](https://github.co
 
 ## Credits
 
-The pictures are [Fluent Emoji](https://github.com/microsoft/fluentui-emoji) by Microsoft (MIT), their German names come from [Unicode CLDR](https://cldr.unicode.org). The icons in the sidebar and the settings are [Lucide](https://lucide.dev) (ISC). The reverb is Freeverb by Jezar at Dreampoint. Noise suppression is RNNoise by Xiph.Org, through [nnnoiseless](https://github.com/jneem/nnnoiseless). Audio files are read with [Symphonia](https://github.com/pdeljanov/Symphonia). AI voices run with [infer-rvc-python](https://github.com/R3gm/infer_rvc_python) (MIT) and models shared on Hugging Face.
+The pictures are [Fluent Emoji](https://github.com/microsoft/fluentui-emoji) by Microsoft (MIT), their German names come from [Unicode CLDR](https://cldr.unicode.org). The icons in the sidebar and the settings are [Lucide](https://lucide.dev) (ISC). The reverb is Freeverb by Jezar at Dreampoint. Noise suppression is RNNoise by Xiph.Org, through [nnnoiseless](https://github.com/jneem/nnnoiseless). The background sounds are CC0 recordings from [Freesound](https://freesound.org), listed in [data/ambience/SOURCES.md](data/ambience/SOURCES.md). Audio files are read with [Symphonia](https://github.com/pdeljanov/Symphonia). AI voices run with [infer-rvc-python](https://github.com/R3gm/infer_rvc_python) (MIT) and models shared on Hugging Face.
 
 BSD-3-Clause.

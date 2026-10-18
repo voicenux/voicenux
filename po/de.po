@@ -1353,7 +1353,10 @@ msgid "Birds"
 msgstr "Vögel"
 
 msgid "Engine"
-msgstr "Triebwerk"
+msgstr "Motor"
+
+msgid "Cauldron"
+msgstr "Hexenkessel"
 
 msgid "Radio beeps"
 msgstr "Funkpiepser"

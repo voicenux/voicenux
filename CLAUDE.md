@@ -77,12 +77,14 @@
 - Every popover goes through `popup::menu`: it bounces open, and a click next to it still does
   what it hits, like on other desktops. Right-click menus use `popup::context`. A click next to a
   dialog closes it; a dialog that would lose something sets `can_close` to false or `vn-stay`.
-- Background sounds are made in code (`src/dsp/ambience.rs`). Starter sounds come from MyInstants,
-  as I asked: `src/soundboard/starter.rs` only has their links. Voicenux downloads them on the
-  first start that is online and levels them when it loads them. Never put such clips in the
-  repo. A new starter pack raises `PACK`, so older soundboards get the new sounds. **Find
-  sounds** (`src/soundboard/online.rs`) searches MyInstants too. It reads the search page, and
-  the page of each sound for its likes, since MyInstants has no API.
+- Background sounds are real recordings: CC0 loops from Freesound in `data/ambience`, built into the
+  app and listed in its `SOURCES.md`. `scripts/ambience.sh` cuts and levels them; add new ones
+  there. Sounds made in code were tried and dropped: they sounded fake. Starter sounds come from
+  MyInstants, as I asked: `src/soundboard/starter.rs` only has their links. Voicenux downloads them
+  on the first start that is online and levels them when it loads them. Never put such clips in the
+  repo. A new starter pack raises `PACK`, so older soundboards get the new sounds. **Find sounds**
+  (`src/soundboard/online.rs`) searches MyInstants too. It reads the search page, and the page of
+  each sound for its likes, since MyInstants has no API.
 
 ## Tests
 

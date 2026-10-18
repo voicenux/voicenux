@@ -380,6 +380,10 @@ impl State {
             && let Some(index) = index
         {
             let value = spec.unwrap().params[index].clamp(value);
+            // The realtime side only plays a background that is decoded already.
+            if spec.unwrap().kind == "ambience" && index == 0 {
+                crate::dsp::ambience::load(value as usize);
+            }
             self.engine.rt(RtCmd::Param { block: block as u16, index: index as u16, value });
         }
         self.notify(Change::VoiceEdited(id.to_string()));
