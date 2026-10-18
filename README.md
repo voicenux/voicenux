@@ -27,10 +27,34 @@
 
 ## Install
 
-You need PipeWire, GTK 4.16 and libadwaita 1.7 or newer.
+The [latest release](https://github.com/voicenux/voicenux/releases/latest) has packages for Debian 13, Ubuntu 26.04 and Fedora.
 
 <details>
-<summary>From source</summary>
+<summary><b>Debian</b>, Ubuntu</summary>
+
+Download the `.deb` for your system: `~deb13` is for Debian 13, `~ubuntu26.04` for Ubuntu 26.04. Then:
+
+```bash
+sudo apt install ./voicenux_*.deb
+```
+
+</details>
+
+<details>
+<summary><b>Fedora</b></summary>
+
+Download the `.rpm`, then:
+
+```bash
+sudo dnf install ./voicenux-*.rpm
+```
+
+</details>
+
+<details>
+<summary>From source, for example on <b>Arch</b></summary>
+
+You need PipeWire, GTK 4.16 and libadwaita 1.7 or newer.
 
 You also need Rust, Clang and the development files of PipeWire, GTK 4 and libadwaita.
 
