@@ -5,7 +5,7 @@
 use std::path::PathBuf;
 
 use super::online::{self, Found};
-use super::{RATE, SoundData, decode, decode_bytes};
+use super::{SoundData, decode, decode_bytes, level};
 
 pub struct Builtin {
     pub id: &'static str,
@@ -112,34 +112,6 @@ pub fn load(id: &str) -> Option<SoundData> {
     decode(&b.path()).map(level).map_err(|e| log::warn!("starter sound {id}: {e}")).ok()
 }
 
-/// Brings a sound to about -16 LUFS, with peaks at -1 dB at most, so the sounds of the pack are
-/// about as loud as each other. Loudness here is the mean power of the 100 ms blocks that are
-/// not silence, without the K-weighting of LUFS: close enough for short clips.
-fn level(mut d: SoundData) -> SoundData {
-    /// -16 LUFS in this measure: LUFS adds the power of both channels and takes 0.69 dB off.
-    const TARGET_DB: f32 = -18.3;
-    const PEAK: f32 = 0.89;
-    let powers: Vec<f32> = d
-        .frames
-        .chunks(RATE as usize / 10)
-        .map(|c| c.iter().map(|f| (f[0] * f[0] + f[1] * f[1]) / 2.0).sum::<f32>() / c.len() as f32)
-        .filter(|p| *p > 1e-7)
-        .collect();
-    if powers.is_empty() {
-        return d;
-    }
-    // Like LUFS, quiet parts 10 dB under the rest do not count.
-    let mean = powers.iter().sum::<f32>() / powers.len() as f32;
-    let loud: Vec<f32> = powers.into_iter().filter(|p| *p > mean * 0.1).collect();
-    let db = 10.0 * (loud.iter().sum::<f32>() / loud.len() as f32).log10();
-    let peak = d.frames.iter().fold(0.0f32, |m, f| m.max(f[0].abs()).max(f[1].abs()));
-    let gain = 10f32.powf((TARGET_DB - db) / 20.0).min(PEAK / peak.max(1e-6));
-    for f in &mut d.frames {
-        *f = f.map(|x| x * gain);
-    }
-    d
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -153,23 +125,6 @@ mod tests {
             assert!(!b.file.contains(['/', ' ', '?', '#']) && !b.file.contains(".."), "{}", b.file);
             assert!(std::path::Path::new(&format!("data/icons/{}.png", b.icon)).exists(), "no picture for {}", b.id);
         }
-    }
-
-    #[test]
-    fn levels_loud_and_quiet_sounds() {
-        let tone = |amp: f32| SoundData { frames: (0..RATE).map(|i| [amp * (i as f32 * 0.05).sin(); 2]).collect() };
-        let peak = |d: &SoundData| d.frames.iter().fold(0.0f32, |m, f| m.max(f[0].abs()));
-        // A loud tone comes down and a quiet one up, to the same level.
-        let (loud, quiet) = (peak(&level(tone(1.0))), peak(&level(tone(0.01))));
-        assert!(quiet > 0.1 && quiet < 0.3, "{quiet}");
-        assert!((loud - quiet).abs() < 0.01, "{loud} {quiet}");
-        // A short, peaky click stops at -1 dB.
-        let mut click = tone(0.0);
-        click.frames[100] = [1.0, 1.0];
-        click.frames[101] = [-1.0, -1.0];
-        assert!(peak(&level(click)) <= 0.9);
-        // Silence stays silence.
-        assert_eq!(peak(&level(tone(0.0))), 0.0);
     }
 
     /// Talks to the real MyInstants, so only on request: `cargo test -- --ignored`.

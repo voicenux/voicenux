@@ -13,7 +13,7 @@ use gtk::glib;
 use super::{clear, label, line_icon, smooth_scroll};
 use crate::i18n::{fill, t};
 use crate::soundboard::online::{self, Found, Stats};
-use crate::soundboard::{RATE, SoundData, decode_bytes};
+use crate::soundboard::{RATE, SoundData, decode_bytes, level};
 use crate::state::{Change, St};
 
 /// A downloaded sound: the file to keep and the audio to play.
@@ -92,12 +92,12 @@ pub fn panel(st: &St) -> (gtk::Box, gtk::SearchEntry) {
     stack.add_named(&scroll, Some("results"));
     stack.add_named(&message, Some("message"));
 
-    // Most sounds there are very loud: they play quieter, here and once added.
+    // How loud they play here. Added ones play at their own volume.
     let volume = super::soundboard::volume_slider(st.config.borrow().find_volume as f64, 1.0, {
         let st = st.clone();
         move |v| st.set_find_volume(v as f32)
     });
-    volume.set_tooltip_text(Some(t("Volume of the sounds here. Added sounds keep it.")));
+    volume.set_tooltip_text(Some(t("Volume of the sounds here")));
     volume.set_margin_top(8);
     volume.set_margin_start(16);
     volume.set_margin_end(16);
@@ -473,7 +473,8 @@ impl Finder {
         off_thread(
             move || {
                 let bytes = online::download(&found)?;
-                let data = decode_bytes(bytes.clone(), &found.ext).map_err(|_| online::Error::Failed)?;
+                // Most sounds there are very loud: they play as loud as the starter sounds.
+                let data = level(decode_bytes(bytes.clone(), &found.ext).map_err(|_| online::Error::Failed)?);
                 Ok::<_, online::Error>((bytes, Arc::new(data)))
             },
             move |r| {

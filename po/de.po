@@ -1535,8 +1535,8 @@ msgstr "{} Aufrufe auf MyInstants"
 msgid "Sounds from MyInstants"
 msgstr "Sounds von MyInstants"
 
-msgid "Volume of the sounds here. Added sounds keep it."
-msgstr "Lautstärke der Sounds hier. Hinzugefügte Sounds behalten sie."
+msgid "Volume of the sounds here"
+msgstr "Lautstärke der Sounds hier"
 
 msgid "No sounds found. Try other words."
 msgstr "Keine Sounds gefunden. Versuch es mit anderen Wörtern."

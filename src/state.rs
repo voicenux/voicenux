@@ -852,14 +852,13 @@ impl State {
         soundboard::load(&sound).map_err(|e| log::warn!("could not load sound {id}: {e}")).ok()
     }
 
-    /// Adds a sound found online, as loud as Find sounds played it.
+    /// Adds a sound found online. It plays leveled, like in Find sounds.
     pub fn add_found(&self, name: &str, ext: &str, data: &[u8], icon: &str) -> anyhow::Result<()> {
         {
             let mut lib = self.library.borrow_mut();
             let id = lib.add_bytes(name, ext, data, icon)?.id;
-            let volume = self.config.borrow().find_volume;
             if let Some(s) = lib.sound.iter_mut().find(|s| s.id == id) {
-                s.volume = volume;
+                s.level = true;
             }
             lib.save();
         }
