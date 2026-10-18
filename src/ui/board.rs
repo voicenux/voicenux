@@ -297,24 +297,27 @@ fn gap_at(
 }
 
 /// Lights up both tiles at a gap, at the edge that faces it, and remembers them to put them out.
+/// The same gap again changes nothing, so the light does not start over with every move.
 #[derive(Clone, Default)]
-struct GapMark(Rc<RefCell<Vec<gtk::Widget>>>);
+struct GapMark(Rc<RefCell<Vec<(gtk::Widget, &'static str)>>>);
 
 impl GapMark {
     fn show(&self, gap: (Option<gtk::Widget>, Option<gtk::Widget>)) {
-        self.clear();
-        for (c, class) in [(gap.0, "vn-drop-after"), (gap.1, "vn-drop-before")] {
-            if let Some(c) = c {
-                c.add_css_class(class);
-                self.0.borrow_mut().push(c);
-            }
+        let lit: Vec<(gtk::Widget, &'static str)> =
+            [(gap.0, "vn-drop-after"), (gap.1, "vn-drop-before")].into_iter().filter_map(|(c, k)| Some((c?, k))).collect();
+        if *self.0.borrow() == lit {
+            return;
         }
+        self.clear();
+        for (c, class) in &lit {
+            c.add_css_class(class);
+        }
+        *self.0.borrow_mut() = lit;
     }
 
     fn clear(&self) {
-        for c in self.0.borrow_mut().drain(..) {
-            c.remove_css_class("vn-drop-before");
-            c.remove_css_class("vn-drop-after");
+        for (c, class) in self.0.borrow_mut().drain(..) {
+            c.remove_css_class(class);
         }
     }
 }
