@@ -47,6 +47,16 @@ pub fn menu(p: &gtk::Popover) {
         let a = !flip.replace(!flip.get());
         p.remove_css_class(if a { "vn-bounce-b" } else { "vn-bounce-a" });
         p.add_css_class(if a { "vn-bounce-a" } else { "vn-bounce-b" });
+        // GTK passes hover and presses in a menu on to what it hangs on. A tile under its menu
+        // would squish and spring back on every click in the menu, so it knows the menu is open.
+        if let Some(parent) = p.parent() {
+            parent.add_css_class("vn-menu-open");
+        }
+    });
+    p.connect_unmap(|p| {
+        if let Some(parent) = p.parent() {
+            parent.remove_css_class("vn-menu-open");
+        }
     });
     p.connect_closed(|p| {
         let Some(pointer) = p.display().default_seat().and_then(|s| s.pointer()) else { return };
