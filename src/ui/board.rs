@@ -526,6 +526,8 @@ pub fn folder_tile(name: &str, icons: &[String], count: &str, look: &TileLook) -
     art.set_size_request(100, 84);
     art.set_halign(gtk::Align::Center);
     art.set_can_target(false);
+    // The flap of the front tips out of it, and the pictures jump above it.
+    art.set_overflow(gtk::Overflow::Visible);
     art.put(&folder_glass(100, 84, true), 0.0, 0.0);
     // One picture sits deep in the folder, more of them fan out.
     let spots: &[(f64, f64, &str)] = match icons.len() {

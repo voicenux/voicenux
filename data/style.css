@@ -578,9 +578,12 @@ flowboxchild:hover:not(.vn-menu-hover) .sound-pad {
 }
 
 /* Folders: a glass folder, the pictures of what is in it peeking out and showing through the
-   front. On hover the front dips and the pictures rise a little. With a tile held over it, the
-   folder lifts, its front opens wide and the pictures jump up to make room. */
+   front. The front is a flap that tips forward on its bottom edge: a little on hover, wide open
+   with a tile held over it. The folder lifts then, and the pictures jump up to make room. Every
+   state has the same steps, so the flap moves between them in one turn. */
 .vn-folder-front {
+  transform: perspective(300px) rotateX(0deg);
+  transform-origin: center bottom;
   transition: transform 300ms cubic-bezier(.2, .9, .3, 1.45);
 }
 
@@ -597,7 +600,7 @@ flowboxchild:hover:not(.vn-menu-hover) .sound-pad {
 }
 
 flowboxchild:hover:not(.vn-menu-hover) .vn-folder .vn-folder-front {
-  transform: translateY(3px);
+  transform: perspective(300px) rotateX(-14deg);
 }
 
 flowboxchild:hover:not(.vn-menu-hover) .vn-peek-left {
@@ -618,7 +621,7 @@ flowbox.vn-grid > flowboxchild.vn-drop-into > .vn-lift {
 }
 
 flowboxchild.vn-drop-into .vn-folder-front {
-  transform: translateY(12px);
+  transform: perspective(300px) rotateX(-42deg);
 }
 
 flowboxchild.vn-drop-into .vn-peek-left {
@@ -663,10 +666,10 @@ flowboxchild.vn-gulp .vn-folder-front {
 }
 
 @keyframes vn-shut {
-  0% { transform: translateY(12px); }
-  40% { transform: translateY(-3px); }
-  70% { transform: translateY(1px); }
-  100% { transform: translateY(0px); }
+  0% { transform: perspective(300px) rotateX(-42deg); }
+  40% { transform: perspective(300px) rotateX(10deg); }
+  70% { transform: perspective(300px) rotateX(-4deg); }
+  100% { transform: perspective(300px) rotateX(0deg); }
 }
 
 /* The bar for picked tiles, under the grid. */
