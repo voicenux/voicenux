@@ -105,16 +105,52 @@
 
 ## Releases
 
+Releases look like the ones of face-unlock and big projects such as Immich.
+`.github/release-notes.sh <tag>` builds the notes: the entry from `CHANGELOG.md` (welcome and
+highlights), a support section, every commit since the last release sorted by its prefix with
+author and link, and the full changelog link. So commit subjects end up in public: keep them clear.
+The `release` workflow builds packages for Debian 13, Ubuntu 26.04, Fedora and Arch
+(`packaging/`, see its README), tries each one, and attaches them to the release.
+
 1. Read `git log <last tag>..HEAD` and pick the version: only fixes → patch, something new → minor,
    something that breaks or needs the user to act → major.
 2. Take the README screenshots again of every screen that changed since the last tag, and add
    ones for new UI (`docs: new screenshots`).
 3. Bump `version` in `Cargo.toml`, add the release to `data/io.github.voicenux.Voicenux.metainfo.xml`
    and the entry at the top of `CHANGELOG.md`, in one commit (`chore: 0.2.0`).
-4. Push, then push the tag: `git tag v0.2.0 && git push origin main v0.2.0`.
+4. Push, then push the tag: `git tag v0.2.0 && git push origin main v0.2.0`. The `release` workflow
+   stops before building when the tag and `Cargo.toml` disagree or the entry is missing.
 
-A minor or major release starts with a welcome sentence and has a `### Highlights` list. A patch
-release is just a sentence or two. Write for users: what they notice, not how the code does it.
+A minor or major release (has `### Highlights`, gets a heading and the support section):
+
+```markdown
+## v0.2.0
+
+_2026-11-02_
+
+Welcome to Voicenux `v0.2.0`! One or two sentences on what this release is about.
+
+<p align="center">
+  <img width="720" alt="What the picture shows" src="https://raw.githubusercontent.com/voicenux/voicenux/v0.2.0/res/<file>.png">
+</p>
+
+### 🚨 Breaking changes
+
+- Only if there are any: what changed, and what the user has to do.
+
+### Highlights
+
+- First highlight, a few words
+```
+
+The picture is optional: a README screenshot of what is new. The highlights stay a plain list.
+A patch release is just a sentence or two, for example: "A small patch. Find sounds loads again."
+The list of commits follows on its own.
+
+- Write for users: what they notice, not how the code does it. Friendly and simple.
+- Commands they type go in backticks, buttons and labels in bold.
+- To change an old release: edit its entry, commit, then
+  `gh release edit <tag> --title <tag> --notes "$(.github/release-notes.sh <tag>)"`.
 
 ## README
 

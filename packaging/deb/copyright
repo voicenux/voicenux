@@ -1,0 +1,50 @@
+Format: https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
+Upstream-Name: Voicenux
+Source: https://github.com/voicenux/voicenux
+
+Files: *
+Copyright: 2026 Felitendo
+License: BSD-3-Clause
+
+Files: data/icons/* data/emoji/*
+Copyright: Microsoft Corporation
+License: MIT
+Comment: Fluent Emoji, https://github.com/microsoft/fluentui-emoji. Built into the program.
+
+Files: data/lucide/*
+Copyright: 2013-2022 Cole Bemis, 2022 Lucide Contributors
+License: ISC
+Comment: Lucide, https://lucide.dev. Built into the program.
+
+Files: data/ambience/*
+Copyright: the Freesound authors in data/ambience/SOURCES.md
+License: CC0-1.0
+Comment: Built into the program.
+
+License: BSD-3-Clause
+ See /usr/share/licenses/voicenux/LICENSE.
+
+License: MIT
+ Permission is hereby granted, free of charge, to any person obtaining a copy of
+ this software and associated documentation files (the "Software"), to deal in
+ the Software without restriction, including without limitation the rights to
+ use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of
+ the Software, and to permit persons to whom the Software is furnished to do so,
+ subject to the following conditions:
+ .
+ The above copyright notice and this permission notice shall be included in all
+ copies or substantial portions of the Software.
+ .
+ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS
+ FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR
+ COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER
+ IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
+ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+License: ISC
+ See /usr/share/licenses/voicenux/LICENSE.lucide.
+
+License: CC0-1.0
+ To the extent possible under law, the authors have waived all copyright and
+ related or neighboring rights to these recordings.

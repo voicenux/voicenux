@@ -3,9 +3,13 @@ DESTDIR ?=
 APP_ID = io.github.voicenux.Voicenux
 BIN = target/release/voicenux
 
-.PHONY: all build check e2e run install uninstall icons emoji lucide clean
+.PHONY: all build check e2e run install uninstall icons emoji lucide clean version
 
 all: build
+
+# The version, from Cargo.toml. The packages and the release check take it from here.
+version:
+	@sed -n 's/^version = "\(.*\)"/\1/p' Cargo.toml | head -n1
 
 build:
 	cargo build --release --locked

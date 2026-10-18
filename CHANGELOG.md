@@ -1,8 +1,16 @@
 # Changelog
 
-## 0.1.0
+What each release brings, newest first. The [GitHub releases](https://github.com/voicenux/voicenux/releases) add every commit that went into it.
 
-Welcome to Voicenux, the voice changer for Linux.
+## v0.1.0
+
+_2026-10-18_
+
+Welcome to Voicenux `v0.1.0`, the voice changer for Linux! Change your voice in real time in Discord, games, OBS and any other app.
+
+<p align="center">
+  <img width="720" alt="Voicenux with the Baby voice selected: a grid of voice cards, the voice with its pitch settings on the right, and the switches for voice changer, hear myself and background at the bottom" src="https://raw.githubusercontent.com/voicenux/voicenux/v0.1.0/res/voices.png">
+</p>
 
 ### Highlights
 
@@ -17,3 +25,4 @@ Welcome to Voicenux, the voice changer for Linux.
 - Global shortcuts, keys in the app, a tray icon, a command line and an API for the Stream Deck
 - Tips on the first visit of each page
 - English and German
+- Packages for Debian 13, Ubuntu 26.04 and Fedora
