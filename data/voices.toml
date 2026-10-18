@@ -45,13 +45,12 @@ id = "elderly"
 name = "Elderly"
 icon = "old-man"
 category = "characters"
-description = "A shaky, breathy old voice."
+description = "A shaky, rough old voice."
 blocks = [
   { effect = "pitch", semitones = 1, formant = -1 },
   { effect = "vibrato", rate = 5.5, depth = 45, random = 0.6 },
   { effect = "distortion", drive = 6, mix = 0.3 },
   { effect = "band", low = 150, high = 6500 },
-  { effect = "noise", type = "Pink", level = -42, follow = 1 },
 ]
 
 [[voice]]
@@ -64,7 +63,6 @@ blocks = [
   { effect = "pitch", semitones = 3, formant = 2 },
   { effect = "vibrato", rate = 6, depth = 50, random = 0.5 },
   { effect = "band", low = 200, high = 7000 },
-  { effect = "noise", type = "Pink", level = -44, follow = 1 },
 ]
 
 [[voice]]

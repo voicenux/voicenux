@@ -500,8 +500,8 @@ msgstr "Tiefer und größer."
 msgid "Elderly"
 msgstr "Senior"
 
-msgid "A shaky, breathy old voice."
-msgstr "Eine zittrige, hauchige alte Stimme."
+msgid "A shaky, rough old voice."
+msgstr "Eine zittrige, raue alte Stimme."
 
 msgid "Granny"
 msgstr "Oma"
