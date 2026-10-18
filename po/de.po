@@ -1859,9 +1859,6 @@ msgstr "Für Computer ohne NVIDIA-Grafikkarte. Braucht viel vom Prozessor und ve
 msgid "The AI runs on your processor. It adds about {} of delay."
 msgstr "Die KI läuft auf deinem Prozessor. Sie verzögert um etwa {}."
 
-msgid "It runs on your processor and adds about half a second of delay."
-msgstr "Sie läuft auf deinem Prozessor und verzögert um etwa eine halbe Sekunde."
-
 msgid "AI voices"
 msgstr "KI-Stimmen"
 
@@ -1921,15 +1918,6 @@ msgstr "Die KI hat nicht geklappt: {}"
 
 msgid "Download {}?"
 msgstr "{} herunterladen?"
-
-msgid "The voice is about {} MB."
-msgstr "Die Stimme ist etwa {} MB groß."
-
-msgid "The first AI voice also needs the AI engine: about {} GB, once. The voice is about {} MB more."
-msgstr "Die erste KI-Stimme braucht auch die KI-Engine: etwa {} GB, nur einmal. Dazu kommt die Stimme mit etwa {} MB."
-
-msgid "It runs on your NVIDIA graphics card and adds about 0.3 s of delay."
-msgstr "Sie läuft auf deiner NVIDIA-Grafikkarte und verzögert um etwa 0,3 s."
 
 msgid "Download"
 msgstr "Herunterladen"
@@ -2114,6 +2102,9 @@ msgstr "Start/Stopp"
 msgid "On top"
 msgstr "Übereinander"
 
+msgid "{} of {}"
+msgstr "{} von {}"
+
 msgid "For everyone"
 msgstr "Für alle"
 
@@ -2128,3 +2119,45 @@ msgstr "Lautstärke dieses Sounds"
 
 msgid "Only this sound. It comes on top of the volume for everyone under the sounds."
 msgstr "Nur für diesen Sound. Sie kommt zur Lautstärke „Für alle“ unter den Sounds dazu."
+
+msgid "about {} s left"
+msgstr "noch etwa {} s"
+
+msgid "about {} min left"
+msgstr "noch etwa {} Min."
+
+msgid "In the background"
+msgstr "Im Hintergrund"
+
+msgid "{} is ready. Pick it to use it."
+msgstr "{} ist bereit. Wähle die Stimme aus, um sie zu nutzen."
+
+msgid "Could not get {}: {}"
+msgstr "{} ließ sich nicht laden: {}"
+
+msgid "Stop download"
+msgstr "Download abbrechen"
+
+msgid "Stopping…"
+msgstr "Wird abgebrochen…"
+
+msgid "Stopped downloading {}."
+msgstr "Download von {} abgebrochen."
+
+msgid "{}, once"
+msgstr "{}, einmalig"
+
+msgid "Processor"
+msgstr "Prozessor"
+
+msgid "about half a second"
+msgstr "etwa eine halbe Sekunde"
+
+msgid "NVIDIA graphics card"
+msgstr "NVIDIA-Grafikkarte"
+
+msgid "about 0.3 s"
+msgstr "etwa 0,3 s"
+
+msgid "Runs on"
+msgstr "Läuft auf"

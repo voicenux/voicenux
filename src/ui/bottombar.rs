@@ -79,6 +79,8 @@ pub fn build(st: &St) -> (gtk::CenterBox, [gtk::Widget; 2]) {
     if let Some(inner) = live.first_child() {
         inner.add_css_class("flat");
     }
+    // An AI voice that downloads in the background.
+    right.append(&super::ai::download_pill(st));
     right.append(&live);
 
     bar.set_start_widget(Some(&left));
