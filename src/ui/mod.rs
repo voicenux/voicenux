@@ -134,12 +134,15 @@ pub fn clear(widget: &impl IsA<gtk::Widget>) {
 /// How long `.vn-entering` takes, and how much later each next tile starts, in ms.
 const ENTER_MS: i64 = 480;
 const STEP_MS: i64 = 18;
+/// How many tiles pop one after the other, with a class `vn-d{n}` each for the delay.
+const STEPS: usize = 40;
 
-/// Lets a tile pop in, `place` tiles after the first. From the 40th on, tiles are out of sight
-/// and just show. A tile on a page out of sight pops when the page shows. The first time a page
-/// shows, its first frames are slow: the pop waits until the page is in and a frame came in
-/// time, so it plays in full. At the end its classes go, or another animation on the tile, like
-/// the bounce of a drop, would start it again when it ends.
+/// Lets a tile pop in, `place` tiles after the first. Tiles out of sight just show, and from the
+/// 40th on, tiles in sight pop with the 40th: a big window shows more than 40, and those must
+/// not be there before the ones above them. A tile on a page out of sight pops when the page
+/// shows. The first time a page shows, its first frames are slow: the pop waits until the page
+/// is in and a frame came in time, so it plays in full. At the end its classes go, or another
+/// animation on the tile, like the bounce of a drop, would start it again when it ends.
 pub fn animate_in(widget: &impl IsA<gtk::Widget>, place: usize) {
     let w = widget.as_ref();
     let key = w.as_ptr() as usize;
@@ -150,13 +153,15 @@ pub fn animate_in(widget: &impl IsA<gtk::Widget>, place: usize) {
         *next
     });
     stop_entering(w);
-    if place >= 40 {
-        ENTERING.with(|e| e.borrow_mut().1.remove(&key));
-        return;
-    }
     // Drawn but not seen yet, so the slow first frame is done before it moves.
     w.add_css_class("vn-pre");
-    pop_when_shown(w, key, mine, place);
+    pop_when_shown(w, key, mine, place.min(STEPS - 1));
+}
+
+/// Whether some of a widget shows in its scrolled window. One without is in sight.
+fn in_sight(w: &gtk::Widget) -> bool {
+    let Some(scroll) = w.ancestor(gtk::ScrolledWindow::static_type()) else { return true };
+    w.compute_bounds(&scroll).is_none_or(|r| r.y() + r.height() > 0.0 && r.y() < scroll.height() as f32)
 }
 
 fn pop_when_shown(w: &gtk::Widget, key: usize, mine: u64, place: usize) {
@@ -192,6 +197,11 @@ fn pop_when_shown(w: &gtk::Widget, key: usize, mine: u64, place: usize) {
                 let in_time = last.replace(Some(now)).is_some_and(|t| now - t < 40_000);
                 waited.set(waited.get() + 1);
                 if (in_time && !in_transition(w)) || waited.get() > 30 {
+                    if !in_sight(w) {
+                        stop_entering(w);
+                        ENTERING.with(|e| e.borrow_mut().1.remove(&key));
+                        return glib::ControlFlow::Break;
+                    }
                     w.remove_css_class("vn-pre");
                     w.add_css_class(&format!("vn-d{place}"));
                     w.add_css_class("vn-entering");
@@ -219,7 +229,7 @@ fn in_transition(w: &gtk::Widget) -> bool {
 fn stop_entering(w: &gtk::Widget) {
     w.remove_css_class("vn-pre");
     w.remove_css_class("vn-entering");
-    for i in 0..40 {
+    for i in 0..STEPS {
         w.remove_css_class(&format!("vn-d{i}"));
     }
 }
@@ -402,7 +412,7 @@ fn click_outside(field: &gtk::EditableLabel, native: &gtk::Widget) -> gtk::Gestu
 
 /// CSS for the staggered entrance delays.
 pub fn delay_css() -> String {
-    (0..40).map(|i| format!(".vn-d{i} {{ animation-delay: {}ms; }}\n", i * STEP_MS)).collect()
+    (0..STEPS).map(|i| format!(".vn-d{i} {{ animation-delay: {}ms; }}\n", i as i64 * STEP_MS)).collect()
 }
 
 /// Renders a widget (the window) into a PNG file.
