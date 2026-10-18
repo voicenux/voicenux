@@ -8,7 +8,7 @@ use adw::prelude::*;
 use gtk::{gdk, glib};
 
 use super::visuals::Orb;
-use super::{animate_in, board, cat_class, clear, icon, label, popup, smooth_scroll, value_field};
+use super::{animate_in, board, cat_class, clear, icon, label, line_icon, popup, smooth_scroll, value_field};
 use crate::dsp::blocks::{self, Kind};
 use crate::i18n::{fill, t, t_dyn};
 use crate::state::{Change, St};
@@ -22,6 +22,9 @@ struct Card {
     keys: gtk::Label,
     /// Marks in the top left corner. A check takes their place while the voice is picked.
     marks: Vec<gtk::Widget>,
+    /// The marks in a row: AI, and changed by you.
+    corner: gtk::Box,
+    tweaked: gtk::Image,
     check: gtk::Image,
 }
 
@@ -795,6 +798,7 @@ pub fn build(st: &St, open_lab: OpenLab) -> VoicesPage {
                 if let Some(v) = st.voice(id) {
                     if let Some(c) = cards.borrow().get(id) {
                         refresh_card(c, &v);
+                        show_tweaked(c, st.is_tweaked(id));
                     }
                     if *id == st.config.borrow().voice {
                         detail.edited(&v);
@@ -944,21 +948,22 @@ fn card(st: &St, v: &Voice, open_lab: &OpenLab) -> Card {
     overlay.set_child(Some(&card));
     overlay.add_overlay(&star);
     overlay.add_overlay(&keys);
-    let mut marks: Vec<gtk::Widget> = vec![keys.clone().upcast()];
+    // The marks sit in a row in the corner, the shortcut goes under them.
+    let corner = gtk::Box::new(gtk::Orientation::Horizontal, 4);
+    corner.set_halign(gtk::Align::Start);
+    corner.set_valign(gtk::Align::Start);
+    corner.set_margin_top(10);
+    corner.set_margin_start(10);
+    overlay.add_overlay(&corner);
+    let marks: Vec<gtk::Widget> = vec![keys.clone().upcast(), corner.clone().upcast()];
 
     let mut tip = t_dyn(&v.description);
     // AI voices: marked, gray without a graphics card, with a download mark until they are there.
     if let Some(model) = crate::ai::model_of(&v.block_values()) {
         let mark = label(t("AI"), &["vn-ai-mark"]);
-        mark.set_halign(gtk::Align::Start);
-        mark.set_valign(gtk::Align::Start);
-        mark.set_margin_top(10);
-        mark.set_margin_start(10);
+        mark.set_valign(gtk::Align::Center);
         mark.set_can_target(false);
-        overlay.add_overlay(&mark);
-        marks.push(mark.upcast());
-        // The shortcut goes under the mark.
-        keys.set_margin_top(34);
+        corner.append(&mark);
         if !crate::ai::usable() {
             card.add_css_class("vn-ai-off");
             tip = format!("{tip}\n{}", t("AI voices need an NVIDIA graphics card, or Run on the processor in Settings."));
@@ -996,7 +1001,23 @@ fn card(st: &St, v: &Voice, open_lab: &OpenLab) -> Card {
             }
         }
     });
-    Card { child, card, star, keys, marks, check }
+    // A voice you changed says so, until you reset it.
+    let tweaked = line_icon("sliders-horizontal", 12);
+    tweaked.add_css_class("vn-tweak-mark");
+    tweaked.set_valign(gtk::Align::Center);
+    tweaked.set_tooltip_text(Some(t("You changed this voice")));
+    corner.append(&tweaked);
+
+    let c = Card { child, card, star, keys, marks, corner, tweaked, check };
+    show_tweaked(&c, st.is_tweaked(&v.id));
+    c
+}
+
+/// Shows the mark of a voice you changed, and puts the shortcut under the marks.
+fn show_tweaked(c: &Card, on: bool) {
+    c.tweaked.set_visible(on);
+    let marked = std::iter::successors(c.corner.first_child(), |w| w.next_sibling()).any(|w| w.is_visible());
+    c.keys.set_margin_top(if marked { 34 } else { 10 });
 }
 
 /// Shows the shortcut of a voice on its card, or nothing.
@@ -1054,7 +1075,8 @@ struct Detail {
     fav_state: gtk::Stack,
     params: gtk::Box,
     key_slot: gtk::Box,
-    reset: gtk::Button,
+    /// Says that you changed the voice, with the way back.
+    tweaked: gtk::Revealer,
     note: gtk::Label,
     st: St,
     shown: Rc<RefCell<String>>,
@@ -1117,12 +1139,33 @@ impl Detail {
         let title = label(t("Voice settings"), &["heading"]);
         title.set_halign(gtk::Align::Start);
         title.set_hexpand(true);
-        let reset = gtk::Button::with_label(t("Reset"));
-        reset.add_css_class("flat");
-        reset.add_css_class("small");
         head.append(&title);
-        head.append(&reset);
         inner.append(&head);
+
+        // Once you change a built-in voice, a note says so, with the way back.
+        let reset_content = gtk::Box::new(gtk::Orientation::Horizontal, 6);
+        reset_content.append(&line_icon("rotate-ccw", 14));
+        reset_content.append(&gtk::Label::new(Some(t("Reset"))));
+        let reset = gtk::Button::builder().child(&reset_content).valign(gtk::Align::Center).build();
+        reset.add_css_class("vn-gradient-button");
+        reset.add_css_class("vn-reset");
+        reset.set_tooltip_text(Some(t("Back to how the voice comes")));
+        let changed = label(t("Changed by you"), &[]);
+        changed.set_hexpand(true);
+        changed.set_xalign(0.0);
+        changed.set_wrap(true);
+        let banner = gtk::Box::new(gtk::Orientation::Horizontal, 8);
+        banner.add_css_class("vn-tweaked");
+        banner.set_margin_top(4);
+        banner.append(&line_icon("sliders-horizontal", 16));
+        banner.append(&changed);
+        banner.append(&reset);
+        let tweaked = gtk::Revealer::builder()
+            .transition_type(gtk::RevealerTransitionType::SlideDown)
+            .transition_duration(220)
+            .child(&banner)
+            .build();
+        inner.append(&tweaked);
 
         let params = gtk::Box::new(gtk::Orientation::Vertical, 8);
         params.set_margin_top(4);
@@ -1153,7 +1196,7 @@ impl Detail {
             fav_state,
             params,
             key_slot,
-            reset: reset.clone(),
+            tweaked,
             note,
             st: st.clone(),
             shown: Rc::default(),
@@ -1224,7 +1267,7 @@ impl Detail {
 
     fn edited(&self, v: &Voice) {
         if self.busy.get() || *self.shown.borrow() != v.id {
-            self.reset.set_visible(self.st.is_tweaked(&v.id));
+            self.tweaked.set_reveal_child(self.st.is_tweaked(&v.id));
             return;
         }
         self.show(v, false);
@@ -1240,7 +1283,7 @@ impl Detail {
             self.fav.remove_css_class("on");
         }
         self.update_note();
-        self.reset.set_visible(self.st.is_tweaked(&id));
+        self.tweaked.set_reveal_child(self.st.is_tweaked(&id));
     }
 
     /// The note under the settings: what the AI does, or a hint about the background sound.
@@ -1263,6 +1306,8 @@ impl Detail {
 
     fn params_for(&self, v: &Voice) {
         clear(&self.params);
+        // What you changed of a built-in voice lights up, with a way back for each setting.
+        let original = self.st.original(&v.id);
         let mut any = false;
         for (bi, b) in v.blocks.iter().enumerate() {
             let Some(spec) = blocks::find(&b.kind) else { continue };
@@ -1270,24 +1315,65 @@ impl Detail {
                 continue;
             }
             let values = b.values();
+            let first = original.as_ref().and_then(|o| o.blocks.get(bi)).filter(|o| o.kind == b.kind).map(|o| o.values());
             for (pi, p) in spec.params.iter().enumerate() {
                 if !p.main {
                     continue;
                 }
                 any = true;
+                let was = first.as_ref().and_then(|f| f.get(pi).copied());
+                let undo = gtk::Button::builder().child(&line_icon("rotate-ccw", 14)).valign(gtk::Align::Center).build();
+                undo.add_css_class("flat");
+                undo.add_css_class("circular");
+                undo.add_css_class("vn-param-undo");
+                let row_of: Rc<std::cell::OnceCell<gtk::Box>> = Rc::default();
+                let mark = {
+                    let (undo, row_of) = (undo.clone(), row_of.clone());
+                    move |value: f32| {
+                        let changed = was.is_some_and(|w| (w - value).abs() > 1e-4);
+                        undo.set_visible(changed);
+                        if let Some(row) = row_of.get() {
+                            if changed {
+                                row.add_css_class("vn-changed");
+                            } else {
+                                row.remove_css_class("vn-changed");
+                            }
+                        }
+                    }
+                };
                 let row = param_row(p, values[pi], {
                     let st = self.st.clone();
                     let id = v.id.clone();
                     let key = p.key;
                     let busy = self.busy.clone();
-                    let reset = self.reset.clone();
+                    let tweaked = self.tweaked.clone();
+                    let mark = mark.clone();
                     move |value| {
                         busy.set(true);
                         st.set_param(&id, bi, key, value);
                         busy.set(false);
-                        reset.set_visible(st.is_tweaked(&id));
+                        tweaked.set_reveal_child(st.is_tweaked(&id));
+                        mark(value);
                     }
                 });
+                let _ = row_of.set(row.clone());
+                mark(values[pi]);
+                if let Some(w) = was {
+                    let shown = t_dyn(&blocks::format_value(p, w));
+                    undo.set_tooltip_text(Some(&fill(t("Back to {}"), &[&shown])));
+                    undo.connect_clicked({
+                        let (st, id, key) = (self.st.clone(), v.id.clone(), p.key);
+                        move |_| {
+                            // After the click: going back builds these rows again.
+                            let (st, id) = (st.clone(), id.clone());
+                            glib::idle_add_local_once(move || st.set_param(&id, bi, key, w));
+                        }
+                    });
+                }
+                // Between the name and the value.
+                if let Some(top) = row.first_child().and_downcast::<gtk::Box>() {
+                    top.insert_child_after(&undo, top.first_child().as_ref());
+                }
                 self.params.append(&row);
             }
         }

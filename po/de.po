@@ -2093,6 +2093,18 @@ msgstr "{} Stimmen löschen?"
 msgid "They are gone for good."
 msgstr "Sie sind dann für immer weg."
 
+msgid "You changed this voice"
+msgstr "Du hast diese Stimme angepasst"
+
+msgid "Changed by you"
+msgstr "Von dir angepasst"
+
+msgid "Back to how the voice comes"
+msgstr "Zurück zur Stimme, wie sie war"
+
+msgid "Back to {}"
+msgstr "Zurück auf {}"
+
 msgid "From the start"
 msgstr "Von vorne"
 

@@ -296,6 +296,11 @@ impl State {
         self.config.borrow().tweaks.contains_key(id)
     }
 
+    /// A built-in voice as it comes, without your changes. None for your own voices.
+    pub fn original(&self, id: &str) -> Option<Voice> {
+        self.voices.borrow().iter().find(|v| v.id == id && v.builtin).cloned()
+    }
+
     fn send_voice(&self) {
         let v = self.current();
         self.engine.send(Ctl::Voice(v.block_values()));

@@ -377,6 +377,7 @@ flowboxchild:hover .vn-star,
   background-color: var(--vn-soft);
   background-image: var(--vn-sheen);
   box-shadow: inset 0 1px 0 var(--vn-glass-edge), inset 0 0 0 1px var(--vn-line);
+  transition: box-shadow 220ms ease, background-color 220ms ease;
 }
 
 .vn-param .vn-param-label {
@@ -387,6 +388,33 @@ flowboxchild:hover .vn-star,
   font-feature-settings: "tnum";
   color: var(--accent-color);
   font-weight: 700;
+}
+
+/* A setting you changed on a built-in voice: a blue rim and tint, and a button back. */
+.vn-param.vn-changed {
+  background-color: color-mix(in srgb, var(--accent-bg-color) 10%, var(--vn-soft));
+  box-shadow: inset 0 1px 0 var(--vn-glass-edge), inset 0 0 0 2px color-mix(in srgb, var(--accent-bg-color) 55%, transparent);
+}
+
+button.vn-param-undo {
+  min-width: 26px;
+  min-height: 26px;
+  padding: 0;
+  color: var(--accent-color);
+}
+
+/* The note on a voice you changed, with the way back. */
+.vn-tweaked {
+  padding: 6px 6px 6px 12px;
+  border-radius: 14px;
+  color: var(--accent-color);
+  font-weight: 650;
+  background-color: color-mix(in srgb, var(--accent-bg-color) 14%, transparent);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent-bg-color) 40%, transparent);
+}
+
+button.vn-reset {
+  padding: 4px 12px;
 }
 
 
@@ -1629,6 +1657,16 @@ banner > revealer > widget {
 /* AI voices: gray without an NVIDIA card, a round download mark until they are there. */
 .voice-card.vn-ai-off {
   opacity: 0.45;
+}
+
+/* A voice you changed says so on its card, next to the AI mark. */
+.vn-tweak-mark {
+  min-width: 18px;
+  min-height: 18px;
+  border-radius: 99px;
+  color: #ffffff;
+  background-image: var(--vn-grad);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.35);
 }
 
 /* Every voice that uses AI says so on its card. */
