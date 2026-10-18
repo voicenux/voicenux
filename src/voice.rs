@@ -337,6 +337,47 @@ mod tests {
         }
     }
 
+    /// Plays a recording through every voice into WAV files, to listen to them:
+    /// `VOICENUX_RENDER=speech.ogg:out/ cargo test --release render_voices -- --ignored`.
+    /// Voices with a background get a second file with it.
+    #[test]
+    #[ignore]
+    fn render_voices() {
+        let Ok(arg) = std::env::var("VOICENUX_RENDER") else { return };
+        let (input, dir) = arg.split_once(':').unwrap();
+        let data = crate::soundboard::decode(std::path::Path::new(input)).unwrap();
+        let input: Vec<f32> = data.frames.iter().map(|f| (f[0] + f[1]) * 0.5).collect();
+        let ctx = BuildCtx::new(48000.0, false);
+        for v in builtin().into_iter().filter(|v| !v.id.starts_with("ai-")) {
+            for background in [false, true] {
+                if background && !v.has_background() {
+                    continue;
+                }
+                let mut chain = Chain::build_leveled(&v.block_values(), &ctx);
+                let mut x = input.clone();
+                for block in x.chunks_mut(512) {
+                    chain.process(block, &Ctx { background });
+                }
+                let mut wav = Vec::new();
+                let len = x.len() as u32 * 2;
+                for part in [&b"RIFF"[..], &(36 + len).to_le_bytes(), b"WAVEfmt ", &16u32.to_le_bytes(), &1u16.to_le_bytes()] {
+                    wav.extend_from_slice(part);
+                }
+                for part in [&1u16.to_le_bytes()[..], &48000u32.to_le_bytes(), &96000u32.to_le_bytes(), &2u16.to_le_bytes()] {
+                    wav.extend_from_slice(part);
+                }
+                for part in [&16u16.to_le_bytes()[..], b"data", &len.to_le_bytes()] {
+                    wav.extend_from_slice(part);
+                }
+                for s in x {
+                    wav.extend_from_slice(&((s.clamp(-1.0, 1.0) * 32767.0) as i16).to_le_bytes());
+                }
+                let name = if background { format!("{}-bg", v.id) } else { v.id.clone() };
+                std::fs::write(format!("{dir}/{name}.wav"), wav).unwrap();
+            }
+        }
+    }
+
     #[test]
     fn set_and_read_back() {
         let mut b = BlockDef::new("filter");
