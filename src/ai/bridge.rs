@@ -228,7 +228,7 @@ fn run(rx: Receiver<Event>, back: Sender<Event>) {
                     }
                     b'A' => {
                         if let Some(s) = stream.as_mut() {
-                            let samples = payload.chunks_exact(4).map(|b| f32::from_le_bytes([b[0], b[1], b[2], b[3]]));
+                            let samples = payload.as_chunks::<4>().0.iter().map(|b| f32::from_le_bytes(*b));
                             let n = s.output.slots().min(payload.len() / 4);
                             if let Ok(chunk) = s.output.write_chunk_uninit(n) {
                                 chunk.fill_from_iter(samples);

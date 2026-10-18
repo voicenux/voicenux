@@ -1160,8 +1160,7 @@ impl State {
         for _ in 0..4 {
             let (queue, tx) = (queue.clone(), tx.clone());
             std::thread::spawn(move || {
-                loop {
-                    let Some(b) = queue.lock().ok().and_then(|mut q| q.pop()) else { break };
+                while let Some(b) = queue.lock().ok().and_then(|mut q| q.pop()) {
                     let _ = tx.send_blocking(b.fetch().is_ok());
                 }
             });

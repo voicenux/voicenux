@@ -1067,9 +1067,12 @@ pub fn pick_clicks(grid: &gtk::FlowBox, item_of: &ItemOf, picks: &Rc<Picks>, syn
     grid.add_controller(click);
 }
 
+/// A page with folders, and how it goes up out of one. False when it shows none.
+type Up = (glib::WeakRef<gtk::Widget>, Rc<dyn Fn() -> bool>);
+
 thread_local! {
     /// How each page with folders goes up out of one, for the back button of the mouse.
-    static UP: RefCell<Vec<(glib::WeakRef<gtk::Widget>, Rc<dyn Fn() -> bool>)>> = RefCell::default();
+    static UP: RefCell<Vec<Up>> = RefCell::default();
 }
 
 /// The back button of the mouse goes up out of a folder first, like in a file manager, and only

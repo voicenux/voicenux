@@ -34,10 +34,13 @@ pub struct Tip {
 
 /// The name of the layer over the pages, in the window.
 pub const LAYER: &str = "vn-layer";
+
+/// A page by name, its widget, and what makes its tips.
+type Page = (&'static str, glib::WeakRef<gtk::Widget>, Rc<dyn Fn() -> Vec<Tip>>);
+
 thread_local! {
     /// The tips of each page, to show them again on request.
-    static PAGES: RefCell<Vec<(&'static str, glib::WeakRef<gtk::Widget>, Rc<dyn Fn() -> Vec<Tip>>)>> =
-        RefCell::default();
+    static PAGES: RefCell<Vec<Page>> = RefCell::default();
 }
 
 /// Shows the tips of `page` from tip `from` on, counted from 0, also when they were seen. For

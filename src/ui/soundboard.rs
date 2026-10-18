@@ -881,12 +881,15 @@ fn import(st: &St, paths: &[std::path::PathBuf]) {
     st.import_sounds(paths.to_vec());
 }
 
+/// Objects with a text, and the name of their text property.
+type Texts = Vec<(glib::Object, &'static str)>;
+
 /// The deck under the sounds: how loud they play, whether you hear them yourself, what a click
 /// does, and a way to stop them all. Gives the texts that go when the page is narrow, as
 /// objects and their text property, the labels that go then, the volume slider and the stop
 /// button.
-fn deck(st: &St) -> (gtk::Box, Vec<(glib::Object, &'static str)>, Vec<gtk::Widget>, gtk::Box, gtk::Button) {
-    let mut texts: Vec<(glib::Object, &'static str)> = Vec::new();
+fn deck(st: &St) -> (gtk::Box, Texts, Vec<gtk::Widget>, gtk::Box, gtk::Button) {
+    let mut texts: Texts = Vec::new();
     // The volume is what everyone hears: others through the Voicenux Microphone, and you too
     // when Hear them myself is on. Both say so, so nobody wonders whose volume it is.
     let everyone = label(t("For everyone"), &["vn-deck-label"]);
