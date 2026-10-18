@@ -59,13 +59,15 @@ When you close the window, Voicenux keeps running in the tray, so your voice kee
 
 ### Soundboard
 
-<img width="720" src="res/soundboard.png" alt="The soundboard with sound pads; Drum Roll and Applause are playing and show their progress as a ring, Drum Roll has a mark for its cut and Air Horn shows its shortcut. On the right, Find sounds lists applause sounds from MyInstants, each with a play and an add button">
+<img width="720" src="res/soundboard.png" alt="The soundboard with a Memes folder and sound pads; Drum Roll and Applause are playing and show their progress as a ring, Drum Roll has a mark for its cut and Air Horn shows its shortcut. Under the sounds, a bar with their volume, Hear them myself, the play modes and Stop all. On the right, Find sounds lists applause sounds from MyInstants with their likes and views, each with a play and a download button">
 
-Sounds play into the Voicenux Microphone, and you hear them too. Right-click an empty spot to add your own audio files, make folders or sort, or drop audio files on the page. MP3, OGG, FLAC and WAV work. The bar under the sounds sets their volume, whether you hear them yourself, and what a click does: play from the start, play and stop, or play on top. It stops them all, too. Right-click a sound to change its name, picture, volume and shortcut. A small mark on a pad shows that it is cut, and its shortcut shows under its name. On the first visit, tips show what is where.
+Sounds play into the Voicenux Microphone, and you hear them too. Right-click an empty spot to add your own audio files, make folders or sort, or drop audio files on the page. MP3, OGG, FLAC and WAV work. The bar under the sounds sets their volume, whether you hear them yourself, and what a click does: play from the start, play and stop, or play on top. It stops them all, too. Right-click a sound to change its name, picture, volume and shortcut. A small mark on a pad shows that it is cut, and its shortcut shows under its name. On the first visit, tips show what is where, and **Show the tips again** in Settings brings them back.
+
+<img width="720" src="res/tips.png" alt="A tip on the soundboard: a bubble that says Right-click an empty spot points at a dashed spot after the last sound, with 2 of 4, Skip and Next">
 
 Type to search your sounds. When none matches, one click searches MyInstants for the same words. Drag a sound onto another one to move it there, or use Alt with ← and →. Delete removes a sound, and **Undo** brings it back. Escape stops all sounds.
 
-<img width="720" src="res/trim.png" alt="Trim sound for Drum Roll: a time ruler in seconds over the waveform, a blue frame with a handle on each side from 0.80 s to 5.20 s, the playhead at the start of the cut, and Cancel and Save at the bottom right">
+<img width="720" src="res/trim.png" alt="Trim sound for Drum Roll: a blue frame over the waveform with a handle on each side from 0.40 s to 3.60 s, a time ruler in seconds under it, the playhead at the start of the cut, and Cancel and Save at the bottom right">
 
 **Trim sound** in the menu cuts the start and end, like a video clip. Drag the handles over the waveform, or type the times. The ruler under it shows the seconds. **Listen** plays the cut sound in your headphones only, from the white playhead: drag it, or click into the cut or the ruler. The playhead can leave the cut too: it sticks to its ends for a moment, then tears away. Behind the cut, Listen plays on to the end of the sound. Space listens or pauses, ← and → move the playhead (with Shift a second, with Ctrl a hundredth), I and O set the start and end at the playhead, and Ctrl+Z undoes. For exact cuts, zoom in with Ctrl and the mouse wheel, or with + and −. The wheel then scrolls along the sound.
 
@@ -129,7 +131,9 @@ Inside the app, F1 shows all keys. Ctrl+F searches, Ctrl+1 to 4 switch pages, Ct
 
 Many of them come with a background sound: a campfire, a stadium crowd, a thunderstorm, waves, wind, a heartbeat and more. They are real recordings. The starter soundboard has well-known sounds and memes from MyInstants, downloaded on the first start.
 
-The AI voices turn your voice into the character with an [RVC](https://github.com/RVC-Project/Retrieval-based-Voice-Conversion-WebUI) model. They learn your pitch while you talk and move it to the character's, so they fit deep and high voices. They run best on an NVIDIA graphics card, with about 0.3 s of delay. Without one, turn on **Run on the processor** in Settings: it takes much of the processor and adds about half a second of delay. The first AI voice you pick downloads the AI engine once (about 8 GB with PyTorch for the graphics card, about 3 GB for the processor), then each voice is 55 to 220 MB. Settings can remove it all again.
+The AI voices turn your voice into the character with an [RVC](https://github.com/RVC-Project/Retrieval-based-Voice-Conversion-WebUI) model. They learn your pitch while you talk and move it to the character's, so they fit deep and high voices. They run best on an NVIDIA graphics card, with about 0.3 s of delay. Without one, turn on **Run on the processor** in Settings: it takes much of the processor and adds about half a second of delay. The first AI voice you pick downloads the AI engine once (about 8 GB with PyTorch for the graphics card, about 3 GB for the processor), then each voice is 55 to 220 MB. While it downloads, you see the time left, and **In the background** lets you use Voicenux meanwhile. Settings can remove it all again.
+
+<img width="720" src="res/ai-download.png" alt="Download SpongeBob?: a dialog that lists the AI engine with 8 GB once, the voice with 220 MB, that it runs on the NVIDIA graphics card and adds about 0.3 s of delay, with Cancel and Download">
 
 </details>
 
