@@ -1757,8 +1757,8 @@ msgstr "Keine Effekte gefunden"
 msgid "Other apps"
 msgstr "Andere Apps"
 
-msgid "Stream Deck plugins like for OpenDeck, and scripts, can use your voices and sounds."
-msgstr "Stream-Deck-Plugins wie für OpenDeck und Skripte können deine Stimmen und Sounds benutzen."
+msgid "Stream Deck plugins, for example for OpenDeck, and scripts can use your voices and sounds."
+msgstr "Stream-Deck-Plugins, etwa für OpenDeck, und Skripte können deine Stimmen und Sounds nutzen."
 
 msgid "Let other apps control Voicenux"
 msgstr "Andere Apps dürfen Voicenux steuern"
@@ -1772,11 +1772,11 @@ msgstr "Kopieren"
 msgid "Copied"
 msgstr "Kopiert"
 
-msgid "How apps use it"
-msgstr "So benutzen Apps es"
+msgid "For plugin makers"
+msgstr "Für Plugin-Entwickler"
 
-msgid "The actions and events, for people who build plugins."
-msgstr "Die Aktionen und Ereignisse, für alle, die Plugins bauen."
+msgid "All actions and events, on GitHub."
+msgstr "Alle Aktionen und Ereignisse, auf GitHub."
 
 msgid "Could not start"
 msgstr "Konnte nicht starten"

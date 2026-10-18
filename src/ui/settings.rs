@@ -703,7 +703,7 @@ fn ai_group(st: &St) -> Group {
 /// Other apps on this computer, like a Stream Deck plugin, may control Voicenux. See `src/api.rs`.
 fn api_group(st: &St) -> Group {
     let group =
-        Group::new("plug", t("Other apps"), t("Stream Deck plugins like for OpenDeck, and scripts, can use your voices and sounds."));
+        Group::new("plug", t("Other apps"), t("Stream Deck plugins, for example for OpenDeck, and scripts can use your voices and sounds."));
     let on = adw::SwitchRow::builder()
         .title(t("Let other apps control Voicenux"))
         .subtitle(t("Only apps on this computer. Web pages can not use it."))
@@ -734,8 +734,8 @@ fn api_group(st: &St) -> Group {
     status.add_suffix(&copy);
     group.add(&status);
     let docs = adw::ActionRow::builder()
-        .title(t("How apps use it"))
-        .subtitle(t("The actions and events, for people who build plugins."))
+        .title(t("For plugin makers"))
+        .subtitle(t("All actions and events, on GitHub."))
         .activatable(true)
         .build();
     docs.add_suffix(&gtk::Image::from_icon_name("go-next-symbolic"));
