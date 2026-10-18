@@ -8,7 +8,7 @@ use adw::prelude::*;
 use gtk::{gdk, gio, glib};
 
 use super::visuals::progress_ring;
-use super::{animate_in, board, clear, icon, icon_picker, label, line_icon, popup, smooth_scroll, value_field};
+use super::{animate_in, board, clear, icon, icon_picker, label, line_icon, popup, smooth_scroll, tour, value_field};
 use crate::i18n::{fill, t, t_dyn};
 use crate::soundboard::{PlayMode, Sound};
 use crate::state::{Change, St};
@@ -193,6 +193,7 @@ pub fn build(st: &St) -> SoundboardPage {
     body.append(&path.widget);
     body.append(&stack);
     body.append(&deck);
+    let deck_widget = deck.clone();
     // The deck drops texts when the page gets too narrow for it, also when Find sounds takes
     // room: first those of the play modes and Stop all (their pictures and tooltips stay), then
     // "For everyone" and "Hear them myself", and the slider gets shorter. How wide it needs to be
@@ -797,6 +798,44 @@ pub fn build(st: &St) -> SoundboardPage {
         move |text: &str| {
             find.set_active(true);
             online.set_text(text);
+        }
+    });
+    // The first visit shows what nothing on screen tells: the right click, dragging, the deck.
+    super::tour::on_first_visit(st, "soundboard", &view, {
+        let (find, scroll, grid, deck) = (find.downgrade(), scroll.downgrade(), grid.downgrade(), deck_widget.downgrade());
+        move || {
+            let (Some(find), Some(scroll), Some(grid), Some(deck)) =
+                (find.upgrade(), scroll.upgrade(), grid.upgrade(), deck.upgrade())
+            else {
+                return Vec::new();
+            };
+            let mut tips = vec![tour::Tip {
+                at: find.upcast(),
+                area: None,
+                title: t("Find sounds"),
+                text: t("Search MyInstants for any sound and add it with one click."),
+            }];
+            tips.push(tour::Tip {
+                at: grid.clone().upcast(),
+                area: Some(board::spot_finder(&grid, &scroll)),
+                title: t("Right-click an empty spot"),
+                text: t("There you make folders, add your own audio files, sort the sounds or pick all. Right-click a sound to edit it."),
+            });
+            if let Some(first) = grid.child_at_index(0) {
+                tips.push(tour::Tip {
+                    at: first.upcast(),
+                    area: None,
+                    title: t("Drag to sort"),
+                    text: t("Drag a sound to another place, or onto a folder to put it in. Ctrl+click picks several."),
+                });
+            }
+            tips.push(tour::Tip {
+                at: deck.upcast(),
+                area: None,
+                title: t("Volume and play mode"),
+                text: t("Sounds play into the Voicenux Microphone, so others hear them too. Here you set how loud they are, if you hear them yourself, and what a click does."),
+            });
+            tips
         }
     });
     SoundboardPage { widget: view, search, add, shrink: vec![find_content], find_online }

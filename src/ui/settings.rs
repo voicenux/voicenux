@@ -567,6 +567,19 @@ pub fn build(st: &St, window: &adw::ApplicationWindow) -> adw::ToolbarView {
     });
     look.add_suffix(&looks);
     app.add(&look);
+    let tips = adw::ActionRow::builder()
+        .title(t("Show the tips again"))
+        .subtitle(t("They show when you open a page"))
+        .activatable(true)
+        .build();
+    tips.add_suffix(&gtk::Image::from_icon_name("go-next-symbolic"));
+    tips.connect_activated({
+        let st = st.clone();
+        move |_| {
+            st.update(|c| c.tours.clear());
+            st.notify(crate::state::Change::Notice(t("The tips show again on each page").to_string()));
+        }
+    });
     let welcome = adw::ActionRow::builder().title(t("Show the welcome again")).activatable(true).build();
     welcome.add_suffix(&gtk::Image::from_icon_name("go-next-symbolic"));
     welcome.connect_activated({
@@ -575,6 +588,7 @@ pub fn build(st: &St, window: &adw::ApplicationWindow) -> adw::ToolbarView {
         move |_| super::onboarding::show(&st, &window)
     });
     app.add(&welcome);
+    app.add(&tips);
     let about = adw::ActionRow::builder().title(t("About Voicenux")).activatable(true).build();
     about.add_suffix(&gtk::Image::from_icon_name("go-next-symbolic"));
     about.connect_activated({

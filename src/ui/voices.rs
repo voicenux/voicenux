@@ -853,6 +853,48 @@ pub fn build(st: &St, open_lab: OpenLab) -> VoicesPage {
             }
         }
     });
+    // The first visit shows what nothing on screen tells: the right click, and the settings.
+    super::tour::on_first_visit(st, "voices", &widget, {
+        let (grid, scroll, params) = (grid.downgrade(), grid_scroll.downgrade(), detail.params.downgrade());
+        move || {
+            let (Some(grid), Some(scroll), Some(params)) = (grid.upgrade(), scroll.upgrade(), params.upgrade()) else {
+                return Vec::new();
+            };
+            let mut tips = Vec::new();
+            if let Some(first) = grid.child_at_index(0) {
+                tips.push(super::tour::Tip {
+                    at: first.upcast(),
+                    area: None,
+                    title: t("Pick a voice"),
+                    text: t("Click a voice to use it."),
+                });
+            }
+            // The switches in the bottom bar, right after: that is where trying it goes on. One
+            // tip for all three, so it takes one click, not three.
+            if let Some(at) = super::tour::named(&grid, "vn-switches") {
+                tips.push(super::tour::Tip {
+                    at,
+                    area: None,
+                    title: t("The switches"),
+                    text: t("Voice changer turns your new voice on and off. Hear myself plays it in your headphones. Background adds the sound of a voice, like rain or a campfire."),
+                });
+            }
+            tips.push(super::tour::Tip {
+                at: grid.clone().upcast(),
+                area: Some(board::spot_finder(&grid, &scroll)),
+                title: t("Right-click an empty spot"),
+                text: t("There you make folders and sort the voices. Drag voices to move them, Ctrl+click picks several."),
+            });
+            // The first setting, not the whole panel: the bubble sits next to it.
+            tips.push(super::tour::Tip {
+                at: params.first_child().unwrap_or_else(|| params.upcast()),
+                area: None,
+                title: t("Make it yours"),
+                text: t("Change the main settings here, or click Customize for all of them. What you change gets a blue frame."),
+            });
+            tips
+        }
+    });
     VoicesPage { widget, search, show_current }
 }
 

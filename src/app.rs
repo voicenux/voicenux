@@ -183,8 +183,9 @@ impl Ctx {
                     return 1;
                 }
             }
-            // Also for screenshots: opens a dialog, "keys", "about" or "trim:SOUND", or searches
-            // MyInstants with "find:WORDS".
+            // Also for screenshots: opens a dialog, "keys", "about" or "trim:SOUND", searches
+            // MyInstants with "find:WORDS", or shows the tips of a page from one on, like
+            // "tour:voices:2".
             Some("--dialog") => {
                 self.show();
                 let Some(w) = self.window.borrow().clone() else { return 1 };
@@ -195,6 +196,16 @@ impl Ctx {
                     Some(other) if other.starts_with("find:") => {
                         w.show_page("soundboard");
                         (w.find_online)(&other[5..]);
+                    }
+                    Some(other) if other.starts_with("tour:") => {
+                        let mut parts = other[5..].split(':');
+                        let page = parts.next().unwrap_or("voices").to_string();
+                        let from = parts.next().and_then(|n| n.parse::<usize>().ok()).unwrap_or(1).max(1) - 1;
+                        w.show_page(&page);
+                        // After the page is laid out.
+                        glib::timeout_add_local_once(std::time::Duration::from_millis(400), move || {
+                            crate::ui::tour::show_from(&page, from);
+                        });
                     }
                     _ => return 2,
                 }

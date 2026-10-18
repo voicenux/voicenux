@@ -54,6 +54,8 @@ pub fn build(st: &St) -> (gtk::CenterBox, [gtk::Widget; 2]) {
     let voice = pill("mic", t("Voice changer"), t("Turn your voice changer on or off"), "T");
     let hear = pill("headphones", t("Hear myself"), t("Hear your changed voice in your headphones"), "H");
     let bg = pill("waves", t("Background"), t("Play the background sounds of a voice"), "B");
+    // A name, so the tips of the voice page find them.
+    mid.set_widget_name("vn-switches");
     mid.append(&voice);
     mid.append(&hear);
     mid.append(&bg);

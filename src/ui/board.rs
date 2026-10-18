@@ -99,6 +99,73 @@ pub fn shown_items(grid: &gtk::FlowBox, item_of: &ItemOf) -> Vec<String> {
     ids
 }
 
+/// The area for a tip to right-click a free spot, looked up again every frame: [`free_spot`],
+/// which keeps the one it showed while that stays in sight.
+pub fn spot_finder(grid: &gtk::FlowBox, scroll: &gtk::ScrolledWindow) -> super::tour::Area {
+    let (grid, scroll, shown) = (grid.downgrade(), scroll.downgrade(), Cell::new(None));
+    Rc::new(move || {
+        let spot = free_spot(&grid.upgrade()?, &scroll.upgrade()?, shown.get());
+        shown.set(spot);
+        spot
+    })
+}
+
+/// A free spot among the tiles that is in sight in `scroll`, for the tip to right-click one, in
+/// the coordinates of `grid`: after the last tile when its row has room, a gap between two tiles
+/// of a row, or between two rows. `keep` is the spot shown so far: while it stays in sight, it
+/// stays, so the mark does not hop when the list scrolls.
+pub fn free_spot(
+    grid: &gtk::FlowBox,
+    scroll: &gtk::ScrolledWindow,
+    keep: Option<gtk::graphene::Rect>,
+) -> Option<gtk::graphene::Rect> {
+    let mut cells: Vec<gtk::graphene::Rect> = Vec::new();
+    let mut child = grid.first_child();
+    while let Some(c) = child {
+        if c.is_visible()
+            && let Some(r) = c.compute_bounds(grid)
+        {
+            cells.push(r);
+        }
+        child = c.next_sibling();
+    }
+    // In the order on screen, rows from the top: the widgets are in the order they came in, not
+    // in the sorted one.
+    cells.sort_by(|a, b| a.y().total_cmp(&b.y()).then(a.x().total_cmp(&b.x())));
+    let in_sight = |r: &gtk::graphene::Rect| {
+        let top = grid.compute_point(scroll, &gtk::graphene::Point::new(r.x(), r.y()));
+        top.is_some_and(|p| p.y() >= 0.0 && p.y() + r.height() <= scroll.height() as f32)
+    };
+    let mut spots: Vec<gtk::graphene::Rect> = Vec::new();
+    let gap = grid.column_spacing() as f32;
+    if let Some(last) = cells.last() {
+        let free = gtk::graphene::Rect::new(last.x() + last.width() + gap, last.y(), last.width(), last.height());
+        if free.x() + free.width() <= grid.width() as f32 {
+            spots.push(free);
+        }
+    }
+    for w in cells.windows(2).filter(|w| (w[0].y() - w[1].y()).abs() < 1.0) {
+        let left = w[0].x() + w[0].width();
+        spots.push(gtk::graphene::Rect::new(left, w[0].y(), w[1].x() - left, w[0].height()));
+    }
+    // Between two rows, under the first tile of the upper one: for a list one tile wide.
+    for w in cells.windows(2).filter(|w| w[1].y() > w[0].y() + w[0].height()) {
+        let row_start = cells.iter().find(|c| (c.y() - w[0].y()).abs() < 1.0).unwrap_or(&w[0]);
+        let bottom = w[0].y() + w[0].height();
+        spots.push(gtk::graphene::Rect::new(row_start.x(), bottom, row_start.width(), w[1].y() - bottom));
+    }
+    let spots: Vec<_> = spots.into_iter().filter(|r| r.width() > 4.0 && r.height() > 4.0 && in_sight(r)).collect();
+    let same = |a: &gtk::graphene::Rect, b: &gtk::graphene::Rect| {
+        (a.x() - b.x()).abs() < 1.0 && (a.y() - b.y()).abs() < 1.0 && (a.width() - b.width()).abs() < 1.0
+    };
+    if let Some(k) = keep
+        && spots.iter().any(|s| same(s, &k))
+    {
+        return Some(k);
+    }
+    spots.into_iter().next()
+}
+
 /// What a drop moves: the picked tiles when the dragged one is one of them, in the order of the
 /// shelf, else just the dragged one.
 pub fn group_of(shelf: &Shared, picks: &Picks, id: &str) -> Vec<String> {

@@ -254,6 +254,7 @@ pub fn build(app: &adw::Application, st: &St) -> Window {
 
     // Room for things that float above the pages, like the autoscroll mark.
     let layer = gtk::Overlay::new();
+    layer.set_widget_name(super::tour::LAYER);
     layer.set_child(Some(&split));
     let toast = adw::ToastOverlay::new();
     toast.set_child(Some(&layer));

@@ -2111,6 +2111,54 @@ msgstr "Übereinander"
 msgid "{} of {}"
 msgstr "{} von {}"
 
+msgid "Got it"
+msgstr "Verstanden"
+
+msgid "Show the tips again"
+msgstr "Tipps wieder zeigen"
+
+msgid "They show when you open a page"
+msgstr "Sie kommen, wenn du eine Seite öffnest"
+
+msgid "The tips show again on each page"
+msgstr "Die Tipps kommen auf jeder Seite wieder"
+
+msgid "Search MyInstants for any sound and add it with one click."
+msgstr "Such auf MyInstants nach jedem Sound und füg ihn mit einem Klick hinzu."
+
+msgid "Right-click an empty spot"
+msgstr "Rechtsklick auf eine freie Stelle"
+
+msgid "There you make folders, add your own audio files, sort the sounds or pick all. Right-click a sound to edit it."
+msgstr "Dort machst du Ordner, fügst eigene Audiodateien hinzu, sortierst die Sounds oder wählst alle aus. Ein Rechtsklick auf einen Sound bearbeitet ihn."
+
+msgid "Drag to sort"
+msgstr "Ziehen zum Sortieren"
+
+msgid "Drag a sound to another place, or onto a folder to put it in. Ctrl+click picks several."
+msgstr "Zieh einen Sound an eine andere Stelle, oder auf einen Ordner, um ihn hineinzulegen. Strg+Klick wählt mehrere aus."
+
+msgid "Volume and play mode"
+msgstr "Lautstärke und Spielart"
+
+msgid "Sounds play into the Voicenux Microphone, so others hear them too. Here you set how loud they are, if you hear them yourself, and what a click does."
+msgstr "Sounds laufen über das Voicenux-Mikrofon, andere hören sie also auch. Hier stellst du ein, wie laut sie sind, ob du sie selbst hörst und was ein Klick macht."
+
+msgid "Pick a voice"
+msgstr "Wähl eine Stimme"
+
+msgid "There you make folders and sort the voices. Drag voices to move them, Ctrl+click picks several."
+msgstr "Dort machst du Ordner und sortierst die Stimmen. Zieh Stimmen, um sie zu verschieben, Strg+Klick wählt mehrere aus."
+
+msgid "Make it yours"
+msgstr "Mach sie zu deiner"
+
+msgid "Change the main settings here, or click Customize for all of them. What you change gets a blue frame."
+msgstr "Hier änderst du die wichtigsten Einstellungen, mit „Anpassen“ alle. Was du änderst, bekommt einen blauen Rahmen."
+
+msgid "Skip"
+msgstr "Überspringen"
+
 msgid "EasyEffects found"
 msgstr "EasyEffects gefunden"
 
@@ -2182,3 +2230,12 @@ msgstr "etwa 0,3 s"
 
 msgid "Runs on"
 msgstr "Läuft auf"
+
+msgid "Click a voice to use it."
+msgstr "Klick auf eine Stimme, um sie zu nutzen."
+
+msgid "The switches"
+msgstr "Die Schalter"
+
+msgid "Voice changer turns your new voice on and off. Hear myself plays it in your headphones. Background adds the sound of a voice, like rain or a campfire."
+msgstr "Stimmverzerrer schaltet deine neue Stimme an und aus. Mich hören spielt sie dir in die Kopfhörer. Hintergrund legt das Geräusch einer Stimme darunter, etwa Regen oder ein Lagerfeuer."

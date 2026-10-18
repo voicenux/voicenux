@@ -14,6 +14,7 @@ mod scroll;
 pub mod trim;
 pub mod settings;
 pub mod soundboard;
+pub mod tour;
 pub mod visuals;
 pub mod voicelab;
 pub mod voices;

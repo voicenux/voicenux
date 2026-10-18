@@ -65,6 +65,8 @@ pub struct Config {
     /// "system", "light" or "dark".
     pub appearance: String,
     pub onboarded: bool,
+    /// Pages that showed their tips, see `ui::tour`.
+    pub tours: Vec<String>,
     pub default_mic: bool,
     /// The microphone that was the default before Voicenux took over.
     pub previous_default: Option<String>,
@@ -116,6 +118,7 @@ impl Default for Config {
             autostart: false,
             appearance: "system".into(),
             onboarded: false,
+            tours: Vec::new(),
             default_mic: false,
             previous_default: None,
             width: 1180,
