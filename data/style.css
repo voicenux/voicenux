@@ -1361,6 +1361,11 @@ toggle-group.vn-segmented > toggle {
   font-weight: 650;
 }
 
+/* No lines between the choices: the lit one stands out on its own. */
+toggle-group.vn-segmented > separator {
+  opacity: 0;
+}
+
 toggle-group.vn-segmented > toggle:checked {
   background-image: var(--vn-grad);
   color: #ffffff;

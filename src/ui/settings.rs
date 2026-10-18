@@ -549,12 +549,12 @@ pub fn build(st: &St, window: &adw::ApplicationWindow) -> adw::ToolbarView {
     let looks = adw::ToggleGroup::new();
     looks.add_css_class("vn-segmented");
     looks.set_valign(gtk::Align::Center);
-    for (name, icon, text) in [
-        ("system", "emblem-system-symbolic", t("System")),
-        ("light", "weather-clear-symbolic", t("Light")),
-        ("dark", "weather-clear-night-symbolic", t("Dark")),
-    ] {
-        looks.add(adw::Toggle::builder().name(name).icon_name(icon).label(text).tooltip(text).build());
+    // Lucide like the rest of the settings: the theme's own sun is a plain dot in Breeze.
+    for (name, icon, text) in [("system", "monitor", t("System")), ("light", "sun", t("Light")), ("dark", "moon", t("Dark"))] {
+        let content = gtk::Box::new(gtk::Orientation::Horizontal, 6);
+        content.append(&line_icon(icon, 16));
+        content.append(&gtk::Label::new(Some(text)));
+        looks.add(adw::Toggle::builder().name(name).child(&content).tooltip(text).build());
     }
     looks.set_active_name(Some(&c.appearance));
     looks.connect_active_name_notify({
