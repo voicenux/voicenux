@@ -71,7 +71,7 @@ curl http://127.0.0.1:41967/api/icon/robot -o robot.png
 | `background` | switch | Background sounds of the voice on or off |
 | `mute` | switch | Mutes the microphone |
 | `favorite` | voice | Stars a voice, or takes the star away |
-| `sound` | sound | Plays a sound, as its play mode says (from the start, play and stop, on top, loop) |
+| `sound` | sound | Plays a sound, as the play mode of the soundboard says (from the start, play and stop, on top) |
 | `stop-sound` | sound | Stops a sound |
 | `stop-sounds` | | Stops all sounds |
 | `sound-volume` | 0 to 100 | Volume of the soundboard |
@@ -102,6 +102,6 @@ The state:
 
 A voice: `{"id": "robot", "name": "Robot", "icon": "robot", "category": "scifi", "favorite": false, "custom": false}`. Categories are `characters`, `horror`, `scifi`, `places`, `devices`, `music`, `funny` and `custom` for voices made in Voicelab.
 
-A sound: `{"id": "airhorn", "name": "Air Horn", "icon": "postal-horn", "mode": "restart", "volume": 100}`. `mode` is how it plays: `restart`, `toggle`, `overlap` or `loop`. That is its own mode, or else the one set for the whole soundboard.
+A sound: `{"id": "airhorn", "name": "Air Horn", "icon": "postal-horn", "mode": "restart", "volume": 100}`. `mode` is how a click plays it, the same for all sounds: `restart`, `toggle` or `overlap`.
 
 Names come in the language of the app. `api` in the greeting goes up when a change breaks clients.

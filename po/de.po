@@ -194,17 +194,11 @@ msgstr "Füge Audiodateien hinzu oder zieh sie hierher. MP3, OGG, FLAC und WAV g
 msgid "Bring back the starter sounds"
 msgstr "Mitgelieferte Sounds zurückholen"
 
-msgid "Sounds play into the Voicenux Microphone. Drop audio files anywhere on this page to add them."
-msgstr "Sounds laufen über das Voicenux Microphone. Zieh Audiodateien irgendwo auf diese Seite, um sie hinzuzufügen."
-
 msgid "Audio files"
 msgstr "Audiodateien"
 
 msgid "Could not add {}"
 msgstr "{} ließ sich nicht hinzufügen"
-
-msgid "Soundboard volume"
-msgstr "Lautstärke des Soundboards"
 
 msgid "Hear sounds myself"
 msgstr "Sounds selbst hören"
@@ -217,12 +211,6 @@ msgstr "Lautstärke"
 
 msgid "Click to type a value"
 msgstr "Klicke, um einen Wert einzutippen"
-
-msgid "When pressed"
-msgstr "Beim Drücken"
-
-msgid "Like the soundboard"
-msgstr "Wie das Soundboard"
 
 msgid "What a click on a sound does"
 msgstr "Was ein Klick auf einen Sound macht"
@@ -1454,9 +1442,6 @@ msgstr "Abspielen und stoppen"
 msgid "Play on top"
 msgstr "Übereinander abspielen"
 
-msgid "Loop"
-msgstr "Endlosschleife"
-
 msgid "Voices"
 msgstr "Stimmen"
 
@@ -2119,3 +2104,27 @@ msgstr "{} Stimmen löschen?"
 
 msgid "They are gone for good."
 msgstr "Sie sind dann für immer weg."
+
+msgid "From the start"
+msgstr "Von vorne"
+
+msgid "Play/Stop"
+msgstr "Start/Stopp"
+
+msgid "On top"
+msgstr "Übereinander"
+
+msgid "For everyone"
+msgstr "Für alle"
+
+msgid "How loud the sounds play for everyone: for others in the Voicenux Microphone, and for you when Hear them myself is on."
+msgstr "So laut spielen die Sounds für alle: für andere über das Voicenux-Mikrofon und für dich, wenn „Selbst hören“ an ist."
+
+msgid "Hear them myself"
+msgstr "Selbst hören"
+
+msgid "Volume of this sound"
+msgstr "Lautstärke dieses Sounds"
+
+msgid "Only this sound. It comes on top of the volume for everyone under the sounds."
+msgstr "Nur für diesen Sound. Sie kommt zur Lautstärke „Für alle“ unter den Sounds dazu."

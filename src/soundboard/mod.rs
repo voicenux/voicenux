@@ -32,30 +32,46 @@ pub enum PlayMode {
     Toggle,
     /// Every press starts another copy on top.
     Overlap,
-    /// Plays in a loop until pressed again.
-    Loop,
 }
 
 impl PlayMode {
-    pub const ALL: [PlayMode; 4] = [PlayMode::Restart, PlayMode::Toggle, PlayMode::Overlap, PlayMode::Loop];
-    /// What the soundboard button offers for all sounds at once.
-    pub const BOARD: [PlayMode; 3] = [PlayMode::Restart, PlayMode::Toggle, PlayMode::Overlap];
+    pub const ALL: [PlayMode; 3] = [PlayMode::Restart, PlayMode::Toggle, PlayMode::Overlap];
+
+    /// The name in the config and the API.
+    pub fn id(self) -> &'static str {
+        match self {
+            PlayMode::Restart => "restart",
+            PlayMode::Toggle => "toggle",
+            PlayMode::Overlap => "overlap",
+        }
+    }
+
+    pub fn from_id(id: &str) -> Option<Self> {
+        Self::ALL.into_iter().find(|m| m.id() == id)
+    }
+
+    /// A short name, for the buttons side by side under the soundboard.
+    pub fn short(self) -> &'static str {
+        match self {
+            PlayMode::Restart => "From the start",
+            PlayMode::Toggle => "Play/Stop",
+            PlayMode::Overlap => "On top",
+        }
+    }
 
     pub fn label(self) -> &'static str {
         match self {
             PlayMode::Restart => "Play from the start",
             PlayMode::Toggle => "Play and stop",
             PlayMode::Overlap => "Play on top",
-            PlayMode::Loop => "Loop",
         }
     }
 
     pub fn icon(self) -> &'static str {
         match self {
             PlayMode::Restart => "media-skip-backward-symbolic",
-            PlayMode::Toggle => "media-playback-stop-symbolic",
-            PlayMode::Overlap => "view-dual-symbolic",
-            PlayMode::Loop => "media-playlist-repeat-symbolic",
+            PlayMode::Toggle => "media-playback-start-symbolic",
+            PlayMode::Overlap => "edit-copy-symbolic",
         }
     }
 }
@@ -73,9 +89,6 @@ pub struct Sound {
     pub builtin: Option<String>,
     #[serde(default = "full")]
     pub volume: f32,
-    /// None plays like the soundboard, see `Config::sound_mode`.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub mode: Option<PlayMode>,
     /// Where playing starts, in seconds.
     #[serde(default, skip_serializing_if = "is_zero")]
     pub start: f32,
@@ -99,11 +112,6 @@ impl Sound {
     pub fn is_trimmed(&self) -> bool {
         self.start > 0.0 || self.end.is_some()
     }
-
-    /// How it plays, with `board` as the mode of the soundboard.
-    pub fn mode_on(&self, board: PlayMode) -> PlayMode {
-        self.mode.unwrap_or(board)
-    }
 }
 
 #[derive(Clone, Debug, Default, Serialize, Deserialize)]
@@ -117,10 +125,6 @@ pub struct Library {
     pub folders: Vec<String>,
     #[serde(default)]
     pub sound: Vec<Sound>,
-    /// The modes in this file are ones people picked. Older soundboards wrote "restart" for every
-    /// sound, so those sounds play like the soundboard now.
-    #[serde(default)]
-    pub own_modes: bool,
 }
 
 fn first_pack() -> u32 {
@@ -158,15 +162,8 @@ impl Library {
     /// Brings a soundboard from an older starter pack up to date: the sounds that are new join
     /// at the end. Returns whether something changed.
     fn upgrade(&mut self) -> bool {
-        let modes = !self.own_modes;
-        if modes {
-            for s in self.sound.iter_mut().filter(|s| s.mode == Some(PlayMode::Restart)) {
-                s.mode = None;
-            }
-            self.own_modes = true;
-        }
         if self.starter >= starter::PACK {
-            return modes;
+            return false;
         }
         // Pack 2 has other audio for the old ids, so their cuts no longer fit.
         if self.starter < 2 {
@@ -189,7 +186,6 @@ impl Library {
             starter: starter::PACK,
             folders: Vec::new(),
             sound: starter::BUILTIN.iter().map(starter_sound).collect(),
-            own_modes: true,
         }
     }
 
@@ -229,7 +225,6 @@ impl Library {
             file: Some(file),
             builtin: None,
             volume: 1.0,
-            mode: None,
             start: 0.0,
             end: None,
             folder: None,
@@ -314,7 +309,6 @@ fn starter_sound(b: &starter::Builtin) -> Sound {
         file: None,
         builtin: Some(b.id.to_string()),
         volume: 1.0,
-        mode: None,
         start: 0.0,
         end: None,
         folder: None,
@@ -601,24 +595,6 @@ mod tests {
         assert!(!lib.upgrade());
         let saved: Library = toml::from_str(&toml::to_string_pretty(&lib).unwrap()).unwrap();
         assert_eq!(saved.starter, starter::PACK);
-    }
-
-    #[test]
-    fn old_restarts_play_like_the_soundboard() {
-        let mut lib = Library::starter();
-        lib.own_modes = false;
-        lib.sound[0].mode = Some(PlayMode::Restart);
-        lib.sound[1].mode = Some(PlayMode::Loop);
-        assert!(lib.upgrade());
-        assert_eq!(lib.sound[0].mode, None);
-        assert_eq!(lib.sound[1].mode, Some(PlayMode::Loop));
-        // A restart picked after that stays.
-        lib.sound[0].mode = Some(PlayMode::Restart);
-        let mut saved: Library = toml::from_str(&toml::to_string_pretty(&lib).unwrap()).unwrap();
-        assert!(!saved.upgrade());
-        assert_eq!(saved.sound[0].mode, Some(PlayMode::Restart));
-        assert_eq!(saved.sound[0].mode_on(PlayMode::Toggle), PlayMode::Restart);
-        assert_eq!(saved.sound[2].mode_on(PlayMode::Toggle), PlayMode::Toggle);
     }
 
     #[test]

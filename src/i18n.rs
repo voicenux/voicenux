@@ -223,6 +223,7 @@ mod tests {
         }
         for m in crate::soundboard::PlayMode::ALL {
             check(m.label());
+            check(m.short());
         }
         for (_, desc, _) in crate::shortcuts::ACTIONS {
             check(desc);

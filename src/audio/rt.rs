@@ -45,7 +45,6 @@ struct Playing {
     data: Arc<SoundData>,
     pos: f64,
     volume: f32,
-    looped: bool,
     /// Headphones only.
     preview: bool,
     /// Counts down to zero after a stop, for a short fade out.
@@ -170,7 +169,7 @@ impl Processor {
                         self.gate.set_param(0, db);
                     }
                 }
-                RtCmd::Play { id, data, volume, looped, restart, preview } => {
+                RtCmd::Play { id, data, volume, restart, preview } => {
                     if restart {
                         for p in self.sounds.iter_mut().filter(|p| p.id == id) {
                             p.stopping.get_or_insert(480);
@@ -180,7 +179,7 @@ impl Processor {
                         let oldest = self.sounds.remove(0);
                         self.throw(Trash::Sound(oldest.data));
                     }
-                    self.sounds.push(Playing { id, data, pos: 0.0, volume, looped, preview, stopping: None });
+                    self.sounds.push(Playing { id, data, pos: 0.0, volume, preview, stopping: None });
                 }
                 RtCmd::Stop(id) => {
                     for p in self.sounds.iter_mut().filter(|p| p.id == id) {
@@ -327,10 +326,6 @@ impl Processor {
             for k in 0..n {
                 let idx = p.pos as usize;
                 if idx + 1 >= len {
-                    if p.looped && p.stopping.is_none() {
-                        p.pos = 0.0;
-                        continue;
-                    }
                     finished = true;
                     break;
                 }
@@ -444,7 +439,7 @@ mod tests {
     fn plays_and_finishes_sounds() {
         let (mut p, mut tx, mut trash, meters) = setup();
         let data = Arc::new(SoundData { frames: vec![[0.25, 0.25]; 4800] });
-        tx.push(RtCmd::Play { id: 7, data, volume: 1.0, looped: false, restart: true, preview: false }).unwrap();
+        tx.push(RtCmd::Play { id: 7, data, volume: 1.0, restart: true, preview: false }).unwrap();
         tx.push(RtCmd::SoundVolume(1.0)).unwrap();
         let (out, mon) = run(&mut p, &vec![0.0; 2400]);
         assert!((out[1000] - 0.25).abs() < 1e-3);
@@ -460,7 +455,7 @@ mod tests {
         let (mut p, mut tx, _, _) = setup();
         let data = Arc::new(SoundData { frames: vec![[0.25, 0.25]; 4800] });
         tx.push(RtCmd::HearSounds(false)).unwrap();
-        tx.push(RtCmd::Play { id: 9, data, volume: 1.0, looped: false, restart: true, preview: true }).unwrap();
+        tx.push(RtCmd::Play { id: 9, data, volume: 1.0, restart: true, preview: true }).unwrap();
         tx.push(RtCmd::SoundVolume(1.0)).unwrap();
         let (out, mon) = run(&mut p, &vec![0.0; 2400]);
         assert!(out[1000].abs() < 1e-6, "a preview never goes into the microphone");

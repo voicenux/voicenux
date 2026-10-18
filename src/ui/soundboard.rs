@@ -8,7 +8,7 @@ use adw::prelude::*;
 use gtk::{gdk, gio, glib};
 
 use super::visuals::progress_ring;
-use super::{animate_in, board, popup, clear, icon, icon_picker, label, smooth_scroll, value_field};
+use super::{animate_in, board, clear, icon, icon_picker, label, line_icon, popup, smooth_scroll, value_field};
 use crate::i18n::{fill, t, t_dyn};
 use crate::soundboard::{PlayMode, Sound};
 use crate::state::{Change, St};
@@ -80,8 +80,6 @@ pub struct SoundboardPage {
     pub add: Rc<dyn Fn()>,
     /// Header buttons that drop their text in a narrow window.
     pub shrink: Vec<adw::ButtonContent>,
-    /// The text of the play mode button, which goes first when the header gets full.
-    pub mode_label: gtk::Label,
     /// Opens the MyInstants search with some words.
     pub find_online: Rc<dyn Fn(&str)>,
 }
@@ -95,8 +93,7 @@ pub fn build(st: &St) -> SoundboardPage {
     search_box.set_margin_start(12);
     header.pack_start(&search_box);
     let content = |icon: &str, text: &str| adw::ButtonContent::builder().icon_name(icon).label(text).build();
-    let (find_content, stop_content) =
-        (content("system-search-symbolic", t("Find sounds")), content("media-playback-stop-symbolic", t("Stop all")));
+    let find_content = content("system-search-symbolic", t("Find sounds"));
     // MyInstants has all the sounds people want, so finding them is the main thing here. Own
     // files are in the More menu, and can be dropped on the page.
     let find = gtk::ToggleButton::new();
@@ -122,18 +119,6 @@ pub fn build(st: &St) -> SoundboardPage {
                 }
             });
         }
-    });
-    let stop = gtk::Button::new();
-    stop.set_child(Some(&stop_content));
-    stop.set_tooltip_text(Some(t("Stop all sounds (Esc)")));
-    header.pack_end(&stop);
-    header.pack_end(&more_button(st, &shelf, add.clone()));
-    header.pack_end(&volume_button(st));
-    let (mode, mode_label) = mode_button(st);
-    header.pack_end(&mode);
-    stop.connect_clicked({
-        let st = st.clone();
-        move |_| st.stop_sounds()
     });
 
     let grid = gtk::FlowBox::builder()
@@ -186,14 +171,7 @@ pub fn build(st: &St) -> SoundboardPage {
     stack.add_named(&empty, Some("empty"));
     stack.add_named(&none, Some("none"));
 
-    let hint = label(
-        t("Sounds play into the Voicenux Microphone. Drop audio files anywhere on this page to add them."),
-        &["dim-label", "caption"],
-    );
-    hint.set_wrap(true);
-    hint.set_margin_bottom(10);
-    hint.set_margin_start(20);
-    hint.set_margin_end(20);
+    let (deck, deck_texts, deck_labels, deck_volume, stop) = deck(st);
 
     // In a folder: the way back up over the grid. Drop a sound on it to take it out.
     let path = board::path_bar(t("All sounds"), t("Back to all sounds (Backspace)"));
@@ -212,10 +190,52 @@ pub fn build(st: &St) -> SoundboardPage {
         board::picks_bar(&done, &count, &[select_all.upcast_ref(), move_to.upcast_ref(), delete.upcast_ref()]);
 
     let body = gtk::Box::new(gtk::Orientation::Vertical, 0);
-    body.set_hexpand(true);
     body.append(&path.widget);
     body.append(&stack);
-    body.append(&hint);
+    body.append(&deck);
+    // The deck drops texts when the page gets too narrow for it, also when Find sounds takes
+    // room: first those of the play modes and Stop all (their pictures and tooltips stay), then
+    // "For everyone" and "Hear them myself", and the slider gets shorter. How wide it needs to be
+    // is measured when it first shows, so other languages and font sizes fit too.
+    let bin = adw::BreakpointBin::builder().child(&body).width_request(360).height_request(300).hexpand(true).build();
+    let max_width = |px: f64| {
+        adw::BreakpointCondition::new_length(adw::BreakpointConditionLengthType::MaxWidth, px, adw::LengthUnit::Px)
+    };
+    // The last breakpoint that fits wins, so the narrow one comes second and drops all.
+    let medium = adw::Breakpoint::new(max_width(0.0));
+    let narrow = adw::Breakpoint::new(max_width(0.0));
+    for (object, property) in &deck_texts {
+        medium.add_setter(object, property, Some(&"".to_value()));
+        narrow.add_setter(object, property, Some(&"".to_value()));
+    }
+    for w in &deck_labels {
+        narrow.add_setter(w, "visible", Some(&false.to_value()));
+    }
+    narrow.add_setter(&deck_volume, "width-request", Some(&160.to_value()));
+    // The percent says enough there, the speaker gives its room to the slider.
+    if let Some(speaker) = deck_volume.first_child() {
+        narrow.add_setter(&speaker, "visible", Some(&false.to_value()));
+    }
+    bin.add_breakpoint(medium.clone());
+    bin.add_breakpoint(narrow.clone());
+    let measured = Cell::new(false);
+    bin.connect_map(move |_| {
+        if measured.replace(true) {
+            return;
+        }
+        let natural = || deck.measure(gtk::Orientation::Horizontal, -1).1 as f64;
+        let full = natural();
+        let saved: Vec<glib::Value> = deck_texts.iter().map(|(o, p)| o.property_value(p)).collect();
+        for (o, p) in &deck_texts {
+            o.set_property_from_value(p, &"".to_value());
+        }
+        let without = natural();
+        for ((o, p), v) in deck_texts.iter().zip(saved) {
+            o.set_property_from_value(p, &v);
+        }
+        medium.set_condition(Some(&max_width(full + 4.0)));
+        narrow.set_condition(Some(&max_width(without + 4.0)));
+    });
 
     // Finding sounds online slides in on the right, so new sounds show up in the grid beside it.
     let (finder, online) = super::find_sounds::panel(st);
@@ -263,7 +283,7 @@ pub fn build(st: &St) -> SoundboardPage {
         }
     });
     let content = gtk::Box::new(gtk::Orientation::Horizontal, 0);
-    content.append(&body);
+    content.append(&bin);
     content.append(&reveal);
 
     let view = adw::ToolbarView::new();
@@ -620,6 +640,10 @@ pub fn build(st: &St) -> SoundboardPage {
                 let st = st.clone();
                 items.push(popup::Item::new("media-playback-stop-symbolic", t("Stop all"), move || st.stop_sounds()));
             }
+            let st = st.clone();
+            items.push(popup::Item::new("edit-undo-symbolic", t("Bring back the starter sounds"), move || {
+                st.restore_starter_sounds()
+            }));
             popup::show_list(&scroll, x, y, items);
         }
     });
@@ -654,6 +678,7 @@ pub fn build(st: &St) -> SoundboardPage {
     view.add_tick_callback({
         let st = st.clone();
         let pads = pads.clone();
+        let stop = stop.clone();
         move |w, _| {
             if !w.is_mapped() {
                 return glib::ControlFlow::Continue;
@@ -664,6 +689,16 @@ pub fn build(st: &St) -> SoundboardPage {
                 if let Some(id) = st.sound_id_of(rt) {
                     let e = now.entry(id).or_insert(0.0);
                     *e = e.max(p.max(0.001));
+                }
+            }
+            // Stop all wakes up red while something plays.
+            let on = !now.is_empty();
+            if stop.is_sensitive() != on {
+                stop.set_sensitive(on);
+                if on {
+                    stop.add_css_class("destructive-action");
+                } else {
+                    stop.remove_css_class("destructive-action");
                 }
             }
             for (id, p) in pads.borrow().iter() {
@@ -764,63 +799,7 @@ pub fn build(st: &St) -> SoundboardPage {
             online.set_text(text);
         }
     });
-    SoundboardPage { widget: view, search, add, shrink: vec![find_content, stop_content], mode_label, find_online }
-}
-
-/// What a click on a sound does, for all sounds at once. Sounds with a mode of their own keep it.
-fn mode_button(st: &St) -> (gtk::MenuButton, gtk::Label) {
-    // An icon and a label of its own, not a ButtonContent: a narrow window hides the label, and
-    // a new mode only changes its text.
-    let (icon, text) = (gtk::Image::new(), gtk::Label::new(None));
-    let content = gtk::Box::new(gtk::Orientation::Horizontal, 6);
-    content.append(&icon);
-    content.append(&text);
-    let b = gtk::MenuButton::new();
-    b.set_child(Some(&content));
-    b.set_always_show_arrow(true);
-    b.set_tooltip_text(Some(t("What a click on a sound does")));
-    let items = PlayMode::BOARD
-        .iter()
-        .map(|&m| {
-            let st = st.clone();
-            popup::Item::new(m.icon(), t_dyn(m.label()), move || st.set_sound_mode(m))
-        })
-        .collect();
-    b.set_popover(Some(&popup::list(items)));
-    let sync = {
-        let (st, icon, text) = (st.clone(), icon.clone(), text.clone());
-        move || {
-            let m = st.config.borrow().sound_mode;
-            icon.set_icon_name(Some(m.icon()));
-            text.set_label(&t_dyn(m.label()));
-        }
-    };
-    sync();
-    st.subscribe(move |c| {
-        if matches!(c, Change::Settings) {
-            sync();
-        }
-    });
-    (b, text)
-}
-
-/// More: add own files, sort the sounds, or bring back the starter sounds.
-fn more_button(st: &St, shelf: &board::Shared, add: Rc<dyn Fn()>) -> gtk::MenuButton {
-    let b = gtk::MenuButton::new();
-    b.set_icon_name("view-more-symbolic");
-    b.set_tooltip_text(Some(t("More")));
-    // Made new each time it opens: the sort item says what it switches to.
-    let (st, shelf) = (st.clone(), shelf.clone());
-    b.set_create_popup_func(move |b| {
-        let (st2, add) = (st.clone(), add.clone());
-        b.set_popover(Some(&popup::list(vec![
-            popup::Item::new("list-add-symbolic", t("Add audio files"), move || add()),
-            board::new_folder_item(&shelf, b.upcast_ref()),
-            sort_item(&st),
-            popup::Item::new("edit-undo-symbolic", t("Bring back the starter sounds"), move || st2.restore_starter_sounds()),
-        ])));
-    });
-    b
+    SoundboardPage { widget: view, search, add, shrink: vec![find_content], find_online }
 }
 
 /// Sort by name, or back to your own order when it is sorted.
@@ -837,42 +816,111 @@ fn import(st: &St, paths: &[std::path::PathBuf]) {
     st.import_sounds(paths.to_vec());
 }
 
-fn volume_button(st: &St) -> gtk::MenuButton {
-    let b = gtk::MenuButton::new();
-    b.set_icon_name("audio-volume-high-symbolic");
-    b.set_tooltip_text(Some(t("Soundboard volume")));
-    let bx = gtk::Box::new(gtk::Orientation::Vertical, 10);
-    bx.set_margin_top(12);
-    bx.set_margin_bottom(12);
-    bx.set_margin_start(12);
-    bx.set_margin_end(12);
-    bx.set_width_request(260);
-    let title = label(t("Soundboard volume"), &["heading"]);
-    title.set_xalign(0.0);
-    let scale = volume_slider(st.config.borrow().sound_volume as f64, 1.0, {
+/// The deck under the sounds: how loud they play, whether you hear them yourself, what a click
+/// does, and a way to stop them all. Gives the texts that go when the page is narrow, as
+/// objects and their text property, the labels that go then, the volume slider and the stop
+/// button.
+fn deck(st: &St) -> (gtk::Box, Vec<(glib::Object, &'static str)>, Vec<gtk::Widget>, gtk::Box, gtk::Button) {
+    let mut texts: Vec<(glib::Object, &'static str)> = Vec::new();
+    // The volume is what everyone hears: others through the Voicenux Microphone, and you too
+    // when Hear them myself is on. Both say so, so nobody wonders whose volume it is.
+    let everyone = label(t("For everyone"), &["vn-deck-label"]);
+    everyone.set_valign(gtk::Align::Center);
+    let volume = volume_slider(st.config.borrow().sound_volume as f64, 1.0, {
         let st = st.clone();
         move |v| st.update(|c| c.sound_volume = v as f32)
     });
-    let row = gtk::Box::new(gtk::Orientation::Horizontal, 8);
-    let l = label(t("Hear sounds myself"), &[]);
-    l.set_hexpand(true);
-    l.set_xalign(0.0);
-    let sw = gtk::Switch::new();
-    sw.set_active(st.config.borrow().hear_sounds);
-    sw.connect_active_notify({
+    let tip = t("How loud the sounds play for everyone: for others in the Voicenux Microphone, and for you when Hear them myself is on.");
+    everyone.set_tooltip_text(Some(tip));
+    volume.set_tooltip_text(Some(tip));
+    volume.set_width_request(190);
+    volume.set_hexpand(false);
+    volume.set_valign(gtk::Align::Center);
+
+    let hear_text = label(t("Hear them myself"), &[]);
+    let hear_content = gtk::Box::new(gtk::Orientation::Horizontal, 6);
+    hear_content.set_halign(gtk::Align::Center);
+    hear_content.append(&line_icon("headphones", 16));
+    hear_content.append(&hear_text);
+    let hear = gtk::ToggleButton::builder().child(&hear_content).valign(gtk::Align::Center).build();
+    hear.add_css_class("flat");
+    hear.add_css_class("vn-hear");
+    hear.set_active(st.config.borrow().hear_sounds);
+    hear.set_tooltip_text(Some(t("Hear sounds myself")));
+    hear.connect_toggled({
         let st = st.clone();
-        move |s| st.update(|c| c.hear_sounds = s.is_active())
+        move |b| st.update(|c| c.hear_sounds = b.is_active())
     });
-    row.append(&l);
-    row.append(&sw);
-    bx.append(&title);
-    bx.append(&scale);
-    bx.append(&row);
-    let p = gtk::Popover::new();
-    popup::menu(&p);
-    p.set_child(Some(&bx));
-    b.set_popover(Some(&p));
-    b
+
+    // What a click on a sound does, all choices in sight.
+    let modes = adw::ToggleGroup::new();
+    modes.add_css_class("vn-segmented");
+    modes.set_valign(gtk::Align::Center);
+    // Each as wide as its text, so they fit beside the slider.
+    modes.set_homogeneous(false);
+    for m in PlayMode::ALL {
+        let toggle = adw::Toggle::builder()
+            .name(m.id())
+            .icon_name(m.icon())
+            .label(t_dyn(m.short()))
+            .tooltip(t_dyn(m.label()))
+            .build();
+        texts.push((toggle.clone().upcast(), "label"));
+        modes.add(toggle);
+    }
+    modes.set_active_name(Some(st.config.borrow().sound_mode.id()));
+    modes.connect_active_name_notify({
+        let st = st.clone();
+        move |g| {
+            if let Some(m) = g.active_name().and_then(|n| PlayMode::from_id(&n))
+                && m != st.config.borrow().sound_mode
+            {
+                st.set_sound_mode(m);
+            }
+        }
+    });
+    st.subscribe({
+        let (st, modes, hear) = (st.clone(), modes.downgrade(), hear.downgrade());
+        move |c| {
+            if !matches!(c, Change::Settings) {
+                return;
+            }
+            let c = st.config.borrow();
+            if let Some(modes) = modes.upgrade()
+                && modes.active_name().as_deref() != Some(c.sound_mode.id())
+            {
+                modes.set_active_name(Some(c.sound_mode.id()));
+            }
+            if let Some(hear) = hear.upgrade()
+                && hear.is_active() != c.hear_sounds
+            {
+                hear.set_active(c.hear_sounds);
+            }
+        }
+    });
+
+    let stop_content =
+        adw::ButtonContent::builder().icon_name("media-playback-stop-symbolic").label(t("Stop all")).build();
+    texts.push((stop_content.clone().upcast(), "label"));
+    let stop = gtk::Button::builder().child(&stop_content).valign(gtk::Align::Center).sensitive(false).build();
+    stop.add_css_class("vn-stop-all");
+    stop.set_tooltip_text(Some(t("Stop all sounds (Esc)")));
+    stop.connect_clicked({
+        let st = st.clone();
+        move |_| st.stop_sounds()
+    });
+
+    let gap = gtk::Box::new(gtk::Orientation::Horizontal, 0);
+    gap.set_hexpand(true);
+    let deck = gtk::Box::new(gtk::Orientation::Horizontal, 8);
+    deck.add_css_class("vn-deck");
+    deck.append(&everyone);
+    deck.append(&volume);
+    deck.append(&hear);
+    deck.append(&gap);
+    deck.append(&modes);
+    deck.append(&stop);
+    (deck, texts, vec![everyone.upcast(), hear_text.upcast()], volume, stop)
 }
 
 /// A volume slider with a speaker that shows the level, and the value in percent. Click the value
@@ -957,25 +1005,17 @@ fn pad(st: &St, s: &Sound) -> Pad {
     show_keys(st, &keys, &s.id);
     pad.append(&keys);
 
-    // Little marks for how it plays and whether it is cut.
+    // A little mark when it is cut.
     let badges = gtk::Box::new(gtk::Orientation::Horizontal, 4);
     badges.set_halign(gtk::Align::Start);
     badges.set_valign(gtk::Align::Start);
     badges.set_margin_top(8);
     badges.set_margin_start(8);
-    // Only a mode of its own shows: the soundboard button says how the others play.
-    let own = s.mode.filter(|m| *m != st.config.borrow().sound_mode);
-    let marks = [
-        (own.map(PlayMode::icon), own.map(|m| t_dyn(m.label())).unwrap_or_default()),
-        (s.is_trimmed().then_some("edit-cut-symbolic"), t("Trimmed").to_string()),
-    ];
-    for (name, tip) in marks {
-        if let Some(name) = name {
-            let img = gtk::Image::from_icon_name(name);
-            img.add_css_class("vn-pad-badge");
-            img.set_tooltip_text(Some(&tip));
-            badges.append(&img);
-        }
+    if s.is_trimmed() {
+        let img = gtk::Image::from_icon_name("edit-cut-symbolic");
+        img.add_css_class("vn-pad-badge");
+        img.set_tooltip_text(Some(t("Trimmed")));
+        badges.append(&img);
     }
 
     let menu = gtk::Button::from_icon_name("view-more-symbolic");
@@ -1083,38 +1123,20 @@ fn editor(st: &St, s: &Sound) -> gtk::Popover {
     });
     b.append(&top);
 
-    let vol_label = label(t("Volume"), &["caption-heading"]);
+    // Only this sound, on top of the volume for everyone under the sounds.
+    let vol_label = label(t("Volume of this sound"), &["caption-heading"]);
     vol_label.set_xalign(0.0);
     b.append(&vol_label);
-    b.append(&volume_slider(s.volume as f64, 2.0, {
+    let own = volume_slider(s.volume as f64, 2.0, {
         let st = st.clone();
         let sound = sound.clone();
         move |v| {
             sound.borrow_mut().volume = v as f32;
             st.set_sound_volume(&sound.borrow().id, v as f32);
         }
-    }));
-
-    let mode_label = label(t("When pressed"), &["caption-heading"]);
-    mode_label.set_xalign(0.0);
-    b.append(&mode_label);
-    // First "like the soundboard", then the modes.
-    let mut names: Vec<String> = vec![t("Like the soundboard").into()];
-    names.extend(PlayMode::ALL.iter().map(|m| t_dyn(m.label())));
-    let names: Vec<&str> = names.iter().map(String::as_str).collect();
-    let mode = gtk::DropDown::from_strings(&names);
-    let own = s.mode.and_then(|m| PlayMode::ALL.iter().position(|a| *a == m));
-    mode.set_selected(own.map_or(0, |i| i as u32 + 1));
-    popup::menus_in(&mode);
-    mode.connect_selected_notify({
-        let sound = sound.clone();
-        let save = save.clone();
-        move |d| {
-            sound.borrow_mut().mode = (d.selected() as usize).checked_sub(1).map(|i| PlayMode::ALL[i]);
-            save();
-        }
     });
-    b.append(&mode);
+    own.set_tooltip_text(Some(t("Only this sound. It comes on top of the volume for everyone under the sounds.")));
+    b.append(&own);
 
     let trim = gtk::Button::new();
     trim.add_css_class("pill");

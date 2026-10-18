@@ -61,7 +61,7 @@ When you close the window, Voicenux keeps running in the tray, so your voice kee
 
 <img width="720" src="res/soundboard.png" alt="The soundboard with sound pads; Drum Roll and Applause are playing and show their progress as a ring, Drum Roll has a mark for its cut and Air Horn shows its shortcut. On the right, Find sounds lists applause sounds from MyInstants, each with a play and an add button">
 
-Sounds play into the Voicenux Microphone, and you hear them too. Add your own with **Add sounds**, or drop audio files on the page. MP3, OGG, FLAC and WAV work. The menu of a sound changes its name, picture, volume and shortcut, and what a press does: play from the start, play and stop, play on top or loop. Right-click a sound to open it. Small marks on a pad show how it plays and if it is cut, and its shortcut shows under its name.
+Sounds play into the Voicenux Microphone, and you hear them too. Right-click an empty spot to add your own audio files, make folders or sort, or drop audio files on the page. MP3, OGG, FLAC and WAV work. The bar under the sounds sets their volume, whether you hear them yourself, and what a click does: play from the start, play and stop, or play on top. It stops them all, too. Right-click a sound to change its name, picture, volume and shortcut. A small mark on a pad shows that it is cut, and its shortcut shows under its name.
 
 Type to search your sounds. When none matches, one click searches MyInstants for the same words. Drag a sound onto another one to move it there, or use Alt with ← and →. Delete removes a sound, and **Undo** brings it back. Escape stops all sounds.
 
