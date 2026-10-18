@@ -209,7 +209,7 @@ flowbox.vn-grid > flowboxchild {
   background-color: var(--vn-card);
   background-image: var(--vn-sheen), radial-gradient(circle at 50% 32%, color-mix(in srgb, var(--cat-color) 26%, transparent), transparent 68%);
   box-shadow: inset 0 1px 0 var(--vn-glass-edge), inset 0 0 0 1px var(--vn-line);
-  transition: box-shadow 260ms ease, background-color 260ms ease;
+  transition: background-color 260ms ease;
 }
 
 /* Voice cards and sound pads sit in a .vn-lift overlay with their buttons, so all of it lifts.
@@ -280,8 +280,13 @@ flowboxchild .voice-card.active.off .voice-icon {
   font-size: 13.5px;
 }
 
+/* The voice in use glows in its color and breathes. The breath is the size of the gradient, not a
+   shadow: the card lifts on hover, and shadows that change in a moving card break up on NVIDIA. */
 .voice-card.active {
-  background-image: var(--vn-sheen), radial-gradient(circle at 50% 32%, color-mix(in srgb, var(--cat-color) 42%, transparent), transparent 72%);
+  background-image: var(--vn-sheen), radial-gradient(circle at 50% 32%, color-mix(in srgb, var(--cat-color) 46%, transparent), transparent 72%);
+  background-repeat: no-repeat;
+  background-position: center, 50% 32%;
+  box-shadow: inset 0 0 0 2px var(--cat-color), inset 0 0 18px -4px var(--cat-color);
   animation: vn-glow 2.4s ease-in-out infinite;
 }
 
@@ -291,9 +296,9 @@ flowboxchild .voice-card.active.off .voice-icon {
 }
 
 @keyframes vn-glow {
-  0% { box-shadow: inset 0 0 0 2px var(--cat-color), inset 0 0 14px -4px var(--cat-color); }
-  50% { box-shadow: inset 0 0 0 2px var(--cat-color), inset 0 0 24px -4px var(--cat-color); }
-  100% { box-shadow: inset 0 0 0 2px var(--cat-color), inset 0 0 14px -4px var(--cat-color); }
+  0% { background-size: 100% 100%, 100% 100%; }
+  50% { background-size: 100% 100%, 140% 140%; }
+  100% { background-size: 100% 100%, 100% 100%; }
 }
 
 .vn-star {
@@ -540,7 +545,7 @@ flowbox.vn-pads > flowboxchild {
   padding: 14px 10px 12px 10px;
   background-color: var(--vn-card);
   background-image: var(--vn-sheen);
-  box-shadow: inset 0 1px 0 var(--vn-glass-edge), inset 0 0 0 1px var(--vn-line), inset 0 0 0 0 transparent;
+  box-shadow: inset 0 1px 0 var(--vn-glass-edge), inset 0 0 0 1px var(--vn-line), inset 0 0 22px -4px transparent;
   transition: box-shadow 220ms ease;
 }
 
@@ -554,13 +559,13 @@ flowbox.vn-pads > flowboxchild:active:not(.vn-menu-open) > .vn-lift {
 }
 
 flowboxchild:hover:not(.vn-menu-hover) .sound-pad {
-  box-shadow: inset 0 1px 0 var(--vn-glass-edge), inset 0 0 0 1px color-mix(in srgb, var(--accent-bg-color) 45%, transparent), inset 0 0 0 0 transparent;
+  box-shadow: inset 0 1px 0 var(--vn-glass-edge), inset 0 0 0 1px color-mix(in srgb, var(--accent-bg-color) 45%, transparent), inset 0 0 22px -4px transparent;
 }
 
 /* Picked for Delete or Move: a ring, a tint and a check in the corner. */
 .sound-pad.vn-selected {
   background-color: color-mix(in srgb, var(--accent-bg-color) 18%, var(--vn-card));
-  box-shadow: inset 0 1px 0 var(--vn-glass-edge), inset 0 0 0 2px var(--accent-bg-color), inset 0 0 0 0 transparent;
+  box-shadow: inset 0 1px 0 var(--vn-glass-edge), inset 0 0 0 2px var(--accent-bg-color), inset 0 0 22px -4px transparent;
 }
 
 .voice-card.vn-selected {
@@ -719,7 +724,7 @@ flowboxchild.vn-drop-into .voice-card {
 
 /* The first match of a search: Enter plays it. */
 .sound-pad.vn-first {
-  box-shadow: inset 0 1px 0 var(--vn-glass-edge), inset 0 0 0 2px color-mix(in srgb, var(--accent-bg-color) 75%, transparent), inset 0 0 0 0 transparent;
+  box-shadow: inset 0 1px 0 var(--vn-glass-edge), inset 0 0 0 2px color-mix(in srgb, var(--accent-bg-color) 75%, transparent), inset 0 0 22px -4px transparent;
 }
 
 .voice-card.vn-first {
@@ -935,7 +940,9 @@ scrollbar.vn-trim-scroll slider {
   box-shadow: inset 0 0 0 1px var(--vn-line), inset 0 -2px 0 var(--vn-line);
 }
 
-/* Menus pop open with a little bounce. Two names, because only a new name starts it again. */
+/* Menus pop open with a little bounce. They never grow past their full size: their shadow would
+   reach out of the menu's surface and break up. Two names, because only a new name starts it
+   again. */
 popover.vn-bounce-a > contents {
   animation: vn-menu-a 420ms ease-out;
 }
@@ -945,16 +952,16 @@ popover.vn-bounce-b > contents {
 }
 
 @keyframes vn-menu-a {
-  0% { opacity: 0; transform: scale(0.82); }
-  55% { opacity: 1; transform: scale(1.03); }
-  80% { opacity: 1; transform: scale(0.99); }
+  0% { opacity: 0; transform: scale(0.84); }
+  55% { opacity: 1; transform: scale(1); }
+  78% { opacity: 1; transform: scale(0.975); }
   100% { opacity: 1; transform: scale(1); }
 }
 
 @keyframes vn-menu-b {
-  0% { opacity: 0; transform: scale(0.82); }
-  55% { opacity: 1; transform: scale(1.03); }
-  80% { opacity: 1; transform: scale(0.99); }
+  0% { opacity: 0; transform: scale(0.84); }
+  55% { opacity: 1; transform: scale(1); }
+  78% { opacity: 1; transform: scale(0.975); }
   100% { opacity: 1; transform: scale(1); }
 }
 
@@ -1187,7 +1194,7 @@ button.suggested-action {
   background-image: var(--vn-grad);
   color: #ffffff;
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.18), 0 6px 18px -8px var(--vn-glow);
-  transition: box-shadow 200ms ease, filter 200ms ease, transform 200ms ease;
+  transition: box-shadow 200ms ease, filter 200ms ease;
 }
 
 button.suggested-action:hover {
@@ -1195,9 +1202,10 @@ button.suggested-action:hover {
   filter: brightness(1.08);
 }
 
-/* A press gives a little, without going dark. */
+/* A press flashes a little lighter, without going dark. It does not shrink: a glow that moves
+   with it leaves broken bits on NVIDIA. */
 button.suggested-action:active {
-  transform: scale(0.97);
+  filter: brightness(1.12);
 }
 
 /* Find sounds stays on while its panel is open: lit, with a light ring and more glow. Darker
