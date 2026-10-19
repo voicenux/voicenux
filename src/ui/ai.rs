@@ -89,7 +89,7 @@ fn step_text(n: usize) -> &'static str {
 pub fn status_text(model: &ai::Model) -> String {
     use ai::bridge::Status;
     if !ai::usable() {
-        return t("AI voices need an NVIDIA graphics card, or Run on the processor in Settings.").into();
+        return t("AI voices need an NVIDIA or AMD graphics card, or Run on the processor in Settings.").into();
     }
     if !ai::ready(model) {
         return t("Not downloaded yet. Pick the voice to get it.").into();
@@ -188,10 +188,10 @@ pub fn offer(st: &St, parent: &impl IsA<gtk::Widget>, id: &str) {
         facts.push(("package", t("AI engine"), fill(t("{}, once"), &[&gb])));
     }
     facts.push(("mic-vocal", t("Voice"), format!("{}\u{a0}MB", model.mb)));
-    let (on, delay) = if ai::on_cpu() {
-        (t("Processor"), t("about half a second"))
-    } else {
-        (t("NVIDIA graphics card"), t("about 0.3 s"))
+    let (on, delay) = match ai::card() {
+        _ if ai::on_cpu() => (t("Processor"), t("about half a second")),
+        Some(ai::Card::Amd(_)) => (t("AMD graphics card"), t("about 0.3 s")),
+        _ => (t("NVIDIA graphics card"), t("about 0.3 s")),
     };
     facts.push(("cpu", t("Runs on"), on.into()));
     facts.push(("timer", t("Delay"), delay.into()));

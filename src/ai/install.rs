@@ -12,7 +12,7 @@ use std::time::Duration;
 
 use anyhow::{Context, bail};
 
-use super::{Model, dir, on_cpu};
+use super::{Card, Model, card, dir, on_cpu};
 
 /// Raise it when the helper needs other packages: the next click installs again.
 const VERSION: &str = "1";
@@ -21,6 +21,8 @@ const UV_VERSION: &str = "0.12.23";
 /// PyTorch built for CUDA 12.6 runs with NVIDIA drivers from 525 on. The default build from
 /// PyPI wants CUDA 13 and a very new driver.
 const TORCH_CUDA: &str = "https://download.pytorch.org/whl/cu126";
+/// The chips it runs are in `ai::rocm_runs`.
+const TORCH_ROCM: &str = "https://download.pytorch.org/whl/rocm7.2";
 const TORCH_CPU: &str = "https://download.pytorch.org/whl/cpu";
 const TORCH: &str = "torch==2.14.1";
 const PACKAGES: &[&str] = &["infer-rvc-python==1.3.1", "setuptools<80", "soxr"];
@@ -64,7 +66,12 @@ impl std::error::Error for Stopped {}
 /// About how much each step downloads, in MB, until it says itself: uv, Python, PyTorch, the
 /// voice converter and the speech models.
 pub fn step_mb() -> [u64; STEPS] {
-    if on_cpu() { [15, 30, 250, 300, 560] } else { [15, 30, 3000, 300, 560] }
+    let torch = match build() {
+        "cpu" => 250,
+        "rocm" => 6600,
+        _ => 3000,
+    };
+    [15, 30, torch, 300, 560]
 }
 
 pub fn python() -> PathBuf {
@@ -79,23 +86,31 @@ pub fn write_helper() -> std::io::Result<PathBuf> {
     Ok(path)
 }
 
-/// The PyTorch build the setting wants. The one for CUDA also runs on the processor, the one for
-/// the processor is much smaller.
+/// The PyTorch build the setting and the graphics card want. The ones for a graphics card also
+/// run on the processor, the one for the processor is much smaller.
 fn build() -> &'static str {
-    if on_cpu() { "cpu" } else { "cuda" }
+    match card() {
+        _ if on_cpu() => "cpu",
+        Some(Card::Amd(_)) => "rocm",
+        _ => "cuda",
+    }
 }
 
-/// The engine is there, in a build that fits the setting: "1 cuda" or "1 cpu" in `ready`.
+/// The engine is there, in a build that fits: "1 cuda", "1 rocm" or "1 cpu" in `ready`.
 pub fn installed() -> bool {
     let ready = std::fs::read_to_string(dir().join("ready")).unwrap_or_default();
     let mut parts = ready.split_whitespace();
-    python().is_file() && parts.next() == Some(VERSION) && parts.next().is_some_and(|b| b == "cuda" || b == build())
+    python().is_file() && parts.next() == Some(VERSION) && parts.next().is_some_and(|b| b == build() || on_cpu())
 }
 
-/// About how big the engine is, in GB, for the download dialog. Measured: PyTorch for the
-/// graphics card brings 6 GB of NVIDIA libraries and the like.
+/// About how big the engine is, in GB, for the download dialog. Measured: PyTorch for NVIDIA
+/// brings 6 GB of NVIDIA libraries and the like, the one for AMD has 14 GB of ROCm inside.
 pub fn engine_gb() -> u32 {
-    if on_cpu() { 3 } else { 8 }
+    match build() {
+        "cpu" => 3,
+        "rocm" => 18,
+        _ => 8,
+    }
 }
 
 /// Where the helper keeps its speech models and the Hugging Face cache.
@@ -297,6 +312,11 @@ pub fn install_engine(progress: &dyn Fn(usize, u64, u64)) -> anyhow::Result<()> 
 
 fn install_steps(progress: &dyn Fn(usize, u64, u64)) -> anyhow::Result<()> {
     std::fs::create_dir_all(dir())?;
+    // A build for the other graphics card would leave GBs of its libraries behind.
+    let ready = std::fs::read_to_string(dir().join("ready")).unwrap_or_default();
+    if ready.split_whitespace().nth(1).is_some_and(|b| b != "cpu" && b != build()) {
+        let _ = std::fs::remove_dir_all(dir().join("venv"));
+    }
     let _ = std::fs::remove_file(dir().join("ready"));
     let mb = step_mb().map(|m| m * 1_000_000);
     progress(1, 0, mb[0]);
@@ -307,9 +327,13 @@ fn install_steps(progress: &dyn Fn(usize, u64, u64)) -> anyhow::Result<()> {
         mb[1],
         &step(2),
     )?;
-    let index = if on_cpu() { TORCH_CPU } else { TORCH_CUDA };
-    // Installed again, so a switch from the processor build to the CUDA one really happens:
-    // uv takes "2.14.1+cpu" for "2.14.1" too.
+    let index = match build() {
+        "cpu" => TORCH_CPU,
+        "rocm" => TORCH_ROCM,
+        _ => TORCH_CUDA,
+    };
+    // Installed again, so a switch from the processor build to one for a graphics card really
+    // happens: uv takes "2.14.1+cpu" for "2.14.1" too.
     run_watched(
         uv_cmd(&uv).args(["pip", "install", "--python"]).arg(python()).args([
             "--index-url",

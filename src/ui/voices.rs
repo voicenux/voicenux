@@ -1042,8 +1042,10 @@ fn card(st: &St, v: &Voice, open_lab: &OpenLab) -> Card {
         corner.append(&mark);
         if !crate::ai::usable() {
             card.add_css_class("vn-ai-off");
-            tip =
-                format!("{tip}\n{}", t("AI voices need an NVIDIA graphics card, or Run on the processor in Settings."));
+            tip = format!(
+                "{tip}\n{}",
+                t("AI voices need an NVIDIA or AMD graphics card, or Run on the processor in Settings.")
+            );
         } else if !crate::ai::ready(model) {
             let get = gtk::Image::from_icon_name("folder-download-symbolic");
             get.add_css_class("vn-ai-get");

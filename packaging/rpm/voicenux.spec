@@ -34,9 +34,9 @@ Voicenux adds the Voicenux Microphone to PipeWire: apps that pick it hear your
 changed voice.
 
 It comes with 69 voices, from Baby and Robot to Demon and Underwater, AI voices
-for an NVIDIA graphics card, background sounds, a soundboard that finds sounds
-on MyInstants, and Voicelab to build your own voices from 26 effects. Global
-shortcuts, a tray icon and a command line control it.
+for NVIDIA and AMD graphics cards, background sounds, a soundboard that finds
+sounds on MyInstants, and Voicelab to build your own voices from 26 effects.
+Global shortcuts, a tray icon and a command line control it.
 
 %prep
 %autosetup -n %{name}-%{version}

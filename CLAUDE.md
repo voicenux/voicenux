@@ -37,9 +37,11 @@
 - AI voices (`src/ai`, `src/dsp/ai.rs`, `data/ai/helper.py`) run RVC models in a Python helper,
   installed with one click into `~/.local/share/voicenux/ai` (uv, Python 3.11, PyTorch for CUDA
   12.6). The `ai` effect only moves samples through lock-free rings; the bridge thread talks to
-  the helper over stdin and stdout. They want an NVIDIA card; the setting "Run on the processor"
-  (`ai_cpu`, or `VOICENUX_AI_CPU=1` for tests) installs a smaller PyTorch and runs them on the
-  processor with bigger blocks and more delay. The helper warms a model up when it loads and
+  the helper over stdin and stdout. They want an NVIDIA card, or an AMD one: `ai::card` reads the
+  chips from `/sys/class/kfd` and picks PyTorch for ROCm 7.2 (RX 6000 on; some pass as a close
+  relative with `HSA_OVERRIDE_GFX_VERSION`). AMD is untested on real hardware. The setting
+  "Run on the processor" (`ai_cpu`, or `VOICENUX_AI_CPU=1` for tests) installs a smaller PyTorch
+  and runs them on the processor with bigger blocks and more delay. The helper warms a model up when it loads and
   picks the block size from how fast it renders. Blocks under 120 ms, or HuBERT without the
   mirrored window ends, make a held "aaa" jump between vowels. Models are pinned to a Hugging Face commit in
   `ai::MODELS`, with the character's typical pitch (the helper moves yours there, `key` only

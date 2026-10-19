@@ -59,7 +59,7 @@ pub struct Config {
     pub close_to_tray: bool,
     /// A plain one-color tray icon instead of the blue logo.
     pub tray_mono: bool,
-    /// AI voices run on the processor, for computers without an NVIDIA card.
+    /// AI voices run on the processor, for computers without a graphics card for the AI.
     pub ai_cpu: bool,
     pub autostart: bool,
     /// "system", "light" or "dark".

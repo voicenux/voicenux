@@ -162,7 +162,7 @@ pub static BLOCKS: &[BlockSpec] = &[
     BlockSpec {
         kind: "ai",
         name: "AI voice",
-        about: "Turns your voice into a character with an AI model. Needs an NVIDIA graphics card.",
+        about: "Turns your voice into a character with an AI model. Needs an NVIDIA or AMD graphics card.",
         icon: "sparkles",
         group: Group::Voice,
         params: &[

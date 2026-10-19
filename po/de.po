@@ -1841,14 +1841,14 @@ msgstr "Furz"
 msgid "{} is not downloaded yet. Are you online?"
 msgstr "{} ist noch nicht heruntergeladen. Bist du online?"
 
-msgid "AI voices need an NVIDIA graphics card, or Run on the processor in Settings."
-msgstr "KI-Stimmen brauchen eine NVIDIA-Grafikkarte, oder „Auf dem Prozessor laufen“ in den Einstellungen."
+msgid "AI voices need an NVIDIA or AMD graphics card, or Run on the processor in Settings."
+msgstr "KI-Stimmen brauchen eine Grafikkarte von NVIDIA oder AMD, oder „Auf dem Prozessor laufen“ in den Einstellungen."
 
 msgid "Run on the processor"
 msgstr "Auf dem Prozessor laufen"
 
-msgid "For computers without an NVIDIA graphics card. Takes much of the processor and adds about half a second of delay."
-msgstr "Für Computer ohne NVIDIA-Grafikkarte. Braucht viel vom Prozessor und verzögert um etwa eine halbe Sekunde."
+msgid "For computers without a graphics card from NVIDIA, or from AMD since the RX 6000. Takes much of the processor and adds about half a second of delay."
+msgstr "Für Computer ohne Grafikkarte von NVIDIA, oder von AMD ab der RX 6000. Braucht viel vom Prozessor und verzögert um etwa eine halbe Sekunde."
 
 msgid "The AI runs on your processor. It adds about {} of delay."
 msgstr "Die KI läuft auf deinem Prozessor. Sie verzögert um etwa {}."
@@ -1865,8 +1865,8 @@ msgstr "KI-Engine"
 msgid "Not installed. It comes with the first AI voice you pick."
 msgstr "Nicht installiert. Sie kommt mit der ersten KI-Stimme, die du wählst."
 
-msgid "This computer has no NVIDIA graphics card. Turn on Run on the processor above."
-msgstr "Dieser Computer hat keine NVIDIA-Grafikkarte. Schalte oben „Auf dem Prozessor laufen“ ein."
+msgid "This computer has no graphics card the AI voices can use. Turn on Run on the processor above."
+msgstr "Dieser Computer hat keine Grafikkarte, auf der KI-Stimmen laufen. Schalte oben „Auf dem Prozessor laufen“ ein."
 
 msgid "Installed"
 msgstr "Installiert"
@@ -1994,8 +1994,8 @@ msgstr "KI"
 msgid "AI voice"
 msgstr "KI-Stimme"
 
-msgid "Turns your voice into a character with an AI model. Needs an NVIDIA graphics card."
-msgstr "Macht aus deiner Stimme eine Figur, mit einem KI-Modell. Braucht eine NVIDIA-Grafikkarte."
+msgid "Turns your voice into a character with an AI model. Needs an NVIDIA or AMD graphics card."
+msgstr "Macht aus deiner Stimme eine Figur, mit einem KI-Modell. Braucht eine Grafikkarte von NVIDIA oder AMD."
 
 msgid "Character"
 msgstr "Figur"
@@ -2224,6 +2224,9 @@ msgstr "etwa eine halbe Sekunde"
 
 msgid "NVIDIA graphics card"
 msgstr "NVIDIA-Grafikkarte"
+
+msgid "AMD graphics card"
+msgstr "AMD-Grafikkarte"
 
 msgid "about 0.3 s"
 msgstr "etwa 0,3 s"

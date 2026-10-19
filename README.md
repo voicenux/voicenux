@@ -113,9 +113,9 @@ Build your own voice from 26 effects, like pitch, robot, auto-tune, echo, reverb
 </p>
 
 Characters like SpongeBob, Darth Vader and GLaDOS, with an [RVC](https://github.com/RVC-Project/Retrieval-based-Voice-Conversion-WebUI)
-model. Best on an NVIDIA graphics card, with about 0.3 s of delay. Without one, turn on **Run on
-the processor** in Settings. The first AI voice downloads the AI engine once (about 8 GB, or 3 GB
-for the processor).
+model. Best on an NVIDIA graphics card, or an AMD one from the RX 6000 on, with about 0.3 s of
+delay. Without one, turn on **Run on the processor** in Settings. The first AI voice downloads the
+AI engine once (about 8 GB, 18 GB for AMD, or 3 GB for the processor).
 
 </details>
 

@@ -314,8 +314,9 @@ impl State {
         // Also for the voice in use: an AI voice can be missing since the last start.
         if let Some(model) = crate::ai::model_of(&v.block_values()) {
             if !crate::ai::usable() {
-                let text =
-                    crate::i18n::t("AI voices need an NVIDIA graphics card, or Run on the processor in Settings.");
+                let text = crate::i18n::t(
+                    "AI voices need an NVIDIA or AMD graphics card, or Run on the processor in Settings.",
+                );
                 self.notify(Change::Notice(text.into()));
                 return;
             }
@@ -728,7 +729,7 @@ impl State {
 
     /// Decodes a sound on a thread of its own and plays it when it is done. Decoding takes a
     /// moment, and on the main thread the window would stutter.
-    fn load_and_play(self: &Rc<Self>, sound: soundboard::Sound) {
+    fn load_and_play(self: &Rc<Self>, sound: soundboard::Sound, mode: PlayMode) {
         if !self.loading.borrow_mut().insert(sound.id.clone()) {
             return;
         }
@@ -753,7 +754,7 @@ impl State {
             let now = st.library.borrow().find(&sound.id).cloned();
             let Some(now) = now.filter(|n| (n.start, n.end) == (sound.start, sound.end)) else { return };
             st.sounds.borrow_mut().insert(now.id.clone(), data.clone());
-            st.start_sound(&now, data);
+            st.start_sound(&now, data, mode);
         });
     }
 
@@ -775,12 +776,12 @@ impl State {
         self.notify(Change::Notice(crate::i18n::fill(text, &[&name])));
     }
 
-    fn start_sound(&self, sound: &soundboard::Sound, data: Arc<SoundData>) {
+    fn start_sound(&self, sound: &soundboard::Sound, data: Arc<SoundData>, mode: PlayMode) {
         self.engine.rt(RtCmd::Play {
             id: self.sound_rt_id(&sound.id),
             data,
             volume: sound.volume,
-            restart: self.sound_mode() != PlayMode::Overlap,
+            restart: mode != PlayMode::Overlap,
             preview: false,
         });
     }
@@ -802,17 +803,23 @@ impl State {
     }
 
     pub fn play_sound(self: &Rc<Self>, id: &str) {
+        self.play_sound_as(id, self.sound_mode());
+    }
+
+    /// Plays a sound the way `mode` says, whatever the soundboard is set to. For other apps, like
+    /// a Stream Deck key that always plays on top.
+    pub fn play_sound_as(self: &Rc<Self>, id: &str, mode: PlayMode) {
         let Some(sound) = self.library.borrow().find(id).cloned() else { return };
         let rt = self.sound_rt_id(id);
         let playing = self.is_playing(id);
-        if playing && self.sound_mode() == PlayMode::Toggle {
+        if playing && mode == PlayMode::Toggle {
             self.engine.rt(RtCmd::Stop(rt));
             return;
         }
         let cached = self.sounds.borrow().get(id).cloned();
         match cached {
-            Some(data) => self.start_sound(&sound, data),
-            None => self.load_and_play(sound),
+            Some(data) => self.start_sound(&sound, data, mode),
+            None => self.load_and_play(sound, mode),
         }
     }
 

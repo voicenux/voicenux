@@ -10,7 +10,7 @@ use std::sync::mpsc::{self, Receiver, RecvTimeoutError, Sender};
 use std::sync::{Arc, Mutex, OnceLock};
 use std::time::{Duration, Instant};
 
-use super::{MODELS, install, on_cpu};
+use super::{Card, MODELS, card, install, on_cpu};
 
 /// What an AI effect and the bridge share.
 pub struct Link {
@@ -138,11 +138,29 @@ fn send(stdin: &mut ChildStdin, kind: u8, payload: &[u8]) -> std::io::Result<()>
 
 fn start(back: Sender<Event>) -> anyhow::Result<Helper> {
     let script = install::write_helper()?;
-    let mut child = Command::new(install::python())
-        .arg(script)
-        .arg("serve")
-        .arg("--device")
-        .arg(if on_cpu() { "cpu" } else { "cuda" })
+    let mut cmd = Command::new(install::python());
+    // PyTorch for ROCm calls AMD cards "cuda" too.
+    cmd.arg(script).arg("serve").arg("--device").arg(if on_cpu() { "cpu" } else { "cuda" });
+    if let Some(Card::Amd(amd)) = card().filter(|_| !on_cpu()) {
+        // What the user set themselves wins.
+        let mut set = |key: &str, value: &str| {
+            if std::env::var_os(key).is_none() {
+                cmd.env(key, value);
+            }
+        };
+        if let Some(i) = amd.only {
+            set("ROCR_VISIBLE_DEVICES", &i.to_string());
+        }
+        if let Some(gfx) = amd.pass_as {
+            set("HSA_OVERRIDE_GFX_VERSION", gfx);
+        }
+        // MIOpen keeps the kernels it built, here so Remove takes them too.
+        let miopen = super::dir().join("miopen");
+        let _ = std::fs::create_dir_all(&miopen);
+        set("MIOPEN_USER_DB_PATH", &miopen.to_string_lossy());
+        set("MIOPEN_CUSTOM_CACHE_DIR", &miopen.to_string_lossy());
+    }
+    let mut child = cmd
         .arg("--models")
         .arg(install::models_dir())
         .env("HF_HOME", install::hf_home())

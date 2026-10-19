@@ -642,7 +642,7 @@ fn ai_group(st: &St) -> Group {
     let cpu = adw::SwitchRow::builder()
         .title(t("Run on the processor"))
         .subtitle(t(
-            "For computers without an NVIDIA graphics card. Takes much of the processor and adds about half a second of delay.",
+            "For computers without a graphics card from NVIDIA, or from AMD since the RX 6000. Takes much of the processor and adds about half a second of delay.",
         ))
         .active(st.config.borrow().ai_cpu)
         .build();
@@ -670,7 +670,9 @@ fn ai_group(st: &St) -> Group {
             let there = crate::ai::dir().join("ready").exists();
             remove.set_visible(there);
             if !crate::ai::usable() {
-                row.set_subtitle(t("This computer has no NVIDIA graphics card. Turn on Run on the processor above."));
+                row.set_subtitle(t(
+                    "This computer has no graphics card the AI voices can use. Turn on Run on the processor above.",
+                ));
                 return;
             }
             if !there {

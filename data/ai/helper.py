@@ -95,6 +95,9 @@ class Converter:
         self.hubert = load_hu_bert(self.config)
         self.rmvpe = RMVPE(rmvpe_path(models), is_half=self.half, device=self.device)
         self.kind = "cuda" if self.device.startswith("cuda") else "cpu"
+        if self.kind == "cuda":
+            # PyTorch for ROCm runs AMD cards as "cuda" too.
+            log("graphics card:", torch.cuda.get_device_name(0), "with ROCm" if torch.version.hip else "with CUDA")
         self.net = None
         self.index = None
         self.heard = np.zeros(0, dtype=np.float32)
