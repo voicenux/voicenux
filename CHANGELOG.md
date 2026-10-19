@@ -2,6 +2,18 @@
 
 What each release brings, newest first. The [GitHub releases](https://github.com/voicenux/voicenux/releases) add every commit that went into it.
 
+## v0.2.0
+
+_2026-10-19_
+
+Welcome to Voicenux `v0.2.0`! The AI voices now run on AMD graphics cards too, and the first start asks whether Voicenux should start with your computer. AMD support is brand new, so please tell us in an issue how it works on your card.
+
+### Highlights
+
+- AI voices on AMD graphics cards from the RX 6000 series on. Voicenux finds your card by itself
+- The welcome screen asks about **Start with the computer**
+- New API actions `sound-restart`, `sound-toggle` and `sound-overlap`, so a Stream Deck key can play a sound its own way
+
 ## v0.1.0
 
 _2026-10-18_
