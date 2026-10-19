@@ -25,6 +25,7 @@ use serde_json::{Value, json};
 use tungstenite::Message;
 
 use crate::i18n::t_dyn;
+use crate::soundboard::PlayMode;
 use crate::state::{Change, St};
 
 pub const PORT: u16 = 41967;
@@ -431,6 +432,12 @@ fn handle(st: &St, action: &str, arg: Option<&str>) -> Result<Value, String> {
         "sound" => {
             let id = find_sound(st, need()?)?;
             st.play_sound(&id);
+        }
+        // The same, but in this play mode, whatever the soundboard is set to.
+        "sound-restart" | "sound-toggle" | "sound-overlap" => {
+            let id = find_sound(st, need()?)?;
+            let mode = PlayMode::from_id(action.trim_start_matches("sound-")).unwrap_or_default();
+            st.play_sound_as(&id, mode);
         }
         "stop-sound" => {
             let id = find_sound(st, need()?)?;

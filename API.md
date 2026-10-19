@@ -72,6 +72,7 @@ curl http://127.0.0.1:41967/api/icon/robot -o robot.png
 | `mute` | switch | Mutes the microphone |
 | `favorite` | voice | Stars a voice, or takes the star away |
 | `sound` | sound | Plays a sound, as the play mode of the soundboard says (from the start, play and stop, on top) |
+| `sound-restart`, `sound-toggle`, `sound-overlap` | sound | Plays a sound from the start, plays or stops it, or plays another copy on top, whatever the soundboard says |
 | `stop-sound` | sound | Stops a sound |
 | `stop-sounds` | | Stops all sounds |
 | `sound-volume` | 0 to 100 | Volume of the soundboard |
