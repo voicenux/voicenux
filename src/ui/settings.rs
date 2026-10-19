@@ -524,11 +524,18 @@ pub fn build(st: &St, window: &adw::ApplicationWindow) -> adw::ToolbarView {
     autostart.connect_active_notify({
         let st = st.clone();
         move |r| {
-            let on = r.is_active();
-            if let Err(e) = crate::app::set_autostart(on) {
-                log::error!("autostart: {e}");
+            if r.is_active() != st.config.borrow().autostart {
+                crate::app::set_autostart(&st, r.is_active());
             }
-            st.update(|c| c.autostart = on)
+        }
+    });
+    // The welcome dialog asks too.
+    st.subscribe({
+        let (weak, autostart) = (Rc::downgrade(st), autostart.clone());
+        move |c| {
+            if let (Change::Settings, Some(st)) = (c, weak.upgrade()) {
+                autostart.set_active(st.config.borrow().autostart);
+            }
         }
     });
     app.add(&autostart);

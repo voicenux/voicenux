@@ -154,6 +154,25 @@ pub fn show(st: &St, parent: &adw::ApplicationWindow) {
         on.connect_active_notify(move |_| sync());
     }
 
+    let ready = page(
+        icon("rocket", 96).upcast(),
+        t("Always ready"),
+        t("Voicenux can start in the background when you log in. Then your voice works in every app right away."),
+    );
+    let row = gtk::Box::new(gtk::Orientation::Horizontal, 12);
+    row.set_halign(gtk::Align::Center);
+    row.set_margin_top(10);
+    let on = gtk::Switch::new();
+    on.set_active(st.config.borrow().autostart);
+    row.append(&label(t("Start with the computer"), &["heading"]));
+    row.append(&on);
+    on.connect_active_notify({
+        let st = st.clone();
+        move |s| crate::app::set_autostart(&st, s.is_active())
+    });
+    ready.append(&row);
+    carousel.append(&ready);
+
     let try_it = page(
         icon("sparkles", 96).upcast(),
         t("Try a voice"),

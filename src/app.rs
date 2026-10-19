@@ -416,8 +416,17 @@ fn drop_window_icon(s: &gtk::Settings) {
     }
 }
 
+/// Starts Voicenux with the computer or not: the autostart entry and the setting. From Settings
+/// and the welcome dialog.
+pub fn set_autostart(st: &St, on: bool) {
+    if let Err(e) = write_autostart(on) {
+        log::error!("autostart: {e}");
+    }
+    st.update(|c| c.autostart = on);
+}
+
 /// Writes or removes the autostart entry.
-pub fn set_autostart(on: bool) -> std::io::Result<()> {
+fn write_autostart(on: bool) -> std::io::Result<()> {
     let dir = dirs::config_dir().unwrap_or_default().join("autostart");
     let path = dir.join(format!("{APP_ID}.desktop"));
     if !on {

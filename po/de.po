@@ -410,6 +410,12 @@ msgstr "App"
 msgid "Start with the computer"
 msgstr "Mit dem Computer starten"
 
+msgid "Always ready"
+msgstr "Immer bereit"
+
+msgid "Voicenux can start in the background when you log in. Then your voice works in every app right away."
+msgstr "Voicenux kann beim Anmelden im Hintergrund starten. Dann klappt deine Stimme sofort in jeder App."
+
 msgid "Starts in the background, without a window."
 msgstr "Startet im Hintergrund, ohne Fenster."
 
