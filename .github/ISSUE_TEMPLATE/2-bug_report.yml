@@ -1,0 +1,102 @@
+name: 🐛 Bug report
+description: Something does not work as it should.
+labels:
+- bug
+body:
+- type: markdown
+  attributes:
+    value: Thanks for taking the time! The more you fill in, the faster it can be fixed.
+- type: checkboxes
+  id: checks
+  attributes:
+    label: Before you start
+    options:
+    - label: I searched the issues and this is not reported yet.
+      required: true
+    - label: I use the latest version.
+      required: true
+- type: textarea
+  id: what
+  attributes:
+    label: What happened?
+    description: What did you do, and what went wrong?
+  validations:
+    required: true
+- type: textarea
+  id: steps
+  attributes:
+    label: Steps to reproduce
+    placeholder: |
+      1.
+      2.
+      3.
+- type: textarea
+  id: expected
+  attributes:
+    label: What did you expect?
+  validations:
+    required: true
+- type: dropdown
+  id: part
+  attributes:
+    label: What is affected?
+    multiple: true
+    options:
+    - Voices and the voice changer
+    - Voicelab (own voices)
+    - AI voices
+    - Soundboard and Find sounds
+    - Background sounds
+    - Microphone, headphones or the Voicenux Microphone
+    - Discord, OBS or other apps that hear my voice
+    - Shortcuts or the tray
+    - Other apps (API, Stream Deck plugin)
+    - Settings, look or texts
+    - Other
+  validations:
+    required: true
+- type: input
+  id: version
+  attributes:
+    label: Version
+    description: In Voicenux under **Settings → About Voicenux**, or run `voicenux --version`.
+    placeholder: voicenux 0.1.0
+  validations:
+    required: true
+- type: dropdown
+  id: install
+  attributes:
+    label: How did you install Voicenux?
+    options:
+    - AUR (voicenux-bin)
+    - Fedora package
+    - Debian or Ubuntu package
+    - Built from source
+    - Other
+  validations:
+    required: true
+- type: input
+  id: system
+  attributes:
+    label: System
+    description: Distribution, desktop, and Wayland or X11.
+    placeholder: CachyOS, KDE Plasma 6.4, Wayland
+  validations:
+    required: true
+- type: input
+  id: audio
+  attributes:
+    label: Microphone and PipeWire
+    description: Your microphone, and the PipeWire version (`pipewire --version`). For AI voices, also your graphics card.
+    placeholder: Shure MV7, PipeWire 1.4.8, RTX 3070
+- type: textarea
+  id: logs
+  attributes:
+    label: Log
+    description: Quit Voicenux, start it in a terminal with `RUST_LOG=info voicenux`, make the problem happen, and paste the end of what it prints.
+    render: shell
+- type: textarea
+  id: more
+  attributes:
+    label: Anything else?
+    description: Screenshots, videos or anything else that could help.
