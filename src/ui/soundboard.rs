@@ -919,7 +919,11 @@ fn deck(st: &St) -> (gtk::Box, Texts, Vec<gtk::Widget>, gtk::Box, gtk::Button) {
     hear.set_tooltip_text(Some(t("Hear sounds myself")));
     hear.connect_toggled({
         let st = st.clone();
-        move |b| st.update(|c| c.hear_sounds = b.is_active())
+        move |b| {
+            if b.is_active() != st.config.borrow().hear_sounds {
+                st.update(|c| c.hear_sounds = b.is_active());
+            }
+        }
     });
 
     // What a click on a sound does, all choices in sight.
@@ -955,16 +959,20 @@ fn deck(st: &St) -> (gtk::Box, Texts, Vec<gtk::Widget>, gtk::Box, gtk::Button) {
             if !matches!(c, Change::Settings) {
                 return;
             }
-            let c = st.config.borrow();
+            // Copy first: setting a widget runs its handler, and that writes the config.
+            let (mode, hear_sounds) = {
+                let c = st.config.borrow();
+                (c.sound_mode, c.hear_sounds)
+            };
             if let Some(modes) = modes.upgrade()
-                && modes.active_name().as_deref() != Some(c.sound_mode.id())
+                && modes.active_name().as_deref() != Some(mode.id())
             {
-                modes.set_active_name(Some(c.sound_mode.id()));
+                modes.set_active_name(Some(mode.id()));
             }
             if let Some(hear) = hear.upgrade()
-                && hear.is_active() != c.hear_sounds
+                && hear.is_active() != hear_sounds
             {
-                hear.set_active(c.hear_sounds);
+                hear.set_active(hear_sounds);
             }
         }
     });

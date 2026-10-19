@@ -158,6 +158,27 @@ def main():
             state = json.load(r)["result"]
         check("the API tells the voice", state["voice"]["id"] == "deep", state["voice"]["id"])
 
+        # Hear sounds flipped from outside (the API, a Stream Deck key) crashed the app once, in
+        # the soundboard page. Pages only exist once the window is open.
+        sh(BIN, "open", "soundboard")
+        time.sleep(1.5)
+
+        def api_hear():
+            req = urllib.request.Request("http://127.0.0.1:41967/api/hear-sounds", method="POST")
+            with urllib.request.urlopen(req, timeout=5) as r:
+                return json.load(r)["ok"]
+
+        try:
+            ok = api_hear() and api_hear()
+        except OSError:
+            ok = False
+        time.sleep(0.3)
+        app = procs[-1].poll() is None
+        check("hear sounds flips from outside", ok and app, f"app {'runs' if app else 'is gone'}")
+        if not app:
+            # The next command would start a new Voicenux and wait for it forever.
+            sys.exit("Voicenux is gone, the other checks need it.")
+
         sh(BIN, "voice", "robot")
         time.sleep(0.5)
         y = capture(3, tone)
