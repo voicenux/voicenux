@@ -184,8 +184,8 @@ impl Ctx {
                 }
             }
             // Also for screenshots: opens a dialog, "keys", "about" or "trim:SOUND", searches
-            // MyInstants with "find:WORDS", or shows the tips of a page from one on, like
-            // "tour:voices:2".
+            // MyInstants with "find:WORDS", shows the tips of a page from one on, like
+            // "tour:voices:2", or the welcome dialog at a step, like "welcome:5".
             Some("--dialog") => {
                 self.show();
                 let Some(w) = self.window.borrow().clone() else { return 1 };
@@ -206,6 +206,10 @@ impl Ctx {
                         glib::timeout_add_local_once(std::time::Duration::from_millis(400), move || {
                             crate::ui::tour::show_from(&page, from);
                         });
+                    }
+                    Some(other) if other.starts_with("welcome") => {
+                        let step = other.strip_prefix("welcome:").and_then(|n| n.parse::<u32>().ok()).unwrap_or(1);
+                        crate::ui::onboarding::show_at(st, &w.window, step.max(1) - 1);
                     }
                     _ => return 2,
                 }

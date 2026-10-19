@@ -31,6 +31,11 @@ fn page(pic: gtk::Widget, title: &str, text: &str) -> gtk::Box {
 }
 
 pub fn show(st: &St, parent: &adw::ApplicationWindow) {
+    show_at(st, parent, 0);
+}
+
+/// From page `start` on, counted from 0. For screenshots.
+pub fn show_at(st: &St, parent: &adw::ApplicationWindow, start: u32) {
     let carousel = adw::Carousel::new();
     carousel.set_vexpand(true);
     carousel.set_allow_scroll_wheel(false);
@@ -262,4 +267,10 @@ pub fn show(st: &St, parent: &adw::ApplicationWindow) {
         }
     });
     dialog.present(Some(parent));
+    if start > 0 {
+        // Once the pages have their size.
+        gtk::glib::timeout_add_local_once(std::time::Duration::from_millis(300), move || {
+            carousel.scroll_to(&carousel.nth_page(start.min(carousel.n_pages() - 1)), false);
+        });
+    }
 }
