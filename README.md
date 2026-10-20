@@ -24,6 +24,7 @@
 
 <p align="center">
   <img width="720" src="res/voices.png" alt="Voicenux with the Baby voice selected: a grid of voice cards, the voice with its pitch settings on the right, and the switches for voice changer, hear myself and background at the bottom">
+  <img width="720" src="res/soundboard.png" alt="The soundboard with a Memes folder and sound pads; Drum Roll and Applause are playing and show their progress as a ring. Under the sounds, a bar with their volume, Hear them myself, the play modes and Stop all. On the right, Find sounds lists applause sounds from MyInstants with their likes and views">
 </p>
 
 ## Install
@@ -75,11 +76,25 @@ Needs Rust, Clang, PipeWire, GTK 4.16 and libadwaita 1.7 or newer, with their de
 Closing the window keeps Voicenux running in the tray. F1 shows all keys.
 
 <details>
-<summary>Soundboard</summary>
+<summary>Voices</summary>
 
 <p align="center">
-  <img width="720" src="res/soundboard.png" alt="The soundboard with a Memes folder and sound pads; Drum Roll and Applause are playing and show their progress as a ring. Under the sounds, a bar with their volume, Hear them myself, the play modes and Stop all. On the right, Find sounds lists applause sounds from MyInstants with their likes and views">
+  <img width="720" src="res/voices.png" alt="Voicenux with the Baby voice selected: a grid of voice cards, the voice with its pitch settings on the right, and the switches for voice changer, hear myself and background at the bottom">
 </p>
+
+Click a voice to use it, and click it again for your own voice. Search or pick a category at the
+top, or press **R** for a random voice. Star the ones you like to find them under **Favorites**, and
+right-click an empty spot for folders. Drag voices to sort them.
+
+On the right you change the main settings of the voice, like its pitch. **Customize** opens all of
+them in Voicelab. Right-click a voice to give it a shortcut. At the bottom, **Voice changer** turns
+the voice on and off, **Hear myself** plays it in your headphones, and **Background** adds its
+sound, like rain or a campfire.
+
+</details>
+
+<details>
+<summary>Soundboard</summary>
 
 Sounds play into the Voicenux Microphone, so others hear them too. **Find sounds** searches
 [MyInstants](https://www.myinstants.com), or drop your own audio files on the page. Right-click a
