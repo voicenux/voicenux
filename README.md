@@ -96,6 +96,10 @@ sound, like rain or a campfire.
 <details>
 <summary>Soundboard</summary>
 
+<p align="center">
+  <img width="720" src="res/soundboard.png" alt="The soundboard with a Memes folder and sound pads; Drum Roll and Applause are playing and show their progress as a ring. Under the sounds, a bar with their volume, Hear them myself, the play modes and Stop all. On the right, Find sounds lists applause sounds from MyInstants with their likes and views">
+</p>
+
 Sounds play into the Voicenux Microphone, so others hear them too. **Find sounds** searches
 [MyInstants](https://www.myinstants.com), or drop your own audio files on the page. Right-click a
 sound to change or trim it, right-click an empty spot for folders. Tips on the first visit show
