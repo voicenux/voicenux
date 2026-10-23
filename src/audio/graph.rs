@@ -495,7 +495,9 @@ fn run(
     pw::init();
     let mainloop = pw::main_loop::MainLoopRc::new(None)?;
     let context = pw::context::ContextRc::new(&mainloop, None)?;
-    let core = context.connect_rc(None)?;
+    // In a Flatpak, WirePlumber only lets a "Manager" make the microphone and links, like Helvum.
+    let manager = crate::app::sandboxed().then(|| properties! { "media.category" => "Manager" });
+    let core = context.connect_rc(manager)?;
     let registry = core.get_registry_rc()?;
 
     let (cmd_tx, cmd_rx) = rtrb::RingBuffer::<RtCmd>::new(512);

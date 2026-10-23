@@ -1,0 +1,45 @@
+# The Flatpak of Voicenux. packaging/build-flatpak.sh makes cargo-sources.json next to this file
+# and builds it, see packaging/README.md.
+id: io.github.voicenux.Voicenux
+runtime: org.gnome.Platform
+runtime-version: '51'
+sdk: org.gnome.Sdk
+sdk-extensions:
+  - org.freedesktop.Sdk.Extension.rust-stable
+  # libclang, for the PipeWire bindings.
+  - org.freedesktop.Sdk.Extension.llvm22
+command: voicenux
+finish-args:
+  - --share=ipc
+  - --socket=wayland
+  - --socket=fallback-x11
+  # The voice goes through PipeWire: the Voicenux Microphone, and the links to your devices.
+  - --filesystem=xdg-run/pipewire-0
+  # Find sounds, the starter sounds, Discord sounds, AI voices, and the API on 127.0.0.1.
+  - --share=network
+  # AI voices run on the graphics card: NVIDIA, or AMD through /dev/kfd.
+  - --device=all
+  # The tray icon. The app is process 2 in the sandbox.
+  - --talk-name=org.kde.StatusNotifierWatcher
+  - --own-name=org.kde.StatusNotifierItem-2-1
+build-options:
+  append-path: /usr/lib/sdk/rust-stable/bin:/usr/lib/sdk/llvm22/bin
+  prepend-ld-library-path: /usr/lib/sdk/llvm22/lib
+  env:
+    CARGO_HOME: /run/build/voicenux/cargo
+    LIBCLANG_PATH: /usr/lib/sdk/llvm22/lib
+modules:
+  - name: voicenux
+    buildsystem: simple
+    build-commands:
+      - cargo --offline build --release --locked
+      - make install PREFIX=/app
+    sources:
+      - type: dir
+        path: ../..
+        skip:
+          - .git
+          - .flatpak-builder
+          - dist
+          - target
+      - cargo-sources.json

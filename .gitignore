@@ -1,3 +1,6 @@
 /target
 /res/*.tmp.png
 __pycache__/
+/.flatpak-builder
+/dist
+/packaging/flatpak/cargo-sources.json

@@ -2288,6 +2288,9 @@ msgstr "Discord entfernt Geräusche, die keine Sprache sind. Deshalb hören dein
 msgid "Let an unknown app control Voicenux?"
 msgstr "Darf eine unbekannte App Voicenux steuern?"
 
+msgid "Start Voicenux with the computer"
+msgstr "Voicenux mit dem Computer starten"
+
 msgid "Plugin {}"
 msgstr "Plugin {}"
 

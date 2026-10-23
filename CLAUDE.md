@@ -112,7 +112,7 @@ Releases look like the ones of face-unlock and big projects such as Immich.
 `.github/release-notes.sh <tag>` builds the notes: the entry from `CHANGELOG.md` (welcome and
 highlights), a support section, every commit since the last release sorted by its prefix with
 author and link, and the full changelog link. So commit subjects end up in public: keep them clear.
-The `release` workflow builds packages for Debian 13, Ubuntu 26.04, Fedora and Arch
+The `release` workflow builds packages for Debian 13, Ubuntu 26.04, Fedora and Arch, and a Flatpak
 (`packaging/`, see its README), tries each one, and attaches them to the release.
 
 1. Read `git log <last tag>..HEAD` and pick the version: only fixes → patch, something new → minor,

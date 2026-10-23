@@ -57,6 +57,15 @@ curl -fsSL https://voicenux.github.io/voicenux/KEY.gpg | sudo gpg --dearmor -o /
 </details>
 
 <details>
+<summary><b>Flatpak</b>, any distribution</summary>
+
+```bash
+curl -fsSLO https://github.com/voicenux/voicenux/releases/latest/download/voicenux-x86_64.flatpak && flatpak install --user voicenux-x86_64.flatpak
+```
+
+</details>
+
+<details>
 <summary>Build from source</summary>
 
 ```bash

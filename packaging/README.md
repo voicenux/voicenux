@@ -8,7 +8,8 @@ description of the layout, and two descriptions drift.
 |---|---|
 | `deb/control`, `deb/copyright` | metadata for the Debian binary package |
 | `rpm/voicenux.spec` | the RPM spec |
-| `build-deb.sh`, `build-rpm.sh`, `build-tarball.sh` | build one package into `dist/` |
+| `build-deb.sh`, `build-rpm.sh`, `build-tarball.sh`, `build-flatpak.sh` | build one package into `dist/` |
+| `flatpak/` | the Flatpak manifest |
 | `check-version.sh` | refuses a tag that disagrees with `Cargo.toml` |
 | `publish-repos.sh` | regenerates the APT and RPM repositories |
 | `pages/` | the landing page and the `.repo` file served from GitHub Pages |
@@ -28,16 +29,25 @@ The Arch tarball (`voicenux-<version>-arch-x86_64.tar.zst`) is built on Arch.
 It holds a folder with the `make install` tree, for an AUR package
 `voicenux-bin`.
 
+The Flatpak (`voicenux-x86_64.flatpak`) is one bundle file on the GNOME runtime
+from Flathub, without the version in its name, so the README can link the one
+of the latest release. Its manifest builds offline, from `cargo-sources.json`
+that `build-flatpak.sh` makes from `Cargo.lock` first. That is how Flathub
+wants Rust apps, so the same manifest can go there. In the sandbox, autostart
+goes through the background portal. The API can not see which app connects
+from inside it, so there every app counts as unknown.
+
 ## Building one by hand
 
 ```bash
 packaging/build-deb.sh      # in a Debian 13 container, with the -dev packages from release.yml
 packaging/build-rpm.sh      # in a Fedora container, with the -devel packages from the spec
 packaging/build-tarball.sh  # in an Arch container, with the packages from release.yml
+packaging/build-flatpak.sh  # anywhere with flatpak and flatpak-builder
 ```
 
-All three take the version from `make version` unless one is passed as the
-first argument.
+The first three take the version from `make version` unless one is passed as
+the first argument.
 
 ## Making a release
 
@@ -46,7 +56,7 @@ the entry to `CHANGELOG.md` and the metainfo, commit, then
 `git tag vX.Y.Z && git push origin main vX.Y.Z`.
 
 The `release` workflow builds the packages in Debian, Ubuntu, Fedora and Arch
-containers, installs each one and runs `voicenux --version`, refuses the tag
+containers and the Flatpak, installs each one and runs `voicenux --version`, refuses the tag
 if it disagrees with `Cargo.toml` or has no changelog entry, and attaches the
 packages to a GitHub release with the entry as its notes.
 

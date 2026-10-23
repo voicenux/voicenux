@@ -437,9 +437,39 @@ fn drop_window_icon(s: &gtk::Settings) {
     }
 }
 
+/// Whether Voicenux runs as a Flatpak.
+pub fn sandboxed() -> bool {
+    std::path::Path::new("/.flatpak-info").exists()
+}
+
 /// Starts Voicenux with the computer or not: the autostart entry and the setting. From Settings
 /// and the welcome dialog.
 pub fn set_autostart(st: &St, on: bool) {
+    if sandboxed() {
+        // A Flatpak can not reach the autostart folder: the desktop does it, and may say no.
+        let st = st.clone();
+        glib::spawn_future_local(async move {
+            let answer = async {
+                ashpd::desktop::background::Background::request()
+                    .reason(t("Start Voicenux with the computer"))
+                    .auto_start(on)
+                    .command(["voicenux", "--background"])
+                    .send()
+                    .await?
+                    .response()
+            }
+            .await;
+            let on = match answer {
+                Ok(a) => on && a.auto_start(),
+                Err(e) => {
+                    log::error!("autostart: {e}");
+                    false
+                }
+            };
+            st.update(|c| c.autostart = on);
+        });
+        return;
+    }
     if let Err(e) = write_autostart(on) {
         log::error!("autostart: {e}");
     }
