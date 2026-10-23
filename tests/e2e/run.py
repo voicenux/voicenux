@@ -102,8 +102,12 @@ def main():
         ], env=ENV))
         time.sleep(1)
         os.makedirs(ENV["XDG_CONFIG_HOME"] + "/voicenux", exist_ok=True)
+        # The API asks before an app gets in. This script is in, as if Allow was clicked: it is
+        # known by the program and the script, like Voicenux finds them in /proc.
+        me = f"{os.path.realpath('/proc/self/exe')} {os.path.join(os.getcwd(), sys.argv[0])}"
         with open(ENV["XDG_CONFIG_HOME"] + "/voicenux/config.toml", "w") as f:
             f.write('onboarded = true\ninput = "vn_e2e_mic"\nvoice = "chipmunk"\nbackground = false\napi = true\n')
+            f.write(f'api_apps = [{{ key = {json.dumps(me)}, name = "run.py" }}]\n')
         procs.append(subprocess.Popen([BIN, "--background"], env=ENV, stderr=subprocess.DEVNULL))
         time.sleep(3)
 
@@ -157,6 +161,10 @@ def main():
         with urllib.request.urlopen("http://127.0.0.1:41967/api/state", timeout=5) as r:
             state = json.load(r)["result"]
         check("the API tells the voice", state["voice"]["id"] == "deep", state["voice"]["id"])
+        stranger = subprocess.run(
+            [sys.executable, "-c", "import urllib.request as u; u.urlopen('http://127.0.0.1:41967/api/state', timeout=2)"],
+            env=ENV, capture_output=True)
+        check("an app nobody allowed waits for an answer", stranger.returncode != 0, "no answer in 2 s")
 
         # Hear sounds flipped from outside (the API, a Stream Deck key) crashed the app once, in
         # the soundboard page. Pages only exist once the window is open.

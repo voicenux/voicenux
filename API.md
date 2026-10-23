@@ -4,6 +4,12 @@ Other apps on your computer can control Voicenux: a plugin for [OpenDeck](https:
 
 It listens on `127.0.0.1:41967` only, so nothing outside your computer reaches it. Requests from web pages are refused: a request with an `Origin` header must come from `localhost`, `127.0.0.1`, `file://` or `tauri://`. Programs send no `Origin`, so they are fine.
 
+## Allowed apps
+
+The first time an app connects, Voicenux asks the user whether it may control Voicenux. There is no password: Voicenux looks up the program on the other end of the connection and remembers it. Until the user answers, the connection waits, for up to two minutes. An app that is not allowed gets status 403, also for the WebSocket handshake. Try again later: the user may allow it then. The user can turn this off, and take apps back, in **Settings → Other apps**.
+
+Pictures (`GET /api/icon/NAME`) need no answer. The Voicenux plugin for OpenDeck and Stream Deck is let in right away.
+
 ## WebSocket
 
 Connect to `ws://127.0.0.1:41967`. Voicenux greets you, then sends everything you need to draw your keys:

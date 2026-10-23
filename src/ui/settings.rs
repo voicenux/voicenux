@@ -812,6 +812,52 @@ fn api_group(st: &St) -> Group {
         move |r| st.update(|c| c.api = r.is_active())
     });
     group.add(&on);
+    let ask = adw::SwitchRow::builder()
+        .title(t("Only apps you allow"))
+        .subtitle(t("Voicenux asks the first time an app wants to control it. The Voicenux plugin may right away."))
+        .active(st.config.borrow().api_ask)
+        .build();
+    ask.connect_active_notify({
+        let st = st.clone();
+        move |r| st.update(|c| c.api_ask = r.is_active())
+    });
+    group.add(&ask);
+    let allowed = adw::ExpanderRow::builder().title(t("Allowed apps")).build();
+    group.add(&allowed);
+    for row in [ask.upcast_ref::<gtk::Widget>(), allowed.upcast_ref()] {
+        on.bind_property("active", row, "sensitive").sync_create().build();
+    }
+    let rows: Rc<std::cell::RefCell<Vec<adw::ActionRow>>> = Rc::default();
+    let sync_allowed = {
+        let (st, allowed) = (st.clone(), allowed.clone());
+        move || {
+            let apps = st.config.borrow().api_apps.clone();
+            allowed.set_visible(st.config.borrow().api_ask);
+            allowed.set_subtitle(&match apps.len() {
+                0 => t("None yet").to_string(),
+                n => fill(t("Apps: {}"), &[&n.to_string()]),
+            });
+            allowed.set_enable_expansion(!apps.is_empty());
+            for r in rows.borrow_mut().drain(..) {
+                allowed.remove(&r);
+            }
+            for app in apps {
+                let row = adw::ActionRow::builder().title(&app.name).subtitle(&app.key).subtitle_lines(2).build();
+                let remove = gtk::Button::from_icon_name("user-trash-symbolic");
+                remove.add_css_class("flat");
+                remove.set_valign(gtk::Align::Center);
+                remove.set_tooltip_text(Some(t("Take back")));
+                remove.connect_clicked({
+                    let st = st.clone();
+                    move |_| st.update(|c| c.api_apps.retain(|a| a.key != app.key))
+                });
+                row.add_suffix(&remove);
+                allowed.add_row(&row);
+                rows.borrow_mut().push(row);
+            }
+        }
+    };
+    sync_allowed();
     let address = format!("ws://127.0.0.1:{0}   http://127.0.0.1:{0}/api", crate::api::PORT);
     let status = adw::ActionRow::builder().subtitle_selectable(true).build();
     status.add_css_class("property");
@@ -873,12 +919,71 @@ fn api_group(st: &St) -> Group {
         }
     };
     sync();
-    st.subscribe(move |c| {
-        if matches!(c, Change::Api) {
-            sync();
+    // The list only changes with the settings, and is built again then.
+    let shown = std::cell::RefCell::new(st.config.borrow().api_apps.clone());
+    st.subscribe({
+        let st = Rc::downgrade(st);
+        move |c| match c {
+            Change::Api => sync(),
+            Change::Settings => {
+                let Some(st) = st.upgrade() else { return };
+                let now = st.config.borrow().api_apps.clone();
+                if *shown.borrow() != now {
+                    shown.replace(now);
+                    sync_allowed();
+                } else {
+                    allowed.set_visible(st.config.borrow().api_ask);
+                }
+            }
+            _ => {}
         }
     });
     group
+}
+
+/// Asks whether an app may control Voicenux, see `api::answer`. You have to pick: closing the
+/// window leaves the question for next time.
+pub fn ask_app(st: &St, window: &adw::ApplicationWindow, peer: &crate::api::Peer) {
+    let heading = if peer.name.is_empty() {
+        t("Let an unknown app control Voicenux?").to_string()
+    } else {
+        fill(t("Let {} control Voicenux?"), &[&peer.name])
+    };
+    let dialog = adw::AlertDialog::new(
+        Some(&heading),
+        Some(t(
+            "The app could change your voice and play sounds into your microphone. You can take it back in Settings, under Other apps.",
+        )),
+    );
+    if !peer.key.is_empty() {
+        let path = label(&peer.key, &["dim-label", "caption"]);
+        path.set_wrap(true);
+        path.set_wrap_mode(gtk::pango::WrapMode::WordChar);
+        path.set_selectable(true);
+        dialog.set_extra_child(Some(&path));
+    }
+    dialog.add_response("deny", t("Do not allow"));
+    dialog.add_response("allow", t("Allow"));
+    dialog.set_response_appearance("allow", adw::ResponseAppearance::Suggested);
+    dialog.set_default_response(Some("allow"));
+    dialog.set_can_close(false);
+    let answered = Rc::new(std::cell::Cell::new(false));
+    dialog.connect_response(None, {
+        let (st, peer, answered) = (st.clone(), peer.clone(), answered.clone());
+        move |_, response| {
+            answered.set(true);
+            crate::api::answer(&st, &peer, Some(response == "allow"));
+        }
+    });
+    dialog.connect_closed({
+        let (st, peer) = (st.clone(), peer.clone());
+        move |_| {
+            if !answered.get() {
+                crate::api::answer(&st, &peer, None);
+            }
+        }
+    });
+    dialog.present(Some(window));
 }
 
 /// About Voicenux: the logo, the version, links and who to thank.

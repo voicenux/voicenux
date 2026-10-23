@@ -365,6 +365,12 @@ pub fn run() -> glib::ExitCode {
                         c.keep_running();
                         apply_appearance(&c.st);
                     }
+                    // An app wants to control Voicenux: ask, even from the tray.
+                    if let Change::ApiAsk(peer) = change {
+                        let w = c.window();
+                        w.window.present();
+                        crate::ui::settings::ask_app(&c.st, &w.window, peer);
+                    }
                 }
             });
             // Logging out sends SIGTERM: save and leave like a normal quit.

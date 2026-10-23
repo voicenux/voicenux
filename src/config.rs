@@ -81,6 +81,10 @@ pub struct Config {
     pub find_volume: f32,
     /// Other apps on this computer may control Voicenux, see `src/api.rs`.
     pub api: bool,
+    /// Only apps you allowed may: Voicenux asks the first time an app wants to.
+    pub api_ask: bool,
+    /// The apps you allowed.
+    pub api_apps: Vec<ApiApp>,
     /// The voice changes while you drag a slider of it, not only when you let go.
     pub live_sliders: bool,
     /// The mouse wheel moves the slider under the pointer.
@@ -138,6 +142,8 @@ impl Default for Config {
             sound_sort: "suggested".into(),
             find_volume: 0.5,
             api: false,
+            api_ask: true,
+            api_apps: Vec::new(),
             live_sliders: true,
             wheel_sliders: true,
             random_favorites: false,
@@ -145,6 +151,15 @@ impl Default for Config {
             discord_tip: false,
         }
     }
+}
+
+/// An app you allowed to control Voicenux, see `api::Peer`.
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct ApiApp {
+    /// The program, and the script when it is one.
+    pub key: String,
+    /// What Settings shows.
+    pub name: String,
 }
 
 impl Config {

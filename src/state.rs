@@ -47,6 +47,8 @@ pub enum Change {
     Api,
     /// An AI voice was picked that is not downloaded yet: the window offers the download.
     AiMissing(String),
+    /// An app wants to control Voicenux: the window asks you, see `api::answer`.
+    ApiAsk(crate::api::Peer),
 }
 
 /// How the API for other apps is doing, for Settings.

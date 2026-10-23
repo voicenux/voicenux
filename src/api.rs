@@ -9,11 +9,15 @@
 //!
 //! It is off until it is turned on in Settings. Only programs on this computer reach it, and web
 //! pages are turned away by their origin, so a page on the internet can not play sounds into your
-//! microphone. API.md lists every action.
+//! microphone. And only apps you allowed: the first time an app connects, Voicenux asks you. It
+//! finds the program on the other end in /proc, so apps need no password. API.md lists every
+//! action.
 
 use std::cell::{Cell, RefCell};
 use std::io::{Read, Write};
 use std::net::{TcpListener, TcpStream};
+use std::os::unix::fs::MetadataExt;
+use std::path::Path;
 use std::rc::Rc;
 use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use std::sync::{Arc, Mutex, mpsc};
@@ -24,7 +28,8 @@ use gtk::{gio, glib};
 use serde_json::{Value, json};
 use tungstenite::Message;
 
-use crate::i18n::t_dyn;
+use crate::config::ApiApp;
+use crate::i18n::{fill, t, t_dyn};
 use crate::soundboard::PlayMode;
 use crate::state::{Change, St};
 
@@ -39,8 +44,39 @@ struct Request {
     reply: mpsc::Sender<Result<Value, String>>,
 }
 
-/// The WebSocket clients, each with the outbox for its events.
-type Clients = Arc<Mutex<Vec<(u64, mpsc::Sender<String>)>>>;
+/// A connection that wants in, answered on the main thread: may this app use the API?
+struct Access {
+    peer: Peer,
+    reply: mpsc::Sender<bool>,
+}
+
+/// Where requests and questions go to the main thread.
+#[derive(Clone)]
+struct Main {
+    requests: async_channel::Sender<Request>,
+    access: async_channel::Sender<Access>,
+}
+
+/// The program on the other end of a connection.
+#[derive(Clone, Debug, PartialEq)]
+pub struct Peer {
+    /// What the app is remembered by: the program, and the script for interpreters like Python.
+    /// Empty when the program could not be found, like for apps of another user.
+    pub key: String,
+    /// A short name for people, like "curl" or "python3 bot.py". Empty with the key.
+    pub name: String,
+}
+
+thread_local! {
+    /// Apps Voicenux is asking you about, with the connections that wait for the answer.
+    static ASKING: RefCell<Vec<(Peer, Vec<mpsc::Sender<bool>>)>> = const { RefCell::new(Vec::new()) };
+    /// Answers that last until Voicenux quits, or the API is turned off: apps you turned away,
+    /// and unknown apps.
+    static ANSWERED: RefCell<Vec<(String, bool)>> = const { RefCell::new(Vec::new()) };
+}
+
+/// The WebSocket clients: each with the key of its app and the outbox for its events.
+type Clients = Arc<Mutex<Vec<(u64, String, mpsc::Sender<String>)>>>;
 
 struct Server {
     stop: Arc<AtomicBool>,
@@ -58,12 +94,22 @@ impl Server {
 /// Runs the API while it is on in Settings, and tells the clients about every change.
 pub fn start(st: &St) {
     let (tx, rx) = async_channel::unbounded::<Request>();
+    let (access, asked) = async_channel::unbounded::<Access>();
+    let tx = Main { requests: tx, access };
     let clients: Clients = Arc::default();
     glib::spawn_future_local({
         let st = st.clone();
         async move {
             while let Ok(req) = rx.recv().await {
                 let _ = req.reply.send(handle(&st, &req.action, req.arg.as_deref()));
+            }
+        }
+    });
+    glib::spawn_future_local({
+        let st = st.clone();
+        async move {
+            while let Ok(a) = asked.recv().await {
+                may(&st, a.peer, a.reply);
             }
         }
     });
@@ -79,6 +125,8 @@ pub fn start(st: &St) {
             if let Some(s) = server.take() {
                 s.shut();
             }
+            // Turning it off and on again asks anew about the apps you turned away.
+            ANSWERED.with_borrow_mut(Vec::clear);
             let error = if want {
                 match serve(tx.clone(), clients.clone()) {
                     Ok(s) => {
@@ -112,7 +160,7 @@ pub fn start(st: &St) {
             }
             last[slot] = Some(text);
             let message = json!({ "event": event, "data": data }).to_string();
-            clients.lock().unwrap_or_else(|e| e.into_inner()).retain(|(_, out)| out.send(message.clone()).is_ok());
+            clients.lock().unwrap_or_else(|e| e.into_inner()).retain(|(_, _, out)| out.send(message.clone()).is_ok());
         }
     };
     let send = Rc::new(send);
@@ -121,6 +169,8 @@ pub fn start(st: &St) {
         move |c| {
             if matches!(c, Change::Settings) {
                 sync();
+                // An app you took back leaves: dropping its outbox closes its socket.
+                clients.lock().unwrap_or_else(|e| e.into_inner()).retain(|(_, key, _)| welcome(&st, key));
             }
             if clients.lock().unwrap_or_else(|e| e.into_inner()).is_empty() {
                 return;
@@ -155,7 +205,7 @@ pub fn start(st: &St) {
 }
 
 /// Opens the port and serves clients on their own threads.
-fn serve(tx: async_channel::Sender<Request>, clients: Clients) -> std::io::Result<Server> {
+fn serve(tx: Main, clients: Clients) -> std::io::Result<Server> {
     let listener = TcpListener::bind(("127.0.0.1", PORT))?;
     listener.set_nonblocking(true)?;
     let stop = Arc::new(AtomicBool::new(false));
@@ -187,12 +237,8 @@ fn serve(tx: async_channel::Sender<Request>, clients: Clients) -> std::io::Resul
 }
 
 /// One connection: a WebSocket, or a single HTTP request.
-fn client(
-    mut stream: TcpStream,
-    tx: &async_channel::Sender<Request>,
-    clients: &Clients,
-    stop: &AtomicBool,
-) -> anyhow::Result<()> {
+fn client(mut stream: TcpStream, main: &Main, clients: &Clients, stop: &AtomicBool) -> anyhow::Result<()> {
+    let tx = &main.requests;
     stream.set_nonblocking(false)?;
     stream.set_read_timeout(Some(Duration::from_secs(5)))?;
     // Look at the head without taking it: a WebSocket handshake reads it again.
@@ -227,8 +273,19 @@ fn client(
             br#"{"ok":false,"error":"only apps on this computer may use the API"}"#,
         );
     }
+    // Pictures are for everyone, like the views of plugins that show them.
+    let picture = method == "GET" && path.starts_with("/api/icon/");
+    let key = if picture { Some(String::new()) } else { let_in(&stream, main) };
+    let Some(key) = key else {
+        return respond(
+            &mut stream,
+            403,
+            "application/json",
+            br#"{"ok":false,"error":"not allowed: allow this app in Voicenux when it asks"}"#,
+        );
+    };
     if upgrade {
-        return websocket(stream, tx, clients, stop);
+        return websocket(stream, tx, clients, stop, key);
     }
     anyhow::ensure!(body_len <= 64 * 1024, "body too long");
     let mut head = vec![0u8; head_len];
@@ -263,11 +320,147 @@ fn allowed(host: Option<&str>, origin: Option<&str>) -> bool {
     host_ok && origin_ok
 }
 
+/// Whether the app on the other end may use the API. Waits while Voicenux asks you. Gives the key
+/// of the app when it may.
+fn let_in(stream: &TcpStream, main: &Main) -> Option<String> {
+    let peer = peer(stream).unwrap_or_else(|| Peer { key: String::new(), name: String::new() });
+    let key = peer.key.clone();
+    let (reply, answer) = mpsc::channel();
+    main.access.send_blocking(Access { peer, reply }).ok()?;
+    // Time to find the window and decide. A plugin that gives up sooner comes back anyway.
+    answer.recv_timeout(Duration::from_secs(120)).unwrap_or(false).then_some(key)
+}
+
+/// Whether an app may use the API without asking: you allowed it, or asking is off.
+fn welcome(st: &St, key: &str) -> bool {
+    let c = st.config.borrow();
+    !c.api_ask
+        || ours(key)
+        || (!key.is_empty() && c.api_apps.iter().any(|a| a.key == key))
+        || ANSWERED.with_borrow(|a| a.contains(&(key.to_string(), true)))
+}
+
+/// Answers whether an app may use the API: at once when you said so before, or after asking you.
+fn may(st: &St, peer: Peer, reply: mpsc::Sender<bool>) {
+    if welcome(st, &peer.key) {
+        let _ = reply.send(true);
+        return;
+    }
+    if ANSWERED.with_borrow(|a| a.contains(&(peer.key.clone(), false))) {
+        let _ = reply.send(false);
+        return;
+    }
+    // One question per app, however often it tries.
+    let first = ASKING.with_borrow_mut(|asking| match asking.iter_mut().find(|(p, _)| p.key == peer.key) {
+        Some((_, waiting)) => {
+            waiting.push(reply);
+            false
+        }
+        None => {
+            asking.push((peer.clone(), vec![reply]));
+            true
+        }
+    });
+    if first {
+        st.notify(Change::ApiAsk(peer));
+    }
+}
+
+/// Your answer about an app from `Change::ApiAsk`, None when the question went away unanswered:
+/// then it comes again next time. Allowed apps are kept in the settings. An unknown app is
+/// allowed or turned away until Voicenux quits, like any app you turn away.
+pub fn answer(st: &St, peer: &Peer, allow: Option<bool>) {
+    let waiting = ASKING.with_borrow_mut(|asking| {
+        asking.iter().position(|(p, _)| p.key == peer.key).map(|i| asking.remove(i).1).unwrap_or_default()
+    });
+    match allow {
+        Some(true) if !peer.key.is_empty() => {
+            st.update(|c| c.api_apps.push(ApiApp { key: peer.key.clone(), name: peer.name.clone() }))
+        }
+        Some(ok) => ANSWERED.with_borrow_mut(|a| a.push((peer.key.clone(), ok))),
+        None => {}
+    }
+    for w in waiting {
+        let _ = w.send(allow == Some(true));
+    }
+}
+
+/// The Voicenux plugin for OpenDeck and Stream Deck gets in without asking.
+fn ours(key: &str) -> bool {
+    key.contains("/de.felitendo.voicenux.sdPlugin/")
+}
+
+/// Finds the program on the other end of a connection from this computer: the socket in
+/// /proc/net/tcp, then the process that holds it. Programs of other users, and all of them when
+/// Voicenux runs in a sandbox, stay unknown.
+fn peer(stream: &TcpStream) -> Option<Peer> {
+    let (from, to) = (stream.peer_addr().ok()?.port(), stream.local_addr().ok()?.port());
+    let inode = ["/proc/net/tcp", "/proc/net/tcp6"]
+        .iter()
+        .find_map(|f| socket_inode(&std::fs::read_to_string(f).ok()?, from, to))?;
+    let pid = owner(&format!("socket:[{inode}]"))?;
+    describe(Path::new(&format!("/proc/{pid}")))
+}
+
+/// The inode of the socket from port `from` to port `to`, in a table like /proc/net/tcp.
+fn socket_inode(table: &str, from: u16, to: u16) -> Option<u64> {
+    let port = |address: &str| address.rsplit(':').next().and_then(|h| u16::from_str_radix(h, 16).ok());
+    table.lines().skip(1).find_map(|line| {
+        let f: Vec<&str> = line.split_whitespace().collect();
+        if f.len() > 9 && port(f[1]) == Some(from) && port(f[2]) == Some(to) { f[9].parse().ok() } else { None }
+    })
+}
+
+/// The process of this user that holds `socket`, like "socket:[1234]".
+fn owner(socket: &str) -> Option<u32> {
+    let uid = std::fs::metadata("/proc/self").ok()?.uid();
+    std::fs::read_dir("/proc").ok()?.flatten().find_map(|dir| {
+        let pid: u32 = dir.file_name().to_str()?.parse().ok()?;
+        if dir.metadata().ok()?.uid() != uid {
+            return None;
+        }
+        let mut fds = std::fs::read_dir(dir.path().join("fd")).ok()?.flatten();
+        fds.any(|fd| std::fs::read_link(fd.path()).is_ok_and(|l| l.as_os_str() == socket)).then_some(pid)
+    })
+}
+
+/// Programs that run scripts: the script tells apart what they run.
+const INTERPRETERS: &[&str] =
+    &["python", "node", "bun", "deno", "perl", "ruby", "lua", "php", "java", "sh", "bash", "zsh", "fish", "dash"];
+
+/// Names a process, from its folder in /proc.
+fn describe(proc: &Path) -> Option<Peer> {
+    let exe = std::fs::read_link(proc.join("exe")).ok()?;
+    let exe = exe.to_string_lossy().trim_end_matches(" (deleted)").to_string();
+    let program = Path::new(&exe).file_name()?.to_string_lossy().to_string();
+    // A plugin of OpenDeck or a Stream Deck: the name from its manifest.
+    if let Some(dir) = Path::new(&exe).ancestors().find(|d| d.extension().is_some_and(|e| e == "sdPlugin")) {
+        let manifest: Value =
+            std::fs::read_to_string(dir.join("manifest.json")).ok().and_then(|t| serde_json::from_str(&t).ok())?;
+        let name = manifest["Name"].as_str().map_or(program.clone(), String::from);
+        return Some(Peer { key: exe, name: fill(t("Plugin {}"), &[&name]) });
+    }
+    let bare = program.trim_end_matches(|c: char| c.is_ascii_digit() || c == '.');
+    if INTERPRETERS.contains(&bare) {
+        let args = std::fs::read(proc.join("cmdline")).unwrap_or_default();
+        let script =
+            args.split(|b| *b == 0).skip(1).map(String::from_utf8_lossy).find(|a| !a.is_empty() && !a.starts_with('-'));
+        if let Some(script) = script {
+            let cwd = std::fs::read_link(proc.join("cwd")).unwrap_or_default();
+            let path = cwd.join(script.as_ref());
+            let file = path.file_name().map_or(script.to_string(), |f| f.to_string_lossy().to_string());
+            return Some(Peer { key: format!("{exe} {}", path.display()), name: format!("{program} {file}") });
+        }
+    }
+    Some(Peer { key: exe, name: program })
+}
+
 fn websocket(
     stream: TcpStream,
     tx: &async_channel::Sender<Request>,
     clients: &Clients,
     stop: &AtomicBool,
+    key: String,
 ) -> anyhow::Result<()> {
     static NEXT: AtomicU64 = AtomicU64::new(1);
     let mut ws = tungstenite::accept(stream).map_err(|e| anyhow::anyhow!("handshake: {e}"))?;
@@ -282,7 +475,7 @@ fn websocket(
             ws.send(Message::text(json!({ "event": event, "data": data }).to_string()))?;
         }
     }
-    clients.lock().unwrap_or_else(|e| e.into_inner()).push((id, out));
+    clients.lock().unwrap_or_else(|e| e.into_inner()).push((id, key, out));
     let result = (|| -> anyhow::Result<()> {
         loop {
             if stop.load(Ordering::Relaxed) {
@@ -300,13 +493,22 @@ fn websocket(
                 Err(tungstenite::Error::ConnectionClosed | tungstenite::Error::AlreadyClosed) => return Ok(()),
                 Err(e) => return Err(e.into()),
             }
-            while let Ok(event) = inbox.try_recv() {
-                ws.send(Message::text(event))?;
+            loop {
+                match inbox.try_recv() {
+                    Ok(event) => ws.send(Message::text(event))?,
+                    Err(mpsc::TryRecvError::Empty) => break,
+                    // You took the app back in Settings.
+                    Err(mpsc::TryRecvError::Disconnected) => {
+                        let _ = ws.close(None);
+                        let _ = ws.flush();
+                        return Ok(());
+                    }
+                }
             }
             let _ = ws.flush();
         }
     })();
-    clients.lock().unwrap_or_else(|e| e.into_inner()).retain(|(i, _)| *i != id);
+    clients.lock().unwrap_or_else(|e| e.into_inner()).retain(|(i, _, _)| *i != id);
     result
 }
 
@@ -619,6 +821,60 @@ mod tests {
         assert!(!allowed(Some("127.0.0.1:41967"), Some("null")));
         assert!(!allowed(Some("evil.example:41967"), None));
         assert!(!allowed(Some("127.0.0.1:41967"), Some("http://localhost.evil.example")));
+    }
+
+    #[test]
+    fn finds_sockets() {
+        let table = "  sl  local_address rem_address   st tx_queue rx_queue tr tm->when retrnsmt   uid  timeout inode
+   0: 0100007F:A3EF 00000000:0000 0A 00000000:00000000 00:00000000 00000000  1000        0 111 1 0 100 0 0 10 0
+   1: 0100007F:C350 0100007F:A3EF 01 00000000:00000000 00:00000000 00000000  1000        0 222 1 0 20 4 30 10 -1
+   2: 0100007F:A3EF 0100007F:C350 01 00000000:00000000 00:00000000 00000000  1000        0 333 1 0 20 4 30 10 -1";
+        // The client's end: from its port to ours, not our end the other way round.
+        assert_eq!(socket_inode(table, 50000, 41967), Some(222));
+        assert_eq!(socket_inode(table, 50001, 41967), None);
+    }
+
+    #[test]
+    fn knows_who_connects() {
+        let listener = TcpListener::bind("127.0.0.1:0").unwrap();
+        let _client = TcpStream::connect(listener.local_addr().unwrap()).unwrap();
+        let (stream, _) = listener.accept().unwrap();
+        let me = std::env::current_exe().unwrap().to_string_lossy().to_string();
+        assert_eq!(peer(&stream).map(|p| p.key), Some(me));
+    }
+
+    #[test]
+    fn names_programs() {
+        let dir = std::env::temp_dir().join(format!("voicenux-peer-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&dir);
+        let proc = dir.join("proc");
+        std::fs::create_dir_all(&proc).unwrap();
+        let link = |target: &Path, name: &str| {
+            let _ = std::fs::remove_file(proc.join(name));
+            std::os::unix::fs::symlink(target, proc.join(name)).unwrap();
+        };
+        // A script: the interpreter and the script, made whole with the folder it runs in.
+        link(Path::new("/usr/bin/python3.13"), "exe");
+        link(Path::new("/home/me/bots"), "cwd");
+        std::fs::write(proc.join("cmdline"), b"python3\0-u\0deck.py\0").unwrap();
+        let p = describe(&proc).unwrap();
+        assert_eq!(
+            (p.key.as_str(), p.name.as_str()),
+            ("/usr/bin/python3.13 /home/me/bots/deck.py", "python3.13 deck.py")
+        );
+        // Any other program by itself.
+        link(Path::new("/usr/bin/curl"), "exe");
+        assert_eq!(describe(&proc).unwrap().name, "curl");
+        // Our plugin, by the name in its manifest. It may in without asking.
+        let plugin = dir.join("plugins/de.felitendo.voicenux.sdPlugin");
+        std::fs::create_dir_all(&plugin).unwrap();
+        std::fs::write(plugin.join("manifest.json"), r#"{"Name": "Voicenux"}"#).unwrap();
+        link(&plugin.join("bin/voicenux-plugin"), "exe");
+        let p = describe(&proc).unwrap();
+        assert_eq!(p.name, fill(t("Plugin {}"), &["Voicenux"]));
+        assert!(ours(&p.key));
+        assert!(!ours("/usr/bin/curl"));
+        std::fs::remove_dir_all(&dir).unwrap();
     }
 
     #[test]
