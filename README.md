@@ -4,7 +4,7 @@
 
 <h1 align="center">Voicenux</h1>
 
-<h3 align="center">The voice changer for Linux.</h3>
+<h3 align="center">The voice changer (and soundboard) for Linux.</h3>
 
 <p align="center">
   Change your voice in real time in Discord, games, OBS and any other app.<br>
