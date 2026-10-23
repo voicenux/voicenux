@@ -235,6 +235,23 @@ fn stop_entering(w: &gtk::Widget) {
     }
 }
 
+/// A button on a tile, like the star of a voice card. A press squishes the tile, so a click near
+/// the edge of the button used to end next to it and do nothing. With the pointer on the button,
+/// the tile holds still.
+pub fn tile_button(button: &impl IsA<gtk::Widget>, tile: &gtk::FlowBoxChild) {
+    let motion = gtk::EventControllerMotion::new();
+    let tile = tile.downgrade();
+    motion.connect_contains_pointer_notify(move |m| {
+        let Some(tile) = tile.upgrade() else { return };
+        if m.contains_pointer() {
+            tile.add_css_class("vn-on-button");
+        } else {
+            tile.remove_css_class("vn-on-button");
+        }
+    });
+    button.add_controller(motion);
+}
+
 /// A tooltip with its key, like "Random voice (Ctrl+R)".
 pub fn with_key(tip: &str, key: &str) -> String {
     format!("{tip} ({}+{key})", crate::i18n::t("Ctrl"))

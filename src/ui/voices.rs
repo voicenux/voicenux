@@ -1072,6 +1072,7 @@ fn card(st: &St, v: &Voice, open_lab: &OpenLab) -> Card {
     let child = gtk::FlowBoxChild::new();
     child.set_child(Some(&overlay));
     child.set_tooltip_text(Some(&tip));
+    super::tile_button(&star, &child);
     popup::context(&child, {
         let (st, open_lab, id, weak) = (st.clone(), open_lab.clone(), v.id.clone(), child.downgrade());
         move |x, y| {

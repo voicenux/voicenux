@@ -227,8 +227,9 @@ flowbox.vn-grid > flowboxchild:hover:not(.vn-menu-hover) > .vn-lift {
 
 /* A press goes in at once and does not bounce, so quick clicks one after the other feel firm.
    Letting go springs back up with the curve of .vn-lift. Not while a menu of the tile is open:
-   GTK counts clicks in the menu as presses on the tile. */
-flowbox.vn-grid > flowboxchild:active:not(.vn-menu-open) > .vn-lift {
+   GTK counts clicks in the menu as presses on the tile. Not on a button of the tile either, see
+   `ui::tile_button`. */
+flowbox.vn-grid > flowboxchild:active:not(.vn-menu-open):not(.vn-on-button) > .vn-lift {
   transform: translateY(-1px) scale(0.96);
   transition: transform 90ms ease-out;
 }
@@ -553,7 +554,7 @@ flowbox.vn-pads > flowboxchild:hover:not(.vn-menu-hover) > .vn-lift {
   transform: translateY(-4px) scale(1.03);
 }
 
-flowbox.vn-pads > flowboxchild:active:not(.vn-menu-open) > .vn-lift {
+flowbox.vn-pads > flowboxchild:active:not(.vn-menu-open):not(.vn-on-button) > .vn-lift {
   transform: translateY(-1px) scale(0.94);
   transition: transform 90ms ease-out;
 }

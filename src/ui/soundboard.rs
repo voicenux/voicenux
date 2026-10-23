@@ -1121,6 +1121,7 @@ fn pad(st: &St, s: &Sound) -> Pad {
     overlay.add_overlay(&check);
     let child = gtk::FlowBoxChild::new();
     child.set_child(Some(&overlay));
+    super::tile_button(&menu, &child);
 
     // The editor is made when it first opens: the grid builds again after every change, and most
     // pads never open it. It hangs on the grid cell, which never lifts or squishes.
