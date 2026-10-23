@@ -36,6 +36,18 @@ thread_local! {
     static TEXTURES: RefCell<HashMap<String, gdk::Texture>> = RefCell::new(HashMap::new());
     /// The pop-in each tile is on, by tile, so an older one stops when a new one starts.
     static ENTERING: RefCell<(u64, HashMap<usize, u64>)> = RefCell::default();
+    /// What sliders do, from Settings: the voice changes while you drag.
+    static LIVE: Cell<bool> = const { Cell::new(true) };
+}
+
+/// Takes what sliders do from the settings. Call when they change.
+pub fn follow_settings(c: &crate::config::Config) {
+    LIVE.set(c.live_sliders);
+}
+
+/// Whether the voice changes while you drag one of its sliders.
+pub fn live_sliders() -> bool {
+    LIVE.get()
 }
 
 /// A picture from `data/icons`, cached.

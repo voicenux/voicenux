@@ -81,6 +81,8 @@ pub struct Config {
     pub find_volume: f32,
     /// Other apps on this computer may control Voicenux, see `src/api.rs`.
     pub api: bool,
+    /// The voice changes while you drag a slider of it, not only when you let go.
+    pub live_sliders: bool,
     /// Random voice picks out of your favorites.
     pub random_favorites: bool,
 }
@@ -130,6 +132,7 @@ impl Default for Config {
             sound_sort: "suggested".into(),
             find_volume: 0.5,
             api: false,
+            live_sliders: true,
             random_favorites: false,
         }
     }

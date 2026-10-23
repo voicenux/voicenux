@@ -620,10 +620,19 @@ pub fn build(st: &St, window: &adw::ApplicationWindow) -> adw::ToolbarView {
     app.add(&about);
     page.append(&app.widget);
 
-    st.subscribe(move |c| match c {
-        Change::Users => sync_users(),
-        Change::Settings => sync_keys(),
-        _ => {}
+    super::follow_settings(&st.config.borrow());
+    st.subscribe({
+        let st = Rc::downgrade(st);
+        move |c| match c {
+            Change::Users => sync_users(),
+            Change::Settings => {
+                sync_keys();
+                if let Some(st) = st.upgrade() {
+                    super::follow_settings(&st.config.borrow());
+                }
+            }
+            _ => {}
+        }
     });
 
     super::popup::menus_in(&page);

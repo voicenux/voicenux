@@ -1555,9 +1555,10 @@ pub fn param_row(p: &'static blocks::ParamSpec, value: f32, on_change: impl Fn(f
             shown.add_css_class("vn-param-value");
             shown.set_text(&blocks::format_value(p, value));
             top.append(&shown);
-            // While you drag, only the number moves: the voice changes when you let go. A voice
-            // that slides while you talk sounds like a DJ scratching. Keys, the wheel and typed
-            // values change it after a short pause, so a held key does not slide it either.
+            // While you drag, the voice follows, at most every 40 ms. Settings can make it wait
+            // until you let go: a voice that slides while you talk can sound like a DJ scratching.
+            // Keys, the wheel and typed values change it after a short pause, so a held key does
+            // not slide it either.
             let sent = Rc::new(Cell::new(value));
             let apply: Rc<dyn Fn(f32)> = Rc::new(move |v: f32| {
                 if (v - sent.replace(v)).abs() > f32::EPSILON {
@@ -1589,10 +1590,21 @@ pub fn param_row(p: &'static blocks::ParamSpec, value: f32, on_change: impl Fn(f
             });
             scale.add_controller(press);
             let pause: Rc<RefCell<Option<glib::SourceId>>> = Rc::default();
+            let follow: Rc<RefCell<Option<glib::SourceId>>> = Rc::default();
             scale.connect_value_changed(move |s| {
                 let v = from_scale(s);
                 shown.set_text(&blocks::format_value(p, v));
                 if held.get() {
+                    if super::live_sliders() && follow.borrow().is_none() {
+                        let (scale, apply, again) = (s.downgrade(), apply.clone(), follow.clone());
+                        let wait = std::time::Duration::from_millis(40);
+                        follow.replace(Some(glib::timeout_add_local_once(wait, move || {
+                            again.take();
+                            if let Some(s) = scale.upgrade() {
+                                apply(from_scale(&s));
+                            }
+                        })));
+                    }
                     return;
                 }
                 if let Some(id) = pause.take() {
