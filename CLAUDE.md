@@ -98,7 +98,7 @@
   `pw-link -l` and `pw-record --target voicenux_mic`.
 - Never test with injected input (XTest, ydotool, remote desktop portal). Drive the app with its
   own commands instead: `voicenux open <page>`, `voicenux voice <id>`, `voicenux sound <id>`.
-- `voicenux --dialog keys|about|discord|discord-add|trim:SOUND|find:WORDS|tour:PAGE:STEP|welcome:STEP` opens a dialog, the
+- `voicenux --dialog keys|about|discord|trim:SOUND|find:WORDS|tour:PAGE:STEP|welcome:STEP` opens a dialog, the
   MyInstants search or the tips of a page from one step on, for screenshots. Menus are popups of
   their own, `--snapshot` does not see them.
 - For screenshots, `voicenux --snapshot file.png` renders the window into a PNG. It needs a desktop

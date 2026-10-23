@@ -10,7 +10,7 @@ use gtk::{gdk, gio, glib};
 use super::visuals::progress_ring;
 use super::{animate_in, board, clear, icon, icon_picker, label, line_icon, popup, smooth_scroll, tour, value_field};
 use crate::i18n::{fill, t, t_dyn};
-use crate::soundboard::{PlayMode, Sound, online};
+use crate::soundboard::{PlayMode, Sound};
 use crate::state::{Change, St};
 
 struct Pad {
@@ -661,10 +661,6 @@ pub fn build(st: &St) -> SoundboardPage {
                 }));
             }
             items.push(popup::Item::new("list-add-symbolic", t("Add audio files"), move || add()));
-            let (st2, at) = (st.clone(), scroll.clone());
-            items.push(popup::Item::new("insert-link-symbolic", t("Add from Discord"), move || {
-                add_from_discord(&st2, &at)
-            }));
             items.push(popup::Item::new("system-search-symbolic", t("Find sounds"), move || find.set_active(true)));
             items.push(sort_item(&st));
             if !st.playing_sounds().is_empty() {
@@ -897,86 +893,6 @@ fn discord_banner(st: &St) -> adw::Banner {
         }
     });
     banner
-}
-
-/// Adds a soundboard sound from Discord by its link or ID. Discord lists the sounds of a server
-/// only for your login, so you paste one. A link you copied comes in by itself.
-pub fn add_from_discord(st: &St, parent: &impl IsA<gtk::Widget>) {
-    let dialog = adw::AlertDialog::new(
-        Some(t("Add from Discord")),
-        Some(t("Paste the link of a Discord soundboard sound, or its ID.")),
-    );
-    let link = adw::EntryRow::builder().title(t("Link or ID")).activates_default(true).build();
-    let name = adw::EntryRow::builder().title(t("Name")).text(t("Discord sound")).activates_default(true).build();
-    let list = gtk::ListBox::new();
-    list.set_selection_mode(gtk::SelectionMode::None);
-    list.add_css_class("boxed-list");
-    list.append(&link);
-    list.append(&name);
-    dialog.set_extra_child(Some(&list));
-    dialog.add_response("cancel", t("Cancel"));
-    dialog.add_response("add", t("Add"));
-    dialog.set_response_appearance("add", adw::ResponseAppearance::Suggested);
-    dialog.set_default_response(Some("add"));
-    dialog.set_close_response("cancel");
-    dialog.set_response_enabled("add", false);
-    link.connect_changed({
-        let dialog = dialog.downgrade();
-        move |e| {
-            if let Some(d) = dialog.upgrade() {
-                d.set_response_enabled("add", online::discord_id(&e.text()).is_some());
-            }
-        }
-    });
-    link.clipboard().read_text_async(None::<&gio::Cancellable>, {
-        let link = link.downgrade();
-        move |text| {
-            if let (Ok(Some(text)), Some(link)) = (text, link.upgrade())
-                && link.text().is_empty()
-                && online::discord_id(&text).is_some()
-            {
-                link.set_text(text.trim());
-            }
-        }
-    });
-    dialog.set_focus(Some(&link));
-    dialog.connect_response(Some("add"), {
-        let st = st.clone();
-        move |_, _| {
-            let Some(id) = online::discord_id(&link.text()) else { return };
-            let typed = name.text().trim().to_string();
-            get_from_discord(&st, id, if typed.is_empty() { t("Discord sound").to_string() } else { typed });
-        }
-    });
-    dialog.present(Some(parent));
-}
-
-/// Downloads a Discord sound on a thread of its own, then puts it on the soundboard.
-fn get_from_discord(st: &St, id: u64, name: String) {
-    let (tx, rx) = async_channel::bounded(1);
-    std::thread::spawn(move || {
-        let _ = tx.send_blocking(online::discord_sound(id));
-    });
-    let st = Rc::downgrade(st);
-    glib::spawn_future_local(async move {
-        let Ok(result) = rx.recv().await else { return };
-        let Some(st) = st.upgrade() else { return };
-        let note = match result {
-            Ok((data, ext)) => {
-                let icon = super::emoji::guess(&name).unwrap_or("loudspeaker");
-                match st.add_found(&name, ext, &data, icon) {
-                    Ok(()) => fill(t("{} is on your soundboard now"), &[&name]),
-                    Err(e) => {
-                        log::warn!("could not add Discord sound {id}: {e}");
-                        fill(t("Could not add {}"), &[&name])
-                    }
-                }
-            }
-            Err(online::Error::Failed) => t("Discord has no sound with this link or ID.").to_string(),
-            Err(_) => t("Could not reach Discord. Are you online?").to_string(),
-        };
-        st.notify(Change::Notice(note));
-    });
 }
 
 /// What to change in Discord so others hear the sounds.
