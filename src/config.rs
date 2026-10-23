@@ -81,6 +81,8 @@ pub struct Config {
     pub find_volume: f32,
     /// Other apps on this computer may control Voicenux, see `src/api.rs`.
     pub api: bool,
+    /// Random voice picks out of your favorites.
+    pub random_favorites: bool,
 }
 
 impl Default for Config {
@@ -128,6 +130,7 @@ impl Default for Config {
             sound_sort: "suggested".into(),
             find_volume: 0.5,
             api: false,
+            random_favorites: false,
         }
     }
 }

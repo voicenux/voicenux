@@ -22,6 +22,7 @@ pub mod window;
 
 use std::cell::{Cell, RefCell};
 use std::collections::HashMap;
+use std::rc::Rc;
 
 use adw::prelude::*;
 use gtk::{gdk, glib};
@@ -250,6 +251,76 @@ pub fn tile_button(button: &impl IsA<gtk::Widget>, tile: &gtk::FlowBoxChild) {
         }
     });
     button.add_controller(motion);
+}
+
+/// What a [`random_button`] picks from: its icon, its text and its tooltip.
+pub type RandomFrom = (&'static str, &'static str, String);
+
+/// A button that picks something at random, with an arrow to choose from what: all of them, or
+/// your favorites. It shows and remembers the choice: `remember` keeps it, `pick` gets true for
+/// favorites. Choosing only switches, it picks nothing yet.
+pub fn random_button(
+    from: [RandomFrom; 2],
+    favorites: bool,
+    remember: impl Fn(bool) + 'static,
+    pick: impl Fn(bool) + 'static,
+) -> adw::SplitButton {
+    let content = adw::ButtonContent::new();
+    let button = adw::SplitButton::builder().child(&content).build();
+    button.set_dropdown_tooltip(crate::i18n::t("Pick from"));
+    let mode = Rc::new(Cell::new(favorites));
+    let popover = gtk::Popover::new();
+    let list = gtk::Box::new(gtk::Orientation::Vertical, 2);
+    list.add_css_class("vn-menu-list");
+    let mut items = Vec::new();
+    for (icon, text, _) in &from {
+        let row = gtk::Box::new(gtk::Orientation::Horizontal, 10);
+        row.append(&gtk::Image::from_icon_name(icon));
+        let l = gtk::Label::new(Some(text));
+        l.set_xalign(0.0);
+        l.set_hexpand(true);
+        row.append(&l);
+        let check = gtk::Image::from_icon_name("object-select-symbolic");
+        row.append(&check);
+        let item = gtk::Button::builder().child(&row).css_classes(["flat", "vn-menu-item"]).build();
+        list.append(&item);
+        items.push((item, check));
+    }
+    popover.set_child(Some(&list));
+    popup::menu(&popover);
+    button.set_popover(Some(&popover));
+    let show = Rc::new({
+        let (content, button, mode) = (content.clone(), button.downgrade(), mode.clone());
+        let checks: Vec<gtk::Image> = items.iter().map(|(_, c)| c.clone()).collect();
+        move || {
+            let (icon, text, tip) = &from[mode.get() as usize];
+            content.set_icon_name(icon);
+            content.set_label(text);
+            if let Some(b) = button.upgrade() {
+                b.set_tooltip_text(Some(tip));
+            }
+            for (i, check) in checks.iter().enumerate() {
+                check.set_opacity(if (i == 1) == mode.get() { 1.0 } else { 0.0 });
+            }
+        }
+    });
+    show();
+    let remember = Rc::new(remember);
+    for (i, (item, _)) in items.iter().enumerate() {
+        item.connect_clicked({
+            let (mode, show, remember, popover) = (mode.clone(), show.clone(), remember.clone(), popover.downgrade());
+            move |_| {
+                if let Some(p) = popover.upgrade() {
+                    p.popdown();
+                }
+                mode.set(i == 1);
+                remember(i == 1);
+                show();
+            }
+        });
+    }
+    button.connect_clicked(move |_| pick(mode.get()));
+    button
 }
 
 /// A tooltip with its key, like "Random voice (Ctrl+R)".

@@ -20,6 +20,7 @@ pub const ACTIONS: &[(&str, &str, &str)] = &[
     ("mute-toggle", "Mute microphone", "CTRL+ALT+M"),
     ("background-toggle", "Background sounds on or off", "CTRL+ALT+B"),
     ("random-voice", "Random voice", "CTRL+ALT+R"),
+    ("random-favorite", "Random favorite", "CTRL+SHIFT+ALT+R"),
     ("next-voice", "Next voice", "CTRL+ALT+Right"),
     ("previous-voice", "Previous voice", "CTRL+ALT+Left"),
     ("stop-sounds", "Stop all sounds", "CTRL+ALT+S"),

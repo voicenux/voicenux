@@ -408,7 +408,14 @@ fn handle(st: &St, action: &str, arg: Option<&str>) -> Result<Value, String> {
             let id = find_voice(st, need()?)?;
             st.set_voice(&id);
         }
-        "random-voice" => st.random_voice(),
+        "random-voice" => {
+            st.random_voice(false);
+        }
+        "random-favorite" => {
+            if !st.random_voice(true) {
+                return Err("no other favorite to pick, star two voices or more".into());
+            }
+        }
         "next-voice" => st.step_voice(true),
         "previous-voice" => st.step_voice(false),
         // Read the switch first: a borrow in the argument would last through the call.

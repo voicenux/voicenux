@@ -53,6 +53,12 @@ msgstr "Lieblingsstimmen"
 msgid "Random voice"
 msgstr "Zufällige Stimme"
 
+msgid "Random favorite"
+msgstr "Zufälliger Favorit"
+
+msgid "Star two voices or more first"
+msgstr "Markiere zuerst zwei Stimmen oder mehr mit dem Stern"
+
 msgid "Stop all sounds"
 msgstr "Alle Sounds stoppen"
 
@@ -2248,3 +2254,6 @@ msgstr "Die Schalter"
 
 msgid "Voice changer turns your new voice on and off. Hear myself plays it in your headphones. Background adds the sound of a voice, like rain or a campfire."
 msgstr "Stimmverzerrer schaltet deine neue Stimme an und aus. Mich hören spielt sie dir in die Kopfhörer. Hintergrund legt das Geräusch einer Stimme darunter, etwa Regen oder ein Lagerfeuer."
+
+msgid "Pick from"
+msgstr "Auswählen aus"

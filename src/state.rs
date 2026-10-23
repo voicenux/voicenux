@@ -348,19 +348,23 @@ impl State {
         })
     }
 
-    /// Picks a voice from favorites (or all voices if there are none), not the current one.
-    pub fn random_voice(self: &Rc<Self>) {
+    /// Uses a random voice out of all voices, or out of your favorites. False when there was none
+    /// to pick: favorites need another one than the voice in use.
+    pub fn random_voice(self: &Rc<Self>, favorites: bool) -> bool {
         let current = self.config.borrow().voice.clone();
-        let favs = self.config.borrow().favorites.clone();
-        let pool: Vec<String> =
-            if favs.len() >= 2 { favs } else { self.voices.borrow().iter().map(|v| v.id.clone()).collect() };
+        let pool: Vec<String> = if favorites {
+            self.config.borrow().favorites.clone()
+        } else {
+            self.voices.borrow().iter().map(|v| v.id.clone()).collect()
+        };
         let pool: Vec<&String> = pool.iter().filter(|id| **id != current && self.playable(id)).collect();
         if pool.is_empty() {
-            return;
+            return false;
         }
         let pick = glib::random_int_range(0, pool.len() as i32) as usize;
         let id = pool[pick].clone();
         self.set_voice(&id);
+        true
     }
 
     /// Next or previous voice in the list (favorites first if there are any).

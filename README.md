@@ -83,8 +83,9 @@ Closing the window keeps Voicenux running in the tray. F1 shows all keys.
 </p>
 
 Click a voice to use it, and click it again for your own voice. Search or pick a category at the
-top, or press **R** for a random voice. Star the ones you like to find them under **Favorites**, and
-right-click an empty spot for folders. Drag voices to sort them.
+top. Star the ones you like to find them under **Favorites**. Right-click an empty spot for
+folders. Drag voices to sort them. **Random voice** picks one for you, and its arrow switches it to
+your favorites.
 
 On the right you change the main settings of the voice, like its pitch. **Customize** opens all of
 them in Voicelab. Right-click a voice to give it a shortcut. At the bottom, **Voice changer** turns

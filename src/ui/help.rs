@@ -22,6 +22,7 @@ fn sections() -> Vec<Section> {
                 ("Ctrl+B", t("Background on or off")),
                 ("Ctrl+M", t("Mute the microphone")),
                 ("Ctrl+R", t("Random voice")),
+                ("Ctrl+Shift+R", t("Random favorite")),
                 ("Ctrl+,", t("Settings")),
                 ("F1", t("This list")),
                 ("Ctrl+W", t("Close the window")),

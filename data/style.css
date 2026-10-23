@@ -1186,6 +1186,25 @@ button.pill {
   border-radius: 999px;
 }
 
+/* A split button, like Random voice, reads as one button: no gap, and round only outside. */
+splitbutton > button {
+  border-top-right-radius: 0;
+  border-bottom-right-radius: 0;
+}
+
+splitbutton > menubutton > button {
+  border-top-left-radius: 0;
+  border-bottom-left-radius: 0;
+  padding-left: 7px;
+  padding-right: 7px;
+}
+
+splitbutton > separator {
+  min-width: 0;
+  margin: 0;
+  background: none;
+}
+
 button.circular {
   border-radius: 999px;
 }

@@ -36,6 +36,7 @@ pub fn usage() -> String {
         "  background        Background sounds on or off",
         "  mute              Mute or unmute the microphone",
         "  random            Pick a random voice",
+        "  random-favorite   Pick a random favorite",
         "  next | previous   Next or previous voice",
         "  sound NAME        Play a sound from the soundboard",
         "  stop              Stop all sounds",
@@ -97,8 +98,15 @@ impl Ctx {
                 note(if st.muted.get() { t("Microphone muted") } else { t("Microphone on") }.into());
             }
             "random-voice" => {
-                st.random_voice();
+                st.random_voice(false);
                 self.voice_note();
+            }
+            "random-favorite" => {
+                if st.random_voice(true) {
+                    self.voice_note();
+                } else {
+                    note(t("Star two voices or more first").into());
+                }
             }
             "next-voice" => {
                 st.step_voice(true);
@@ -221,6 +229,7 @@ impl Ctx {
             Some("background") => self.run("background-toggle"),
             Some("mute") => self.run("mute-toggle"),
             Some("random") => self.run("random-voice"),
+            Some("random-favorite") => self.run("random-favorite"),
             Some("next") => self.run("next-voice"),
             Some("previous") => self.run("previous-voice"),
             Some("stop") => self.run("stop-sounds"),

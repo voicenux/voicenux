@@ -117,6 +117,10 @@ impl ksni::Tray for Tray {
                 .into()
             })
             .collect();
+        if voices.len() >= 2 {
+            voices.insert(0, item(t("Random favorite"), "media-playlist-shuffle-symbolic", "random-favorite"));
+            voices.insert(1, MenuItem::Separator);
+        }
         if voices.is_empty() {
             voices.push(
                 StandardItem { label: t("Star voices to see them here").into(), enabled: false, ..Default::default() }

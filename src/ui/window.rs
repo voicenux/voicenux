@@ -97,9 +97,14 @@ impl Window {
                 st.set_muted(!st.muted.get());
                 self.toast(if st.muted.get() { t("Microphone muted") } else { t("Microphone on") });
             }
+            // Shift picks out of the favorites.
             gdk::Key::r => {
-                st.random_voice();
-                self.toast(&crate::i18n::fill(t("Voice: {}"), &[&t_dyn(&st.current().name)]));
+                let favorites = mods.contains(gdk::ModifierType::SHIFT_MASK);
+                if st.random_voice(favorites) {
+                    self.toast(&crate::i18n::fill(t("Voice: {}"), &[&t_dyn(&st.current().name)]));
+                } else if favorites {
+                    self.toast(t("Star two voices or more first"));
+                }
             }
             gdk::Key::o => {
                 self.show_page("soundboard");

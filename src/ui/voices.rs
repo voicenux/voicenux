@@ -94,15 +94,30 @@ pub fn build(st: &St, open_lab: OpenLab) -> VoicesPage {
     let (search_box, search) = super::search_field(t("Search voices"));
     search_box.set_margin_start(12);
     header.pack_start(&search_box);
-    let random_content =
-        adw::ButtonContent::builder().icon_name("media-playlist-shuffle-symbolic").label(t("Random voice")).build();
-    let random = gtk::Button::builder().child(&random_content).build();
-    random.set_tooltip_text(Some(&super::with_key(t("Random voice"), "R")));
+    // Out of all voices, or the arrow switches to your favorites.
+    let random = super::random_button(
+        [
+            ("media-playlist-shuffle-symbolic", t("Random voice"), super::with_key(t("Random voice"), "R")),
+            ("starred-symbolic", t("Random favorite"), super::with_key(t("Random favorite"), "Shift+R")),
+        ],
+        st.config.borrow().random_favorites,
+        {
+            let st = st.clone();
+            move |favorites| {
+                st.config.borrow_mut().random_favorites = favorites;
+                st.save_later();
+            }
+        },
+        {
+            let st = st.clone();
+            move |favorites| {
+                if !st.random_voice(favorites) && favorites {
+                    st.notify(Change::Notice(t("Star two voices or more first").into()));
+                }
+            }
+        },
+    );
     header.pack_start(&random);
-    random.connect_clicked({
-        let st = st.clone();
-        move |_| st.random_voice()
-    });
 
     let filter = Rc::new(RefCell::new((String::from("all"), String::new())));
 
@@ -737,15 +752,20 @@ pub fn build(st: &St, open_lab: OpenLab) -> VoicesPage {
                     sync_picks();
                 }));
             }
-            let (st1, st2, st3, open_lab) = (st.clone(), st.clone(), st.clone(), open_lab.clone());
+            let (st1, st2, st3, st4, open_lab) = (st.clone(), st.clone(), st.clone(), st.clone(), open_lab.clone());
             items.push(popup::Item::new("list-add-symbolic", t("New voice"), move || {
                 let v = st1.new_custom();
                 st1.set_voice(&v.id);
                 open_lab(&v.id);
             }));
             items.push(popup::Item::new("media-playlist-shuffle-symbolic", t("Random voice"), move || {
-                st2.random_voice()
+                st2.random_voice(false);
             }));
+            if st4.config.borrow().favorites.len() >= 2 {
+                items.push(popup::Item::new("starred-symbolic", t("Random favorite"), move || {
+                    st4.random_voice(true);
+                }));
+            }
             items.push(if st3.config.borrow().voices_by_name {
                 popup::Item::new("view-list-symbolic", t("Your own order"), move || st3.set_voices_by_name(false))
             } else {

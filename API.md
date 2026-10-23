@@ -64,7 +64,8 @@ curl http://127.0.0.1:41967/api/icon/robot -o robot.png
 | `voices` | | Answers with the list of voices |
 | `sounds` | | Answers with the list of sounds |
 | `voice` | voice | Uses a voice, and turns the voice changer on |
-| `random-voice` | | Uses a random voice, out of your favorites when you have two or more |
+| `random-voice` | | Uses a random voice |
+| `random-favorite` | | Uses a random voice out of your favorites |
 | `next-voice`, `previous-voice` | | Uses the next or previous voice, out of your favorites when you have some |
 | `voice-changer` | switch | Voice changer on or off |
 | `hear-myself` | switch | Hear myself on or off |
