@@ -67,6 +67,13 @@ fn scale_row(
             Unit::Percent => &[0.5, 1.0],
         },
     );
+    super::wheel_slider(
+        &scale,
+        match unit {
+            Unit::Db => 1.0,
+            Unit::Percent => 0.05,
+        },
+    );
     let shown = super::value_field(
         {
             let scale = scale.clone();

@@ -83,6 +83,8 @@ pub struct Config {
     pub api: bool,
     /// The voice changes while you drag a slider of it, not only when you let go.
     pub live_sliders: bool,
+    /// The mouse wheel moves the slider under the pointer.
+    pub wheel_sliders: bool,
     /// Random voice picks out of your favorites.
     pub random_favorites: bool,
 }
@@ -133,6 +135,7 @@ impl Default for Config {
             find_volume: 0.5,
             api: false,
             live_sliders: true,
+            wheel_sliders: true,
             random_favorites: false,
         }
     }

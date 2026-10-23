@@ -1536,6 +1536,8 @@ pub fn param_row(p: &'static blocks::ParamSpec, value: f32, on_change: impl Fn(f
                 points.push(0.5);
             }
             super::notches(&scale, &points);
+            // A notch of the wheel: one step, or a fiftieth of the way.
+            super::wheel_slider(&scale, if matches!(p.kind, Kind::Int) { 1.0 } else { (hi - lo) / 50.0 });
             let shown = value_field(
                 {
                     let scale = scale.clone();

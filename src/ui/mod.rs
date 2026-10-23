@@ -36,18 +36,44 @@ thread_local! {
     static TEXTURES: RefCell<HashMap<String, gdk::Texture>> = RefCell::new(HashMap::new());
     /// The pop-in each tile is on, by tile, so an older one stops when a new one starts.
     static ENTERING: RefCell<(u64, HashMap<usize, u64>)> = RefCell::default();
-    /// What sliders do, from Settings: the voice changes while you drag.
-    static LIVE: Cell<bool> = const { Cell::new(true) };
+    /// What sliders do, from Settings: the voice changes while you drag, the wheel moves them.
+    static SLIDERS: Cell<(bool, bool)> = const { Cell::new((true, true)) };
 }
 
 /// Takes what sliders do from the settings. Call when they change.
 pub fn follow_settings(c: &crate::config::Config) {
-    LIVE.set(c.live_sliders);
+    SLIDERS.set((c.live_sliders, c.wheel_sliders));
 }
 
 /// Whether the voice changes while you drag one of its sliders.
 pub fn live_sliders() -> bool {
-    LIVE.get()
+    SLIDERS.get().0
+}
+
+/// Whether the mouse wheel moves sliders.
+pub fn wheel_sliders() -> bool {
+    SLIDERS.get().1
+}
+
+/// The mouse wheel on a slider, when Settings allows it: a notch of the wheel moves it by `step`,
+/// up for more. In a page that scrolls, `smooth_scroll` decides first whether the turn is for the
+/// page or for the slider. Touchpads move it the way GTK does.
+pub fn wheel_slider(scale: &gtk::Scale, step: f64) {
+    let wheel = gtk::EventControllerScroll::new(gtk::EventControllerScrollFlags::BOTH_AXES);
+    wheel.set_propagation_phase(gtk::PropagationPhase::Capture);
+    wheel.connect_scroll(move |c, dx, dy| {
+        if !wheel_sliders() {
+            return glib::Propagation::Stop;
+        }
+        let Some(s) = c.widget().and_downcast::<gtk::Scale>() else { return glib::Propagation::Proceed };
+        if c.unit() != gdk::ScrollUnit::Wheel {
+            return glib::Propagation::Proceed;
+        }
+        let notches = if dy != 0.0 { -dy } else { dx };
+        s.set_value(s.value() + notches * step);
+        glib::Propagation::Stop
+    });
+    scale.add_controller(wheel);
 }
 
 /// A picture from `data/icons`, cached.

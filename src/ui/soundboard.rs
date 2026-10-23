@@ -1012,6 +1012,7 @@ pub(super) fn volume_slider(value: f64, max: f64, on_change: impl Fn(f64) + 'sta
     scale.set_hexpand(true);
     scale.set_value(value);
     super::notches(&scale, &[0.5, 1.0, 1.5]);
+    super::wheel_slider(&scale, 0.05);
     let text = |v: f64| format!("{:.0} %", v * 100.0);
     let field = value_field(
         {

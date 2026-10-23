@@ -2,9 +2,12 @@
 //! a middle click starts autoscroll: move the mouse up or down to scroll, click again to stop.
 //! Hold the middle button and drag to scroll only while it is held. Like in browsers, a mark
 //! stays where the click was, and the mouse pointer turns into the scroll cursors of the theme.
+//! A wheel turn on a slider moves the slider (see `ui::wheel_slider`), unless the page was just
+//! scrolling: then it scrolls on, like in a browser.
 
 use std::cell::{Cell, RefCell};
 use std::rc::Rc;
+use std::time::{Duration, Instant};
 
 use adw::prelude::*;
 use gtk::{cairo, gdk, glib};
@@ -18,6 +21,8 @@ const MARK: i32 = 28;
 /// How far the value may be off the one we set without something else having moved it. Lists
 /// like the picture grid put it on their own steps, a pixel or two off.
 const SLACK: f64 = 6.0;
+/// The wheel keeps scrolling the page for this long after the last turn, even onto a slider.
+const STILL_SCROLLING: Duration = Duration::from_millis(600);
 
 struct Scroller {
     /// Weak: the scrolled window owns the controllers that own this.
@@ -40,6 +45,8 @@ struct Scroller {
     held: RefCell<Option<(gtk::Widget, Option<gdk::Cursor>)>>,
     tick: RefCell<Option<gtk::TickCallbackId>>,
     last_frame: Cell<i64>,
+    /// When the wheel last scrolled the page.
+    wheeled: Cell<Option<Instant>>,
 }
 
 impl Scroller {
@@ -186,6 +193,7 @@ pub fn smooth_scroll(widget: &impl IsA<gtk::Widget>) {
         held: RefCell::default(),
         tick: RefCell::default(),
         last_frame: Cell::new(0),
+        wheeled: Cell::new(None),
     });
     wheel(&sw, &s);
     autoscroll(&sw, &s);
@@ -217,6 +225,11 @@ fn wheel(sw: &gtk::ScrolledWindow, s: &Rc<Scroller>) {
             s.set_value(s.target.get());
             return glib::Propagation::Stop;
         }
+        let scrolling = s.wheeled.get().is_some_and(|t| t.elapsed() < STILL_SCROLLING);
+        if !scrolling && super::wheel_sliders() && over_slider(c) {
+            return glib::Propagation::Proceed;
+        }
+        s.wheeled.set(Some(Instant::now()));
         // Keep going from where the glide is heading, so fast wheel turns add up.
         let from = if s.tick.borrow().is_some() { s.target.get() } else { s.adj.value() };
         let to = (from + dy * s.adj.page_size().powf(2.0 / 3.0)).clamp(s.adj.lower(), s.max());
