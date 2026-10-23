@@ -50,7 +50,8 @@
 - `src/api.rs` lets other apps control Voicenux (WebSocket and HTTP on 127.0.0.1:41967, off by
   default). Keep `API.md` in step with it. Raise `VERSION` there only for changes that break clients.
 - Users never touch a config file. Every option has a place in the app, `src/config.rs` only
-  stores it.
+  stores it. Options for tinkerers and experiments are switches in **Advanced settings**
+  (`src/ui/advanced.rs`, like the flags of a browser): one line in `FLAGS` each, not in Settings.
 - Everything a user can read comes in English and German. Write the English text in the code and
   wrap it in `t()` (from `src/i18n.rs`), then add the German text to `po/de.po`. Names from data
   (voices, effects, sounds) go through `t_dyn()`. `make check` fails when a German text is missing.

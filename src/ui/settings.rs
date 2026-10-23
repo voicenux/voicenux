@@ -327,7 +327,13 @@ impl Group {
     }
 }
 
-pub fn build(st: &St, window: &adw::ApplicationWindow) -> adw::ToolbarView {
+/// Settings, and Advanced as a page behind it.
+pub struct SettingsPage {
+    pub widget: adw::NavigationView,
+    pub advanced_search: gtk::SearchEntry,
+}
+
+pub fn build(st: &St, window: &adw::ApplicationWindow) -> SettingsPage {
     let header = adw::HeaderBar::new();
     header.set_title_widget(Some(&adw::WindowTitle::new(t("Settings"), "")));
     let page = gtk::Box::new(gtk::Orientation::Vertical, 30);
@@ -627,6 +633,26 @@ pub fn build(st: &St, window: &adw::ApplicationWindow) -> adw::ToolbarView {
     app.add(&about);
     page.append(&app.widget);
 
+    // The rest, for tinkerers, on a page of its own.
+    let nav = adw::NavigationView::new();
+    let more = Group::new("sliders-horizontal", t("Advanced"), "");
+    let open = adw::ActionRow::builder()
+        .title(t("Advanced settings"))
+        .subtitle(t("For tinkerers: everything else you can set, and experiments."))
+        .activatable(true)
+        .build();
+    open.add_suffix(&gtk::Image::from_icon_name("go-next-symbolic"));
+    open.connect_activated({
+        let nav = nav.downgrade();
+        move |_| {
+            if let Some(nav) = nav.upgrade() {
+                nav.push_by_tag("advanced");
+            }
+        }
+    });
+    more.add(&open);
+    page.append(&more.widget);
+
     super::follow_settings(&st.config.borrow());
     st.subscribe({
         let st = Rc::downgrade(st);
@@ -649,7 +675,10 @@ pub fn build(st: &St, window: &adw::ApplicationWindow) -> adw::ToolbarView {
     let view = adw::ToolbarView::new();
     view.add_top_bar(&header);
     view.set_content(Some(&scroll));
-    view
+    nav.add(&adw::NavigationPage::builder().title(t("Settings")).tag("settings").child(&view).build());
+    let advanced = super::advanced::page(st);
+    nav.add(&advanced.widget);
+    SettingsPage { widget: nav, advanced_search: advanced.search }
 }
 
 /// "5.8 GB", with a comma in German.

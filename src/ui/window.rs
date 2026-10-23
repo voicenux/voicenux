@@ -18,6 +18,9 @@ pub struct Window {
     lab: voicelab::Lab,
     voice_search: gtk::SearchEntry,
     sound_search: gtk::SearchEntry,
+    /// Settings, with Advanced behind it.
+    settings: adw::NavigationView,
+    advanced_search: gtk::SearchEntry,
     add_sounds: Rc<dyn Fn()>,
     pub find_online: Rc<dyn Fn(&str)>,
     st: St,
@@ -33,6 +36,14 @@ pub const PAGES: &[(&str, &str, &str)] = &[
 
 impl Window {
     pub fn show_page(&self, name: &str) {
+        // Advanced is a page of Settings.
+        if name == "advanced" {
+            self.show_page("settings");
+            if self.settings.visible_page_tag().as_deref() != Some("advanced") {
+                self.settings.push_by_tag("advanced");
+            }
+            return;
+        }
         // Voicelab opens on the voice you use, if it is one of yours.
         if name == "voicelab" {
             let v = self.st.current();
@@ -69,6 +80,8 @@ impl Window {
             gdk::Key::f => {
                 if page == "soundboard" {
                     self.sound_search.grab_focus();
+                } else if page == "settings" && self.settings.visible_page_tag().as_deref() == Some("advanced") {
+                    self.advanced_search.grab_focus();
                 } else {
                     self.show_page("voices");
                     self.voice_search.grab_focus();
@@ -181,7 +194,8 @@ pub fn build(app: &adw::Application, st: &St) -> Window {
     stack.add_named(&voices_page.widget, Some("voices"));
     stack.add_named(&sounds_page.widget, Some("soundboard"));
     stack.add_named(&lab.widget, Some("voicelab"));
-    stack.add_named(&settings::build(st, &window), Some("settings"));
+    let settings_page = settings::build(st, &window);
+    stack.add_named(&settings_page.widget, Some("settings"));
 
     // Sidebar.
     let nav = gtk::ListBox::new();
@@ -285,6 +299,8 @@ pub fn build(app: &adw::Application, st: &St) -> Window {
         lab: lab.clone(),
         voice_search: voices_page.search.clone(),
         sound_search: sounds_page.search.clone(),
+        settings: settings_page.widget.clone(),
+        advanced_search: settings_page.advanced_search.clone(),
         add_sounds: sounds_page.add.clone(),
         find_online: sounds_page.find_online.clone(),
         st: st.clone(),

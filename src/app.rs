@@ -42,7 +42,7 @@ pub fn usage() -> String {
         "  stop              Stop all sounds",
         "  list              List all voices",
         "  sounds            List all sounds",
-        "  open PAGE         Open the window on voices, soundboard, voicelab or settings",
+        "  open PAGE         Open the window on voices, soundboard, voicelab, settings or advanced",
         "  --version         Show the version",
     ]
     .join("\n")

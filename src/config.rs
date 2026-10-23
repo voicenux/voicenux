@@ -87,6 +87,8 @@ pub struct Config {
     pub wheel_sliders: bool,
     /// Random voice picks out of your favorites.
     pub random_favorites: bool,
+    /// The voice page shows Random voice.
+    pub random_voice_button: bool,
 }
 
 impl Default for Config {
@@ -137,6 +139,7 @@ impl Default for Config {
             live_sliders: true,
             wheel_sliders: true,
             random_favorites: false,
+            random_voice_button: true,
         }
     }
 }

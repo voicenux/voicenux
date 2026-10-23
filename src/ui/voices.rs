@@ -118,6 +118,17 @@ pub fn build(st: &St, open_lab: OpenLab) -> VoicesPage {
         },
     );
     header.pack_start(&random);
+    // Advanced settings can hide it.
+    let show_random = {
+        let (st, random) = (st.clone(), random.clone());
+        move || random.set_visible(st.config.borrow().random_voice_button)
+    };
+    show_random();
+    st.subscribe(move |c| {
+        if matches!(c, Change::Settings) {
+            show_random();
+        }
+    });
 
     let filter = Rc::new(RefCell::new((String::from("all"), String::new())));
 

@@ -2255,5 +2255,53 @@ msgstr "Die Schalter"
 msgid "Voice changer turns your new voice on and off. Hear myself plays it in your headphones. Background adds the sound of a voice, like rain or a campfire."
 msgstr "Stimmverzerrer schaltet deine neue Stimme an und aus. Mich hören spielt sie dir in die Kopfhörer. Hintergrund legt das Geräusch einer Stimme darunter, etwa Regen oder ein Lagerfeuer."
 
+msgid "Advanced"
+msgstr "Erweitert"
+
+msgid "Hear changes while you drag"
+msgstr "Änderungen beim Ziehen hören"
+
+msgid "The voice follows its sliders right away. When off, it changes when you let go."
+msgstr "Die Stimme folgt ihren Reglern sofort. Wenn aus, ändert sie sich erst, wenn du loslässt."
+
+msgid "Mouse wheel moves sliders"
+msgstr "Mausrad bewegt Regler"
+
+msgid "Turn the wheel over a slider to change it. While the page scrolls, it keeps scrolling."
+msgstr "Dreh das Mausrad über einem Regler, um ihn zu ändern. Während die Seite scrollt, scrollt sie weiter."
+
 msgid "Pick from"
 msgstr "Auswählen aus"
+
+msgid "Advanced settings"
+msgstr "Erweiterte Einstellungen"
+
+msgid "For tinkerers: everything else you can set, and experiments."
+msgstr "Für Tüftler: alles, was du sonst noch einstellen kannst, und Experimente."
+
+msgid "Search advanced settings"
+msgstr "Erweiterte Einstellungen durchsuchen"
+
+msgid "Reset all"
+msgstr "Alle zurücksetzen"
+
+msgid "Puts every switch here back to how it came"
+msgstr "Stellt jeden Schalter hier wieder so ein, wie er war"
+
+msgid "For tinkerers who want to set everything. Some are experiments and may change."
+msgstr "Für Tüftler, die alles einstellen wollen. Manches ist ein Experiment und kann sich ändern."
+
+msgid "Changed"
+msgstr "Geändert"
+
+msgid "No settings found"
+msgstr "Keine Einstellungen gefunden"
+
+msgid "Try another word."
+msgstr "Versuch es mit einem anderen Wort."
+
+msgid "Random voice button"
+msgstr "Knopf „Zufällige Stimme“"
+
+msgid "Random voice at the top of the voice page. Its arrow picks out of your favorites. Ctrl+R works without it."
+msgstr "„Zufällige Stimme“ oben bei den Stimmen. Sein Pfeil wählt aus deinen Favoriten. Strg+R geht auch ohne ihn."

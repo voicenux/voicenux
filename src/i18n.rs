@@ -231,6 +231,10 @@ mod tests {
         for (_, _, title) in crate::ui::window::PAGES {
             check(title);
         }
+        for f in crate::ui::advanced::FLAGS {
+            check(f.title);
+            check(f.about);
+        }
         assert!(missing.is_empty(), "missing German texts:\n{}", missing.join("\n"));
     }
 }

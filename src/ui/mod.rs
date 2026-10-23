@@ -1,5 +1,6 @@
 //! The window and everything in it.
 
+pub mod advanced;
 pub mod ai;
 pub mod board;
 pub mod bottombar;
