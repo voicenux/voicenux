@@ -1,6 +1,9 @@
 //! Finds sounds online on MyInstants. It has no API, so this reads its front page and its search
 //! page, and the page of each sound for its likes and views. Nothing goes out before you open Find
 //! sounds; then only your country for the front page and the words you search for.
+//!
+//! Also gets soundboard sounds from Discord by their ID. Discord lists the sounds of a server only
+//! for your login, which Voicenux never touches, but each file is open to anyone with its ID.
 
 use std::sync::LazyLock;
 use std::time::Duration;
@@ -8,6 +11,8 @@ use std::time::Duration;
 use ureq::config::IpFamily;
 
 const SITE: &str = "https://www.myinstants.com";
+/// Where Discord keeps the files of soundboard sounds, by ID.
+const DISCORD: &str = "https://cdn.discordapp.com/soundboard-sounds/";
 /// Far more than any soundboard sound needs.
 const MAX_BYTES: u64 = 15 * 1024 * 1024;
 
@@ -246,6 +251,41 @@ pub fn download(found: &Found) -> Result<Vec<u8>, Error> {
         .map_err(error)
 }
 
+/// The ID of a Discord soundboard sound: the ID itself, or a link to its file.
+pub fn discord_id(text: &str) -> Option<u64> {
+    let text = text.trim();
+    let digits = match text.split_once("soundboard-sounds/") {
+        Some((before, after)) => {
+            let host = before.trim_start_matches("https://").trim_start_matches("http://").trim_end_matches('/');
+            if !matches!(host, "cdn.discordapp.com" | "media.discordapp.net") {
+                return None;
+            }
+            after
+        }
+        None => text,
+    };
+    let id: String = digits.chars().take_while(char::is_ascii_digit).collect();
+    // After the ID only a file type or a query may follow, like "123.mp3" or "123?size=…".
+    let rest = &digits[id.len()..];
+    if !(rest.is_empty() || rest.starts_with(['.', '?', '#', '/'])) {
+        return None;
+    }
+    id.parse().ok().filter(|id| *id > 0)
+}
+
+/// The audio of a Discord soundboard sound, and its file type. Blocks: call it off the main
+/// thread. `Failed` when Discord has no sound with this ID.
+pub fn discord_sound(id: u64) -> Result<(Vec<u8>, &'static str), Error> {
+    let mut response = call(|a| a.get(format!("{DISCORD}{id}")).call()).map_err(|e| match e {
+        ureq::Error::StatusCode(400 | 403 | 404) => Error::Failed,
+        e => error(e),
+    })?;
+    let kind = response.headers().get("content-type").and_then(|v| v.to_str().ok()).unwrap_or("");
+    let ext = if kind.contains("ogg") { "ogg" } else { "mp3" };
+    let data = response.body_mut().with_config().limit(MAX_BYTES).read_to_vec().map_err(error)?;
+    Ok((data, ext))
+}
+
 /// Downloads only come from MyInstants, over https.
 fn from_myinstants(url: &str) -> bool {
     url.strip_prefix("https://")
@@ -280,6 +320,18 @@ pub fn clean_title(title: &str) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn discord_ids() {
+        assert_eq!(discord_id(" 1234567890123456789 "), Some(1234567890123456789));
+        assert_eq!(discord_id("https://cdn.discordapp.com/soundboard-sounds/42"), Some(42));
+        assert_eq!(discord_id("https://cdn.discordapp.com/soundboard-sounds/42.mp3?x=1"), Some(42));
+        assert_eq!(discord_id("media.discordapp.net/soundboard-sounds/7"), Some(7));
+        assert_eq!(discord_id("https://evil.example/soundboard-sounds/42"), None);
+        assert_eq!(discord_id("42abc"), None);
+        assert_eq!(discord_id("airhorn"), None);
+        assert_eq!(discord_id("0"), None);
+    }
 
     const PAGE: &str = r#"
         <div class="instant">
@@ -390,5 +442,14 @@ mod tests {
         for q in ["привет", "шш", "日本", "ñ"] {
             search(q, 1).unwrap();
         }
+    }
+
+    /// Talks to the real Discord: `cargo test -- --ignored`. Sound 1 is its duck.
+    #[test]
+    #[ignore]
+    fn downloads_a_discord_sound() {
+        let (bytes, ext) = discord_sound(1).unwrap();
+        assert!(super::super::decode_bytes(bytes, ext).unwrap().seconds() > 0.1);
+        assert_eq!(discord_sound(999).map(|_| ()), Err(Error::Failed));
     }
 }

@@ -2321,6 +2321,30 @@ msgstr "Nicht erlauben"
 msgid "Allow"
 msgstr "Erlauben"
 
+msgid "Add from Discord"
+msgstr "Aus Discord hinzufügen"
+
+msgid "Paste the link of a Discord soundboard sound, or its ID."
+msgstr "Füge den Link eines Soundboard-Sounds aus Discord ein, oder seine ID."
+
+msgid "Link or ID"
+msgstr "Link oder ID"
+
+msgid "Name"
+msgstr "Name"
+
+msgid "Discord sound"
+msgstr "Discord-Sound"
+
+msgid "Add"
+msgstr "Hinzufügen"
+
+msgid "Discord has no sound with this link or ID."
+msgstr "Discord hat keinen Sound mit diesem Link oder dieser ID."
+
+msgid "Could not reach Discord. Are you online?"
+msgstr "Discord ist nicht erreichbar. Bist du online?"
+
 msgid "Pick from"
 msgstr "Auswählen aus"
 

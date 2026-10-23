@@ -191,9 +191,9 @@ impl Ctx {
                     return 1;
                 }
             }
-            // Also for screenshots: opens a dialog, "keys", "about", "discord" or "trim:SOUND", searches
-            // MyInstants with "find:WORDS", shows the tips of a page from one on, like
-            // "tour:voices:2", or the welcome dialog at a step, like "welcome:5".
+            // Also for screenshots: opens a dialog, "keys", "about", "discord", "discord-add" or
+            // "trim:SOUND", searches MyInstants with "find:WORDS", shows the tips of a page from one
+            // on, like "tour:voices:2", or the welcome dialog at a step, like "welcome:5".
             Some("--dialog") => {
                 self.show();
                 let Some(w) = self.window.borrow().clone() else { return 1 };
@@ -201,6 +201,7 @@ impl Ctx {
                     Some("keys") => crate::ui::help::show(&w.window),
                     Some("about") => crate::ui::settings::about_dialog().present(Some(&w.window)),
                     Some("discord") => crate::ui::soundboard::discord_help(st, &w.window),
+                    Some("discord-add") => crate::ui::soundboard::add_from_discord(st, &w.window),
                     Some(other) if other.starts_with("trim:") => crate::ui::trim::open(st, &other[5..], &w.window),
                     Some(other) if other.starts_with("find:") => {
                         w.show_page("soundboard");
