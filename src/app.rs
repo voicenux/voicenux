@@ -191,7 +191,7 @@ impl Ctx {
                     return 1;
                 }
             }
-            // Also for screenshots: opens a dialog, "keys", "about" or "trim:SOUND", searches
+            // Also for screenshots: opens a dialog, "keys", "about", "discord" or "trim:SOUND", searches
             // MyInstants with "find:WORDS", shows the tips of a page from one on, like
             // "tour:voices:2", or the welcome dialog at a step, like "welcome:5".
             Some("--dialog") => {
@@ -200,6 +200,7 @@ impl Ctx {
                 match arg(1) {
                     Some("keys") => crate::ui::help::show(&w.window),
                     Some("about") => crate::ui::settings::about_dialog().present(Some(&w.window)),
+                    Some("discord") => crate::ui::soundboard::discord_help(st, &w.window),
                     Some(other) if other.starts_with("trim:") => crate::ui::trim::open(st, &other[5..], &w.window),
                     Some(other) if other.starts_with("find:") => {
                         w.show_page("soundboard");

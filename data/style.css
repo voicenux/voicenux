@@ -1655,6 +1655,12 @@ banner > revealer > widget {
   font-weight: 650;
 }
 
+/* A tip, like the one about Discord on the soundboard: blue, it is no error. */
+banner.vn-hint > revealer > widget {
+  background-color: #2563eb;
+  background-image: var(--vn-grad);
+}
+
 /* About */
 .vn-about-logo {
   animation: vn-bob 3.2s ease-in-out infinite;

@@ -104,7 +104,8 @@ sound, like rain or a campfire.
 Sounds play into the Voicenux Microphone, so others hear them too. **Find sounds** searches
 [MyInstants](https://www.myinstants.com), or drop your own audio files on the page. Right-click a
 sound to change or trim it, right-click an empty spot for folders. Tips on the first visit show
-what is where.
+what is where. Friends in Discord do not hear them? Discord filters out sounds that are not speech:
+Voicenux shows you what to change there.
 
 <p align="center">
   <img width="720" src="res/tips.png" alt="A tip on the soundboard: a bubble that says Right-click an empty spot points at a dashed spot after the last sound, with 2 of 4, Skip and Next">

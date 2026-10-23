@@ -89,6 +89,8 @@ pub struct Config {
     pub random_favorites: bool,
     /// The voice page shows Random voice.
     pub random_voice_button: bool,
+    /// The note that Discord may filter out sounds was read.
+    pub discord_tip: bool,
 }
 
 impl Default for Config {
@@ -140,6 +142,7 @@ impl Default for Config {
             wheel_sliders: true,
             random_favorites: false,
             random_voice_button: true,
+            discord_tip: false,
         }
     }
 }

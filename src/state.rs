@@ -348,6 +348,15 @@ impl State {
         })
     }
 
+    /// Whether Discord, or an app for it like Vesktop, hears the Voicenux Microphone.
+    pub fn discord_listens(&self) -> bool {
+        const APPS: &[&str] = &["discord", "vesktop", "webcord", "legcord", "armcord", "equibop"];
+        self.users.borrow().iter().any(|u| {
+            let u = u.to_lowercase();
+            APPS.iter().any(|a| u.contains(a))
+        })
+    }
+
     /// Uses a random voice out of all voices, or out of your favorites. False when there was none
     /// to pick: favorites need another one than the voice in use.
     pub fn random_voice(self: &Rc<Self>, favorites: bool) -> bool {

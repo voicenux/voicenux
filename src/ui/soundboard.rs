@@ -289,6 +289,7 @@ pub fn build(st: &St) -> SoundboardPage {
 
     let view = adw::ToolbarView::new();
     view.add_top_bar(&header);
+    view.add_top_bar(&discord_banner(st));
     view.set_content(Some(&content));
     view.add_bottom_bar(&picks_bar);
     view.set_reveal_bottom_bars(false);
@@ -865,6 +866,53 @@ pub fn build(st: &St) -> SoundboardPage {
         }
     });
     SoundboardPage { widget: view, search, add, shrink: vec![find_content], find_online }
+}
+
+/// A note while Discord hears the Voicenux Microphone: Discord filters out sounds that are not
+/// speech, so friends may not hear the soundboard. It goes away for good once read.
+fn discord_banner(st: &St) -> adw::Banner {
+    let banner =
+        adw::Banner::builder().title(t("Discord may filter out your sounds")).button_label(t("How to fix")).build();
+    banner.add_css_class("vn-hint");
+    banner.connect_button_clicked({
+        let st = st.clone();
+        move |b| discord_help(&st, b)
+    });
+    let sync = {
+        let (st, banner) = (Rc::downgrade(st), banner.downgrade());
+        move || {
+            if let (Some(st), Some(b)) = (st.upgrade(), banner.upgrade()) {
+                b.set_revealed(st.discord_listens() && !st.config.borrow().discord_tip);
+            }
+        }
+    };
+    sync();
+    st.subscribe(move |c| {
+        if matches!(c, Change::Users | Change::Settings) {
+            sync();
+        }
+    });
+    banner
+}
+
+/// What to change in Discord so others hear the sounds.
+pub fn discord_help(st: &St, parent: &impl IsA<gtk::Widget>) {
+    let dialog = adw::AlertDialog::new(
+        Some(t("Sounds in Discord")),
+        Some(t(
+            "Discord removes sounds that are not speech, so your friends may not hear the soundboard. In Discord, open Settings, then Voice & Video:\n\n• Set Noise Suppression to None.\n• Turn off Advanced Voice Activity, or use Push to Talk.",
+        )),
+    );
+    dialog.add_response("ok", t("Got it"));
+    dialog.connect_response(None, {
+        let st = st.clone();
+        move |_, _| {
+            if !st.config.borrow().discord_tip {
+                st.update(|c| c.discord_tip = true);
+            }
+        }
+    });
+    dialog.present(Some(parent));
 }
 
 /// Sort by name, or back to your own order when it is sorted.

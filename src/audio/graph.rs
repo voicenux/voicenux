@@ -370,7 +370,12 @@ impl Graph {
         let mut users: Vec<String> = nodes
             .into_iter()
             .filter(|n| n.name != ENGINE_NODE)
-            .map(|n| if n.app.is_empty() { n.description.clone() } else { n.app.clone() })
+            .map(|n| match n.app.as_str() {
+                "" => n.description.clone(),
+                // The voice engine of Discord calls itself so.
+                "WEBRTC VoiceEngine" => "Discord".to_string(),
+                app => app.to_string(),
+            })
             .filter(|a| !WATCHERS.iter().any(|w| a.eq_ignore_ascii_case(w)))
             .collect();
         users.sort();

@@ -419,6 +419,16 @@ pub fn build(st: &St, window: &adw::ApplicationWindow) -> SettingsPage {
         let st = st.clone();
         move |v| st.update(|c| c.mic_volume_db = v as f32)
     }));
+    let discord = adw::ActionRow::builder()
+        .title(t("Sounds in Discord"))
+        .subtitle(t("If your friends do not hear the soundboard"))
+        .activatable(true)
+        .build();
+    discord.add_suffix(&gtk::Image::from_icon_name("go-next-symbolic"));
+    discord.connect_activated({
+        let st = st.clone();
+        move |r| super::soundboard::discord_help(&st, r)
+    });
     let users = adw::ActionRow::builder().title(t("Used by")).build();
     let users_label = label("", &["dim-label"]);
     users.add_suffix(&users_label);
@@ -431,6 +441,7 @@ pub fn build(st: &St, window: &adw::ApplicationWindow) -> SettingsPage {
     };
     sync_users();
     virt.add(&users);
+    virt.add(&discord);
     page.append(&virt.widget);
 
     // Hear myself.
