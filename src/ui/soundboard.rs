@@ -38,7 +38,7 @@ impl board::Shelf for SoundShelf {
     }
 
     fn order(&self) -> Vec<String> {
-        self.0.library.borrow().sound.iter().map(|s| s.id.clone()).collect()
+        self.0.sounds_shown().into_iter().map(|s| s.id).collect()
     }
 
     fn add_folder(&self, name: &str) -> String {
@@ -475,7 +475,7 @@ pub fn build(st: &St) -> SoundboardPage {
                 tiles.borrow_mut().push((child, name));
             }
             for (i, s) in sounds.iter().enumerate() {
-                let p = pad(&st, s);
+                let p = pad(&st, s, &landing);
                 board::drag_source(&p.child, p.pad.upcast_ref(), &s.id, &picks, &faces);
                 grid.append(&p.child);
                 if animate {
@@ -1189,7 +1189,7 @@ pub(super) fn volume_slider(value: f64, max: f64, on_change: impl Fn(f64) + 'sta
     row
 }
 
-fn pad(st: &St, s: &Sound) -> Pad {
+fn pad(st: &St, s: &Sound, landing: &Rc<board::Landing>) -> Pad {
     let pad = gtk::Box::new(gtk::Orientation::Vertical, 8);
     pad.add_css_class("sound-pad");
     pad.set_size_request(136, 140);
@@ -1238,10 +1238,34 @@ fn pad(st: &St, s: &Sound) -> Pad {
     menu.set_margin_end(6);
     menu.set_tooltip_text(Some(t("Edit sound")));
 
+    // The star, next to the menu. Starred sounds come first.
+    let star = gtk::Button::from_icon_name(if s.favorite { "starred-symbolic" } else { "non-starred-symbolic" });
+    star.add_css_class("flat");
+    star.add_css_class("vn-star");
+    if s.favorite {
+        // The pad bounces into its new place instead: the star does not pop each time the
+        // soundboard builds again.
+        star.add_css_class("on");
+        star.add_css_class("vn-still");
+    }
+    star.set_halign(gtk::Align::End);
+    star.set_valign(gtk::Align::Start);
+    star.set_margin_top(5);
+    star.set_margin_end(32);
+    star.set_tooltip_text(Some(t("Favorite")));
+    star.connect_clicked({
+        let (st, id, landing) = (st.clone(), s.id.clone(), landing.clone());
+        move |_| {
+            landing.items.borrow_mut().insert(id.clone());
+            st.toggle_sound_favorite(&id);
+        }
+    });
+
     let overlay = gtk::Overlay::new();
     overlay.add_css_class("vn-lift");
     overlay.set_child(Some(&pad));
     overlay.add_overlay(&menu);
+    overlay.add_overlay(&star);
     overlay.add_overlay(&badges);
     let check = gtk::Image::from_icon_name("object-select-symbolic");
     check.add_css_class("vn-pad-check");
@@ -1255,6 +1279,7 @@ fn pad(st: &St, s: &Sound) -> Pad {
     let child = gtk::FlowBoxChild::new();
     child.set_child(Some(&overlay));
     super::tile_button(&menu, &child);
+    super::tile_button(&star, &child);
 
     // The editor is made when it first opens: the grid builds again after every change, and most
     // pads never open it. It hangs on the grid cell, which never lifts or squishes.

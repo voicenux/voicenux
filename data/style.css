@@ -325,7 +325,7 @@ flowboxchild:hover:not(.vn-menu-hover) .vn-star,
   transform: scale(1.25) rotate(18deg);
 }
 
-.vn-star.on image {
+.vn-star.on:not(.vn-still) image {
   animation: vn-star-pop 600ms ease-out;
 }
 

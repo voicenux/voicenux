@@ -848,6 +848,17 @@ impl State {
     }
 
     /// The sounds that play right now.
+    /// Stars a sound, or takes the star away. Favorites come first on the soundboard.
+    pub fn toggle_sound_favorite(&self, id: &str) {
+        {
+            let mut lib = self.library.borrow_mut();
+            let Some(s) = lib.sound.iter_mut().find(|s| s.id == id) else { return };
+            s.favorite = !s.favorite;
+            lib.save();
+        }
+        self.notify(Change::Sounds);
+    }
+
     pub fn playing_sounds(&self) -> Vec<String> {
         let mut ids: Vec<String> =
             self.engine.meters.playing().into_iter().filter_map(|(rt, _)| self.sound_id_of(rt)).collect();
@@ -908,7 +919,10 @@ impl State {
                 if (s.start, s.end) != (sound.start, sound.end) {
                     self.sounds.borrow_mut().remove(&sound.id);
                 }
+                // The star is set on the pad, not in the editor, which may hold an older copy.
+                let favorite = s.favorite;
                 *s = sound;
+                s.favorite = favorite;
             }
             lib.save();
         }
@@ -1138,10 +1152,14 @@ impl State {
     }
 
     /// The sounds in the order the soundboard shows them.
+    /// The sounds in the order of the soundboard: by name, or yours with the favorites first.
     pub fn sounds_shown(&self) -> Vec<soundboard::Sound> {
         let mut sounds = self.library.borrow().sound.clone();
         if self.config.borrow().sounds_by_name {
             sounds.sort_by_cached_key(|s| crate::i18n::t_dyn(&s.name).to_lowercase());
+        } else {
+            // Stable: in your order among themselves.
+            sounds.sort_by_key(|s| !s.favorite);
         }
         sounds
     }

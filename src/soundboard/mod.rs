@@ -102,6 +102,9 @@ pub struct Sound {
     /// The folder it is in, by name. None for none.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub folder: Option<String>,
+    /// Starred, for a random favorite.
+    #[serde(default, skip_serializing_if = "is_false")]
+    pub favorite: bool,
 }
 
 fn full() -> f32 {
@@ -256,6 +259,7 @@ impl Library {
             start: 0.0,
             end: None,
             folder: None,
+            favorite: false,
         };
         self.sound.push(sound.clone());
         sound
@@ -342,6 +346,7 @@ fn starter_sound(b: &starter::Builtin) -> Sound {
         start: 0.0,
         end: None,
         folder: None,
+        favorite: false,
     }
 }
 
