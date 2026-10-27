@@ -900,7 +900,7 @@ pub fn discord_help(st: &St, parent: &impl IsA<gtk::Widget>) {
     let dialog = adw::AlertDialog::new(
         Some(t("Sounds in Discord")),
         Some(t(
-            "Discord removes sounds that are not speech, so your friends may not hear the soundboard. In Discord, open Settings, then Voice & Video:\n\n• Set Noise Suppression to None.\n• Turn off Advanced Voice Activity, or use Push to Talk.",
+            "Discord removes sounds that are not speech, so your friends may not hear the soundboard. In Discord, open Settings, then Voice & Video:\n\n• Set Noise Suppression to None.\n• Turn off Echo Cancellation, Automatic Gain Control and Advanced Voice Activity.\n• Use Push to Talk, or turn off Automatically determine input sensitivity and move its slider far to the left.",
         )),
     );
     dialog.add_response("ok", t("Got it"));
