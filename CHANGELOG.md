@@ -2,6 +2,26 @@
 
 What each release brings, newest first. The [GitHub releases](https://github.com/voicenux/voicenux/releases) add every commit that went into it.
 
+## v0.3.0
+
+_2026-10-27_
+
+Welcome to Voicenux `v0.3.0`! Voicenux now asks before another app may control it, and the soundboard tells you when Discord may filter out your sounds.
+
+<p align="center">
+  <img width="720" alt="Allow Voicenux Plugin to control Voicenux?: a dialog with the path of the plugin, Open folder, and Do not allow or Allow" src="https://raw.githubusercontent.com/voicenux/voicenux/v0.3.0/res/ask.png">
+</p>
+
+### Highlights
+
+- Voicenux asks before an app, like the Stream Deck plugin or a script, may control it
+- A note on the soundboard when Discord may filter out your sounds, with what to change in Discord
+- The mouse wheel moves sliders, in round steps, and stops where the voice started out
+- You hear a voice change while you drag its slider
+- A random favorite: the arrow next to **Random voice**, or `Ctrl+Shift+R`
+- Starred sounds come first on the soundboard
+- **Advanced settings** for tinkerers, at the bottom of Settings
+
 ## v0.2.0
 
 _2026-10-19_
