@@ -369,22 +369,8 @@ fn draw_mark(cr: &cairo::Context, size: f64) {
 
 /// Whether the pointer of a scroll is over a slider in the scrolled window.
 fn over_slider(c: &gtk::EventControllerScroll) -> bool {
-    let (Some(sw), Some(event)) = (c.widget(), c.current_event()) else { return false };
-    let (Some(native), Some((x, y))) = (sw.native(), event.position()) else { return false };
-    let (tx, ty) = native.surface_transform();
-    let point = gtk::graphene::Point::new((x - tx) as f32, (y - ty) as f32);
-    let Some(p) = native.compute_point(&sw, &point) else { return false };
-    let mut w = sw.pick(p.x() as f64, p.y() as f64, gtk::PickFlags::DEFAULT);
-    while let Some(widget) = w {
-        if widget.is::<gtk::Range>() {
-            return true;
-        }
-        if widget == sw {
-            break;
-        }
-        w = widget.parent();
-    }
-    false
+    let Some(sw) = c.widget() else { return false };
+    super::hovered_slider().is_some_and(|s| s.is_ancestor(&sw))
 }
 
 /// A middle click on text pastes, so it must not start autoscroll there.

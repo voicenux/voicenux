@@ -39,6 +39,8 @@ thread_local! {
     static ENTERING: RefCell<(u64, HashMap<usize, u64>)> = RefCell::default();
     /// What sliders do, from Settings: the voice changes while you drag, the wheel moves them.
     static SLIDERS: Cell<(bool, bool)> = const { Cell::new((true, true)) };
+    /// The slider under the pointer, see `wheel_slider`.
+    static HOVERED: RefCell<glib::WeakRef<gtk::Scale>> = RefCell::default();
 }
 
 /// Takes what sliders do from the settings. Call when they change.
@@ -75,6 +77,27 @@ pub fn wheel_slider(scale: &gtk::Scale, step: f64) {
         glib::Propagation::Stop
     });
     scale.add_controller(wheel);
+    // The page around it asks for this: a wheel turn on a slider is for the slider.
+    let motion = gtk::EventControllerMotion::new();
+    motion.connect_enter(|c, _, _| {
+        if let Some(s) = c.widget().and_downcast::<gtk::Scale>() {
+            HOVERED.with_borrow_mut(|h| h.set(Some(&s)));
+        }
+    });
+    motion.connect_leave(|c| {
+        let left = c.widget();
+        HOVERED.with_borrow_mut(|h| {
+            if h.upgrade().map(|s| s.upcast::<gtk::Widget>()) == left {
+                h.set(None);
+            }
+        });
+    });
+    scale.add_controller(motion);
+}
+
+/// The slider under the pointer, of those with `wheel_slider`.
+pub fn hovered_slider() -> Option<gtk::Scale> {
+    HOVERED.with_borrow(|h| h.upgrade()).filter(|s| s.is_mapped())
 }
 
 /// A picture from `data/icons`, cached.
