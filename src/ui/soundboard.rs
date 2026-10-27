@@ -881,8 +881,21 @@ fn discord_banner(st: &St) -> adw::Banner {
     let sync = {
         let (st, banner) = (Rc::downgrade(st), banner.downgrade());
         move || {
-            if let (Some(st), Some(b)) = (st.upgrade(), banner.upgrade()) {
-                b.set_revealed(st.discord_listens() && !st.config.borrow().discord_tip);
+            let (Some(st), Some(b)) = (st.upgrade(), banner.upgrade()) else { return };
+            // Hidden while closed: a closed banner still takes room and moves the page down.
+            if st.discord_listens() && !st.config.borrow().discord_tip {
+                b.set_visible(true);
+                b.set_revealed(true);
+            } else if b.is_revealed() {
+                b.set_revealed(false);
+                let b = b.downgrade();
+                glib::timeout_add_local_once(std::time::Duration::from_millis(300), move || {
+                    if let Some(b) = b.upgrade().filter(|b| !b.is_revealed()) {
+                        b.set_visible(false);
+                    }
+                });
+            } else {
+                b.set_visible(false);
             }
         }
     };
