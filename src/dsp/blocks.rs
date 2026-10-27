@@ -531,6 +531,76 @@ pub fn format_value(spec: &ParamSpec, v: f32) -> String {
     }
 }
 
+/// The smallest change `format_value` shows near `v`. Steps of the mouse wheel are not finer.
+pub fn resolution(spec: &ParamSpec, v: f32) -> f32 {
+    if matches!(spec.kind, Kind::Int) {
+        return 1.0;
+    }
+    match spec.unit {
+        Unit::Semitones | Unit::Seconds | Unit::PerSecond => 0.1,
+        Unit::Cents | Unit::Db | Unit::Note => 1.0,
+        Unit::Hz if v >= 1000.0 => 100.0,
+        Unit::Hz if v < 10.0 => 0.01,
+        Unit::Hz => 1.0,
+        Unit::Ms if v >= 1000.0 => 10.0,
+        Unit::Ms => 1.0,
+        Unit::Percent | Unit::None => 0.01,
+    }
+}
+
+/// Where a notch of the mouse wheel takes `v`, up for `dir` 1, down for -1: two semitones, or
+/// about a fiftieth of the slider, onto the next round value the field shows, like 5 ms, or 110
+/// then 115 Hz.
+pub fn wheel_notch(spec: &ParamSpec, v: f32, dir: f32) -> f32 {
+    let (v, dir) = (v as f64, dir as f64);
+    if matches!(spec.unit, Unit::Semitones) {
+        return spec.clamp(next_multiple(v, 2.0, dir) as f32);
+    }
+    let far = if matches!(spec.kind, Kind::Int) {
+        v + dir
+    } else if spec.log {
+        let ln = |x: f32| (x as f64).max(1e-3).ln();
+        (v.max(1e-3).ln() + dir * (ln(spec.max) - ln(spec.min)) / 50.0).exp()
+    } else {
+        v + dir * (spec.max - spec.min) as f64 / 50.0
+    };
+    let step = round_step((far - v).abs()).max(resolution(spec, far as f32) as f64);
+    spec.clamp(next_multiple(v, step, dir) as f32)
+}
+
+/// Where a drag lands: on whole semitones, else on what the field shows, so no hidden decimals.
+pub fn drag_value(spec: &ParamSpec, v: f32) -> f32 {
+    let step = if matches!(spec.unit, Unit::Semitones) { 1.0 } else { resolution(spec, v) } as f64;
+    spec.clamp(((v as f64 / step).round() * step) as f32)
+}
+
+/// The next multiple of `step` from `v`, up for `dir` 1, down for -1.
+pub fn next_multiple(v: f64, step: f64, dir: f64) -> f64 {
+    // A value a hair off the grid counts as on it.
+    let k = v / step;
+    let k = if dir > 0.0 { (k + 1e-4).floor() + 1.0 } else { (k - 1e-4).ceil() - 1.0 };
+    k * step
+}
+
+/// A round step near `x`: 1, 2 or 5 times a power of ten.
+fn round_step(x: f64) -> f64 {
+    if x <= 0.0 || !x.is_finite() {
+        return 1.0;
+    }
+    let power = 10f64.powf(x.log10().floor());
+    let m = x / power;
+    power
+        * if m < 1.5 {
+            1.0
+        } else if m < 3.5 {
+            2.0
+        } else if m < 7.5 {
+            5.0
+        } else {
+            10.0
+        }
+}
+
 /// Reads a typed value back, like "350 ms", "1,2 kHz", "-3" or "C#4". A plain number counts in
 /// the unit that is shown. None when the text is not a value.
 pub fn parse_value(spec: &ParamSpec, text: &str) -> Option<f32> {
@@ -639,6 +709,36 @@ mod tests {
                 assert_ne!(a.kind, b.kind);
             }
         }
+    }
+
+    #[test]
+    fn wheel_notches_land_on_what_the_field_shows() {
+        for b in BLOCKS {
+            for p in b.params.iter().filter(|p| matches!(p.kind, Kind::Float | Kind::Int)) {
+                for dir in [1.0, -1.0] {
+                    let (mut v, end) = (p.default, if dir > 0.0 { p.max } else { p.min });
+                    for _ in 0..200 {
+                        let next = wheel_notch(p, v, dir);
+                        if next == end {
+                            break;
+                        }
+                        let what = format!("{}.{} from {v} to {next}", b.kind, p.key);
+                        assert!((next - v) * dir > 0.0, "{what}: stuck");
+                        let shown = parse_value(p, &format_value(p, next)).unwrap();
+                        assert!((shown - next).abs() <= next.abs() * 1e-4 + 1e-6, "{what}: shows {shown}");
+                        v = next;
+                    }
+                    assert_eq!(wheel_notch(p, end, dir), end, "{}.{}", b.kind, p.key);
+                }
+            }
+        }
+        let pitch = &find("pitch").unwrap().params[0];
+        assert_eq!(wheel_notch(pitch, -14.6, 1.0), -14.0);
+        assert_eq!(wheel_notch(pitch, 8.0, 1.0), 10.0);
+        assert_eq!(wheel_notch(pitch, 3.0, -1.0), 2.0);
+        assert_eq!(drag_value(pitch, -14.6), -15.0);
+        let mix = &find("pitch").unwrap().params[2];
+        assert!((drag_value(mix, 0.7234) - 0.72).abs() < 1e-6);
     }
 
     #[test]

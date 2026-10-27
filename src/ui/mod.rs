@@ -58,12 +58,14 @@ pub fn wheel_sliders() -> bool {
     SLIDERS.get().1
 }
 
-/// The mouse wheel on a slider, when Settings allows it: a notch of the wheel moves it by `step`,
-/// up for more. In a page that scrolls, `smooth_scroll` decides first whether the turn is for the
-/// page or for the slider. Touchpads move it the way GTK does.
-pub fn wheel_slider(scale: &gtk::Scale, step: f64) {
+/// The mouse wheel on a slider, when Settings allows it: each notch goes to `next(value, 1.0)`,
+/// or `next(value, -1.0)` down, like `grid`. In a page that scrolls, `smooth_scroll` decides first
+/// whether the turn is for the page or for the slider. Touchpads move it the way GTK does.
+pub fn wheel_slider(scale: &gtk::Scale, next: impl Fn(f64, f64) -> f64 + 'static) {
     let wheel = gtk::EventControllerScroll::new(gtk::EventControllerScrollFlags::BOTH_AXES);
     wheel.set_propagation_phase(gtk::PropagationPhase::Capture);
+    // Wheels with fine steps send parts of a notch. They add up to whole ones.
+    let parts = Cell::new(0.0);
     wheel.connect_scroll(move |c, dx, dy| {
         if !wheel_sliders() {
             return glib::Propagation::Stop;
@@ -72,8 +74,14 @@ pub fn wheel_slider(scale: &gtk::Scale, step: f64) {
         if c.unit() != gdk::ScrollUnit::Wheel {
             return glib::Propagation::Proceed;
         }
-        let notches = if dy != 0.0 { -dy } else { dx };
-        s.set_value(s.value() + notches * step);
+        parts.set(parts.get() + if dy != 0.0 { -dy } else { dx });
+        let (adj, mut v) = (s.adjustment(), s.value());
+        while parts.get().abs() > 0.999 {
+            let dir = parts.get().signum();
+            v = next(v, dir).clamp(adj.lower(), adj.upper());
+            parts.set(parts.get() - dir);
+        }
+        s.set_value(v);
         glib::Propagation::Stop
     });
     scale.add_controller(wheel);
@@ -93,6 +101,12 @@ pub fn wheel_slider(scale: &gtk::Scale, step: f64) {
         });
     });
     scale.add_controller(motion);
+}
+
+/// Steps of `step` for `wheel_slider`: a notch goes to the next multiple of it, so the values stay
+/// round.
+pub fn grid(step: f64) -> impl Fn(f64, f64) -> f64 {
+    move |v, dir| crate::dsp::blocks::next_multiple(v, step, dir)
 }
 
 /// The slider under the pointer, of those with `wheel_slider`.

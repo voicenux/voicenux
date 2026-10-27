@@ -1533,7 +1533,10 @@ pub fn param_row(p: &'static blocks::ParamSpec, value: f32, on_change: impl Fn(f
                 p.clamp(if p.log { raw.exp() } else { raw })
             };
             let (lo, hi) = (to_scale(p.min), to_scale(p.max));
-            let step = if matches!(p.kind, Kind::Int) { 1.0 } else { (hi - lo) / 400.0 };
+            let step = match (p.kind, p.unit) {
+                (Kind::Int, _) | (_, blocks::Unit::Semitones) => 1.0,
+                _ => (hi - lo) / 400.0,
+            };
             let scale = gtk::Scale::with_range(gtk::Orientation::Horizontal, lo, hi, step);
             scale.set_value(to_scale(value));
             scale.set_draw_value(false);
@@ -1547,8 +1550,16 @@ pub fn param_row(p: &'static blocks::ParamSpec, value: f32, on_change: impl Fn(f
                 points.push(0.5);
             }
             super::notches(&scale, &points);
-            // A notch of the wheel: one step, or a fiftieth of the way.
-            super::wheel_slider(&scale, if matches!(p.kind, Kind::Int) { 1.0 } else { (hi - lo) / 50.0 });
+            let real = move |at: f64| (if p.log { at.exp() } else { at }) as f32;
+            super::wheel_slider(&scale, move |at, dir| to_scale(blocks::wheel_notch(p, real(at), dir as f32)));
+            // A drag or a click on the track lands on a value the field shows exactly.
+            scale.connect_change_value(move |s, scroll, at| {
+                if scroll != gtk::ScrollType::Jump {
+                    return glib::Propagation::Proceed;
+                }
+                s.set_value(to_scale(blocks::drag_value(p, real(at))));
+                glib::Propagation::Stop
+            });
             let shown = value_field(
                 {
                     let scale = scale.clone();

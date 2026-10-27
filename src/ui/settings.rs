@@ -69,10 +69,10 @@ fn scale_row(
     );
     super::wheel_slider(
         &scale,
-        match unit {
+        super::grid(match unit {
             Unit::Db => 1.0,
             Unit::Percent => 0.05,
-        },
+        }),
     );
     let shown = super::value_field(
         {
