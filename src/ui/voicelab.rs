@@ -558,8 +558,11 @@ fn block_card(st: &St, editor: &gtk::Box, id: &str, index: usize, count: usize, 
         .row_spacing(10)
         .build();
     let values = b.values();
+    // How a built-in voice comes, so its sliders hold there.
+    let first = st.original(id).and_then(|o| o.blocks.get(index).filter(|o| o.kind == b.kind).map(|o| o.values()));
     for (pi, p) in spec.params.iter().enumerate() {
-        let row = param_row(p, values[pi], {
+        let was = first.as_ref().and_then(|f| f.get(pi).copied());
+        let row = param_row(p, values[pi], was, {
             let st = st.clone();
             let id = id.to_string();
             let key = p.key;

@@ -75,6 +75,17 @@ impl BlockDef {
             .collect()
     }
 
+    /// Whether it sounds like `other`: the same effect, on or off alike, with the same settings. A
+    /// setting left out counts as its default, and 8 is 8.0.
+    pub fn same_as(&self, other: &BlockDef) -> bool {
+        self.kind == other.kind
+            && self.enabled == other.enabled
+            && match blocks::find(&self.kind) {
+                Some(_) => self.values().iter().zip(other.values()).all(|(a, b)| (a - b).abs() < 1e-3),
+                None => self.params == other.params,
+            }
+    }
+
     /// Stores a value the way a person would write it in the file.
     pub fn set(&mut self, key: &str, v: f32) {
         let Some(spec) = blocks::find(&self.kind) else { return };
@@ -407,6 +418,23 @@ mod tests {
         let text = toml::to_string_pretty(&v).unwrap();
         let back: Voice = toml::from_str(&text).unwrap();
         assert_eq!(back, v);
+    }
+
+    #[test]
+    fn a_setting_back_at_its_default_is_no_change() {
+        let mut b = BlockDef::new("pitch");
+        let original = b.clone();
+        b.set("semitones", 8.0);
+        assert!(!b.same_as(&original));
+        // Back where it was: the key stays in the file, but the voice is as it comes.
+        b.set("semitones", 0.0);
+        assert!(b.same_as(&original));
+        b.set("mix", 0.3);
+        let mut from_file = BlockDef::new("pitch");
+        from_file.params.insert("mix".into(), toml::Value::Float(0.3));
+        assert!(b.same_as(&from_file));
+        b.enabled = false;
+        assert!(!b.same_as(&from_file));
     }
 
     #[test]

@@ -420,7 +420,8 @@ impl State {
         if builtin {
             let original = self.voices.borrow().iter().find(|x| x.id == v.id).unwrap().blocks.clone();
             let mut c = self.config.borrow_mut();
-            if original == v.blocks {
+            // Settings moved back to how the voice comes are no change.
+            if original.len() == v.blocks.len() && original.iter().zip(&v.blocks).all(|(a, b)| a.same_as(b)) {
                 c.tweaks.remove(&v.id);
             } else {
                 c.tweaks.insert(v.id.clone(), v.blocks.clone());

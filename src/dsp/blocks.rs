@@ -550,9 +550,16 @@ pub fn resolution(spec: &ParamSpec, v: f32) -> f32 {
 
 /// Where a notch of the mouse wheel takes `v`, up for `dir` 1, down for -1: two semitones, or
 /// about a fiftieth of the slider, onto the next round value the field shows, like 5 ms, or 110
-/// then 115 Hz.
-pub fn wheel_notch(spec: &ParamSpec, v: f32, dir: f32) -> f32 {
-    let (v, dir) = (v as f64, dir as f64);
+/// then 115 Hz. It stops at `stop` on the way, the value the voice comes with, so you find back.
+pub fn wheel_notch(spec: &ParamSpec, v: f32, dir: f32, stop: Option<f32>) -> f32 {
+    let next = notch(spec, v as f64, dir as f64);
+    match stop {
+        Some(s) if (s - v) * dir > 1e-4 && (next - s) * dir > 1e-4 => s,
+        _ => next,
+    }
+}
+
+fn notch(spec: &ParamSpec, v: f64, dir: f64) -> f32 {
     if matches!(spec.unit, Unit::Semitones) {
         return spec.clamp(next_multiple(v, 2.0, dir) as f32);
     }
@@ -718,7 +725,7 @@ mod tests {
                 for dir in [1.0, -1.0] {
                     let (mut v, end) = (p.default, if dir > 0.0 { p.max } else { p.min });
                     for _ in 0..200 {
-                        let next = wheel_notch(p, v, dir);
+                        let next = wheel_notch(p, v, dir, None);
                         if next == end {
                             break;
                         }
@@ -728,14 +735,19 @@ mod tests {
                         assert!((shown - next).abs() <= next.abs() * 1e-4 + 1e-6, "{what}: shows {shown}");
                         v = next;
                     }
-                    assert_eq!(wheel_notch(p, end, dir), end, "{}.{}", b.kind, p.key);
+                    assert_eq!(wheel_notch(p, end, dir, None), end, "{}.{}", b.kind, p.key);
                 }
             }
         }
         let pitch = &find("pitch").unwrap().params[0];
-        assert_eq!(wheel_notch(pitch, -14.6, 1.0), -14.0);
-        assert_eq!(wheel_notch(pitch, 8.0, 1.0), 10.0);
-        assert_eq!(wheel_notch(pitch, 3.0, -1.0), 2.0);
+        assert_eq!(wheel_notch(pitch, -14.6, 1.0, None), -14.0);
+        assert_eq!(wheel_notch(pitch, 8.0, 1.0, None), 10.0);
+        assert_eq!(wheel_notch(pitch, 3.0, -1.0, None), 2.0);
+        // Deep comes with -5: the wheel stops there on the way, both ways.
+        assert_eq!(wheel_notch(pitch, -4.0, -1.0, Some(-5.0)), -5.0);
+        assert_eq!(wheel_notch(pitch, -5.0, -1.0, Some(-5.0)), -6.0);
+        assert_eq!(wheel_notch(pitch, -6.0, 1.0, Some(-5.0)), -5.0);
+        assert_eq!(wheel_notch(pitch, -5.0, 1.0, Some(-5.0)), -4.0);
         assert_eq!(drag_value(pitch, -14.6), -15.0);
         let mix = &find("pitch").unwrap().params[2];
         assert!((drag_value(mix, 0.7234) - 0.72).abs() < 1e-6);

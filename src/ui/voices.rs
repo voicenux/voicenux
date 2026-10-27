@@ -1454,7 +1454,7 @@ impl Detail {
                         }
                     }
                 };
-                let row = param_row(p, values[pi], {
+                let row = param_row(p, values[pi], was, {
                     let st = self.st.clone();
                     let id = v.id.clone();
                     let key = p.key;
@@ -1496,8 +1496,14 @@ impl Detail {
     }
 }
 
-/// A labelled slider (or switch, or dropdown) for one parameter.
-pub fn param_row(p: &'static blocks::ParamSpec, value: f32, on_change: impl Fn(f32) + 'static) -> gtk::Box {
+/// A labelled slider (or switch, or dropdown) for one parameter. `was` is the value the voice
+/// comes with: the slider holds there, so you find back.
+pub fn param_row(
+    p: &'static blocks::ParamSpec,
+    value: f32,
+    was: Option<f32>,
+    on_change: impl Fn(f32) + 'static,
+) -> gtk::Box {
     let row = gtk::Box::new(gtk::Orientation::Vertical, 2);
     row.add_css_class("vn-param");
     let top = gtk::Box::new(gtk::Orientation::Horizontal, 6);
@@ -1541,8 +1547,10 @@ pub fn param_row(p: &'static blocks::ParamSpec, value: f32, on_change: impl Fn(f
             scale.set_value(to_scale(value));
             scale.set_draw_value(false);
             scale.set_hexpand(true);
-            // Holds at zero, half way for percents, and where the effect starts out.
+            // Holds at zero, half way for percents, where the effect starts out and where the voice
+            // comes.
             let mut points = vec![to_scale(p.default)];
+            points.extend(was.map(to_scale));
             if !p.log && p.min < 0.0 && p.max > 0.0 {
                 points.push(0.0);
             }
@@ -1551,7 +1559,7 @@ pub fn param_row(p: &'static blocks::ParamSpec, value: f32, on_change: impl Fn(f
             }
             super::notches(&scale, &points);
             let real = move |at: f64| (if p.log { at.exp() } else { at }) as f32;
-            super::wheel_slider(&scale, move |at, dir| to_scale(blocks::wheel_notch(p, real(at), dir as f32)));
+            super::wheel_slider(&scale, move |at, dir| to_scale(blocks::wheel_notch(p, real(at), dir as f32, was)));
             // A drag or a click on the track lands on a value the field shows exactly.
             scale.connect_change_value(move |s, scroll, at| {
                 if scroll != gtk::ScrollType::Jump {
