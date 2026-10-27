@@ -157,9 +157,12 @@ AI engine once (about 8 GB, 18 GB for AMD, or 3 GB for the processor).
 </p>
 
 Global shortcuts are in Settings, and every voice and sound can get its own. `voicenux --help`
-lists the commands, like `voicenux voice robot` or `voicenux sound airhorn`. Stream Deck plugins
-and scripts can control Voicenux too: turn on **Other apps** in Settings, then see [API.md](API.md).
-Voicenux asks before a new app may control it.
+lists the commands, like `voicenux voice robot` or `voicenux sound airhorn`.
+
+For a Stream Deck, the official [Voicenux plugin](https://github.com/voicenux/voicenux-plugin) for
+OpenDeck puts your voices and sounds on its keys. Turn on **Other apps** in Settings for it. Other
+plugins and scripts can control Voicenux the same way, see [API.md](API.md). Voicenux asks before a
+new app may control it.
 
 </details>
 
