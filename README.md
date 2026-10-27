@@ -140,7 +140,7 @@ Build your own voice from 26 effects, like pitch, robot, auto-tune, echo, reverb
 <summary>AI voices</summary>
 
 <p align="center">
-  <img width="720" src="res/ai-download.png" alt="Download SpongeBob?: a dialog that lists the AI engine with 8 GB once, the voice with 220 MB, that it runs on the NVIDIA graphics card and adds about 0.3 s of delay, with Cancel and Download">
+  <img width="720" src="res/ai-voices.png" alt="The voice page with the AI category picked: SpongeBob, Patrick, Squidward, Plankton, Darth Vader, Yoda, Optimus Prime, GLaDOS and Rick Sanchez, each with an AI badge">
 </p>
 
 Characters like SpongeBob, Darth Vader and GLaDOS, with an [RVC](https://github.com/RVC-Project/Retrieval-based-Voice-Conversion-WebUI)
