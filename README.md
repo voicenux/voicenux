@@ -140,7 +140,7 @@ Build your own voice from 26 effects, like pitch, robot, auto-tune, echo, reverb
 <summary>AI voices</summary>
 
 <p align="center">
-  <img width="720" src="res/ai-voices.png" alt="The voice page with the AI category picked: SpongeBob, Patrick, Squidward, Plankton, Darth Vader, Yoda, Optimus Prime, GLaDOS and Rick Sanchez, each with an AI badge">
+  <img width="720" src="res/ai-voices.png" alt="The voice page with the AI category picked: SpongeBob, Patrick, Squidward, Plankton, Darth Vader, Yoda, Optimus Prime, GLaDOS and Rick Sanchez, each with an AI badge and a download button. SpongeBob is selected, with Not downloaded yet under its settings">
 </p>
 
 Characters like SpongeBob, Darth Vader and GLaDOS, with an [RVC](https://github.com/RVC-Project/Retrieval-based-Voice-Conversion-WebUI)
