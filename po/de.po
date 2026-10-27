@@ -1622,9 +1622,6 @@ msgstr "Nach Namen sortieren"
 msgid "Your own order"
 msgstr "Eigene Reihenfolge"
 
-msgid "Turn off"
-msgstr "Ausschalten"
-
 msgid "Remove from favorites"
 msgstr "Aus Favoriten entfernen"
 

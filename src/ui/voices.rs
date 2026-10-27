@@ -1141,31 +1141,25 @@ fn show_keys(st: &St, keys: &gtk::Label, id: &str) {
 /// The right-click menu of a voice card.
 fn card_menu(st: &St, open_lab: &OpenLab, child: &gtk::FlowBoxChild, id: &str, x: f64, y: f64) {
     let Some(v) = st.voice(id) else { return };
-    let on = st.config.borrow().voice == id && st.config.borrow().voice_on;
     let fav = st.is_favorite(id);
     let key = format!("voice:{id}");
     let has_key = super::keys::shown(st, &key).is_some();
-    let (st1, st2, st3, open_lab) = (st.clone(), st.clone(), st.clone(), open_lab.clone());
-    let (id1, id2, id3) = (id.to_string(), id.to_string(), id.to_string());
+    let (st1, st2, open_lab) = (st.clone(), st.clone(), open_lab.clone());
+    let (id1, id2) = (id.to_string(), id.to_string());
     let weak = child.downgrade();
     let items = vec![
-        if on {
-            popup::Item::new("system-shutdown-symbolic", t("Turn off"), move || st1.set_voice_on(false))
-        } else {
-            popup::Item::new("object-select-symbolic", t("Use voice"), move || st1.set_voice(&id1))
-        },
         popup::Item::new(
             if fav { "starred-symbolic" } else { "non-starred-symbolic" },
             if fav { t("Remove from favorites") } else { t("Add to favorites") },
-            move || st2.toggle_favorite(&id2),
+            move || st1.toggle_favorite(&id1),
         ),
-        popup::Item::new("applications-science-symbolic", t("Customize"), move || open_lab(&id3)),
+        popup::Item::new("applications-science-symbolic", t("Customize"), move || open_lab(&id2)),
         popup::Item::new(
             "input-keyboard-symbolic",
             if has_key { t("Change shortcut") } else { t("Add shortcut") },
             move || {
                 if let Some(child) = weak.upgrade() {
-                    super::keys::record(&st3, &child, &key, &t_dyn(&v.name));
+                    super::keys::record(&st2, &child, &key, &t_dyn(&v.name));
                 }
             },
         ),
