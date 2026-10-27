@@ -166,13 +166,17 @@ jobs:
   flatpak:
     name: Flatpak
     runs-on: ubuntu-latest
+    # Fedora, like the RPM: the images of flathub-infra have no package manager any more.
     container:
-      image: ghcr.io/flathub-infra/flatpak-github-actions:gnome-51
+      image: fedora:latest
       # flatpak-builder needs to make sandboxes of its own.
       options: --privileged
     steps:
       - name: Install the build tools
-        run: dnf install -y git make curl python3-aiohttp python3-tomlkit
+        run: |
+          dnf install -y --setopt=install_weak_deps=False \
+            git make curl flatpak flatpak-builder python3-aiohttp python3-tomlkit
+          flatpak remote-add --user --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo
 
       - uses: actions/checkout@v7
 
