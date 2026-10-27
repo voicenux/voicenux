@@ -58,13 +58,15 @@ struct Main {
 }
 
 /// The program on the other end of a connection.
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct Peer {
     /// What the app is remembered by: the program, and the script for interpreters like Python.
     /// Empty when the program could not be found, like for apps of another user.
     pub key: String,
     /// A short name for people, like "curl" or "python3 bot.py". Empty with the key.
     pub name: String,
+    /// The file of the app, to show it in its folder: the program, or the script. Empty with the key.
+    pub file: String,
 }
 
 thread_local! {
@@ -323,7 +325,7 @@ fn allowed(host: Option<&str>, origin: Option<&str>) -> bool {
 /// Whether the app on the other end may use the API. Waits while Voicenux asks you. Gives the key
 /// of the app when it may.
 fn let_in(stream: &TcpStream, main: &Main) -> Option<String> {
-    let peer = peer(stream).unwrap_or_else(|| Peer { key: String::new(), name: String::new() });
+    let peer = peer(stream).unwrap_or_default();
     let key = peer.key.clone();
     let (reply, answer) = mpsc::channel();
     main.access.send_blocking(Access { peer, reply }).ok()?;
@@ -432,7 +434,7 @@ fn describe(proc: &Path) -> Option<Peer> {
         let manifest: Value =
             std::fs::read_to_string(dir.join("manifest.json")).ok().and_then(|t| serde_json::from_str(&t).ok())?;
         let name = manifest["Name"].as_str().map_or(program.clone(), String::from);
-        return Some(Peer { key: exe, name: fill(t("{} Plugin"), &[&name]) });
+        return Some(Peer { key: exe.clone(), name: fill(t("{} Plugin"), &[&name]), file: exe });
     }
     let bare = program.trim_end_matches(|c: char| c.is_ascii_digit() || c == '.');
     if INTERPRETERS.contains(&bare) {
@@ -443,10 +445,14 @@ fn describe(proc: &Path) -> Option<Peer> {
             let cwd = std::fs::read_link(proc.join("cwd")).unwrap_or_default();
             let path = cwd.join(script.as_ref());
             let file = path.file_name().map_or(script.to_string(), |f| f.to_string_lossy().to_string());
-            return Some(Peer { key: format!("{exe} {}", path.display()), name: format!("{program} {file}") });
+            return Some(Peer {
+                key: format!("{exe} {}", path.display()),
+                name: format!("{program} {file}"),
+                file: path.display().to_string(),
+            });
         }
     }
-    Some(Peer { key: exe, name: program })
+    Some(Peer { key: exe.clone(), name: program, file: exe })
 }
 
 fn websocket(
@@ -853,8 +859,8 @@ mod tests {
         std::fs::write(proc.join("cmdline"), b"python3\0-u\0deck.py\0").unwrap();
         let p = describe(&proc).unwrap();
         assert_eq!(
-            (p.key.as_str(), p.name.as_str()),
-            ("/usr/bin/python3.13 /home/me/bots/deck.py", "python3.13 deck.py")
+            (p.key.as_str(), p.name.as_str(), p.file.as_str()),
+            ("/usr/bin/python3.13 /home/me/bots/deck.py", "python3.13 deck.py", "/home/me/bots/deck.py")
         );
         // Any other program by itself.
         link(Path::new("/usr/bin/curl"), "exe");

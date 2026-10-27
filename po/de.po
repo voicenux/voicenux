@@ -2318,6 +2318,9 @@ msgstr "{} erlauben, Voicenux zu steuern?"
 msgid "The app could change your voice and play sounds into your microphone. You can take it back in Settings, under Other apps."
 msgstr "Die App könnte deine Stimme ändern und Sounds in dein Mikrofon spielen. Du kannst das in den Einstellungen unter Andere Apps zurücknehmen."
 
+msgid "Open folder"
+msgstr "Ordner öffnen"
+
 msgid "Do not allow"
 msgstr "Nicht erlauben"
 

@@ -960,11 +960,34 @@ pub fn ask_app(st: &St, window: &adw::ApplicationWindow, peer: &crate::api::Peer
         dialog.set_heading(Some(&fill(&glib::markup_escape_text(t("Allow {} to control Voicenux?")), &[&name])));
     }
     if !peer.key.is_empty() {
+        let extra = gtk::Box::new(gtk::Orientation::Vertical, 12);
         let path = label(&peer.key, &["dim-label", "caption"]);
         path.set_wrap(true);
         path.set_wrap_mode(gtk::pango::WrapMode::WordChar);
-        path.set_selectable(true);
-        dialog.set_extra_child(Some(&path));
+        extra.append(&path);
+        if std::path::Path::new(&peer.file).exists() {
+            // Small and quiet, the answer is what matters.
+            let open = gtk::Button::builder()
+                .child(&adw::ButtonContent::builder().icon_name("folder-open-symbolic").label(t("Open folder")).build())
+                .halign(gtk::Align::Center)
+                .css_classes(["flat", "caption", "dim-label", "vn-open-folder"])
+                .build();
+            open.connect_clicked({
+                let (window, file) = (window.clone(), peer.file.clone());
+                move |_| {
+                    // The folder in the default file manager. Asking org.freedesktop.FileManager1 to
+                    // show the file is slow, and can start another one, like GNOME Files on KDE.
+                    let Some(folder) = gtk::gio::File::for_path(&file).parent() else { return };
+                    gtk::FileLauncher::new(Some(&folder)).launch(Some(&window), None::<&gtk::gio::Cancellable>, |_| {});
+                }
+            });
+            extra.append(&open);
+            // The path can be copied. Then the button takes the focus, else the path would get it,
+            // and with it all its text would be selected.
+            path.set_selectable(true);
+            dialog.set_focus(Some(&open));
+        }
+        dialog.set_extra_child(Some(&extra));
     }
     dialog.add_response("deny", t("Do not allow"));
     dialog.add_response("allow", t("Allow"));

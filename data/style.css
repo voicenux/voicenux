@@ -1666,6 +1666,17 @@ banner.vn-hint > revealer > widget {
   animation: vn-bob 3.2s ease-in-out infinite;
 }
 
+/* The quiet "Open folder" under the path of an app that wants in. */
+.vn-open-folder {
+  min-height: 24px;
+  padding: 2px 8px;
+  font-weight: normal;
+}
+
+.vn-open-folder image {
+  -gtk-icon-size: 14px;
+}
+
 .vn-version {
   padding: 2px 12px;
   border-radius: 99px;
