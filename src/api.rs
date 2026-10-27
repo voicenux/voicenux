@@ -335,7 +335,6 @@ fn let_in(stream: &TcpStream, main: &Main) -> Option<String> {
 fn welcome(st: &St, key: &str) -> bool {
     let c = st.config.borrow();
     !c.api_ask
-        || ours(key)
         || (!key.is_empty() && c.api_apps.iter().any(|a| a.key == key))
         || ANSWERED.with_borrow(|a| a.contains(&(key.to_string(), true)))
 }
@@ -383,11 +382,6 @@ pub fn answer(st: &St, peer: &Peer, allow: Option<bool>) {
     for w in waiting {
         let _ = w.send(allow == Some(true));
     }
-}
-
-/// The Voicenux plugin for OpenDeck and Stream Deck gets in without asking.
-fn ours(key: &str) -> bool {
-    key.contains("/de.felitendo.voicenux.sdPlugin/")
 }
 
 /// Finds the program on the other end of a connection from this computer: the socket in
@@ -865,15 +859,13 @@ mod tests {
         // Any other program by itself.
         link(Path::new("/usr/bin/curl"), "exe");
         assert_eq!(describe(&proc).unwrap().name, "curl");
-        // Our plugin, by the name in its manifest. It may in without asking.
+        // A plugin, by the name in its manifest.
         let plugin = dir.join("plugins/de.felitendo.voicenux.sdPlugin");
         std::fs::create_dir_all(&plugin).unwrap();
         std::fs::write(plugin.join("manifest.json"), r#"{"Name": "Voicenux"}"#).unwrap();
         link(&plugin.join("bin/voicenux-plugin"), "exe");
         let p = describe(&proc).unwrap();
         assert_eq!(p.name, fill(t("Plugin {}"), &["Voicenux"]));
-        assert!(ours(&p.key));
-        assert!(!ours("/usr/bin/curl"));
         std::fs::remove_dir_all(&dir).unwrap();
     }
 

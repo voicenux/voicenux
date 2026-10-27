@@ -8,7 +8,7 @@ It listens on `127.0.0.1:41967` only, so nothing outside your computer reaches i
 
 The first time an app connects, Voicenux asks the user whether it may control Voicenux. There is no password: Voicenux looks up the program on the other end of the connection and remembers it. Until the user answers, the connection waits, for up to two minutes. An app that is not allowed gets status 403, also for the WebSocket handshake. Try again later: the user may allow it then. The user can turn this off, and take apps back, in **Settings → Other apps**.
 
-Pictures (`GET /api/icon/NAME`) need no answer. The Voicenux plugin for OpenDeck and Stream Deck is let in right away.
+Pictures (`GET /api/icon/NAME`) need no answer.
 
 ## WebSocket
 

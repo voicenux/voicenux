@@ -2297,8 +2297,8 @@ msgstr "Plugin {}"
 msgid "Only apps you allow"
 msgstr "Nur Apps, die du erlaubst"
 
-msgid "Voicenux asks the first time an app wants to control it. The Voicenux plugin may right away."
-msgstr "Voicenux fragt, wenn eine App es zum ersten Mal steuern will. Das Voicenux-Plugin darf es gleich."
+msgid "Voicenux asks the first time an app wants to control it."
+msgstr "Voicenux fragt, wenn eine App es zum ersten Mal steuern will."
 
 msgid "Allowed apps"
 msgstr "Erlaubte Apps"

@@ -814,7 +814,7 @@ fn api_group(st: &St) -> Group {
     group.add(&on);
     let ask = adw::SwitchRow::builder()
         .title(t("Only apps you allow"))
-        .subtitle(t("Voicenux asks the first time an app wants to control it. The Voicenux plugin may right away."))
+        .subtitle(t("Voicenux asks the first time an app wants to control it."))
         .active(st.config.borrow().api_ask)
         .build();
     ask.connect_active_notify({
