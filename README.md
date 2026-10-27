@@ -113,12 +113,13 @@ sound, like rain or a campfire.
 Sounds play into the Voicenux Microphone, so others hear them too. **Find sounds** searches
 [MyInstants](https://www.myinstants.com), or drop your own audio files on the page. Right-click a
 sound to change or trim it, right-click an empty spot for folders. Starred sounds come first.
-Tips on the first visit show what is where. Friends in Discord do not hear them? Discord filters out sounds that are not speech:
-Voicenux shows you what to change there.
+Tips on the first visit show what is where. Friends in Discord do not hear them? Discord filters
+out sounds that are not speech: Voicenux shows you what to change there.
 
 <p align="center">
   <img width="720" src="res/tips.png" alt="A tip on the soundboard: a bubble that says Right-click an empty spot points at a dashed spot after the last sound, with 2 of 4, Skip and Next">
   <img width="720" src="res/trim.png" alt="Trim sound for Drum Roll: a blue frame over the waveform with a handle on each side from 0.40 s to 3.60 s, a time ruler in seconds under it, and Cancel and Save at the bottom right">
+  <img width="720" src="res/discord.png" alt="Sounds in Discord: a dialog that lists what to turn off in the voice settings of Discord, over the soundboard with a blue note at the top that says Discord may filter out your sounds, and How to fix">
 </p>
 
 </details>
@@ -163,6 +164,22 @@ For a Stream Deck, the official [Voicenux plugin](https://github.com/voicenux/vo
 OpenDeck puts your voices and sounds on its keys. Turn on **Other apps** in Settings for it. Other
 plugins and scripts can control Voicenux the same way, see [API.md](API.md). Voicenux asks before a
 new app may control it.
+
+<p align="center">
+  <img width="720" src="res/ask.png" alt="Allow Voicenux Plugin to control Voicenux?: a dialog with the path of the plugin, Open folder, and Do not allow or Allow">
+</p>
+
+</details>
+
+<details>
+<summary>Advanced settings</summary>
+
+<p align="center">
+  <img width="720" src="res/advanced.png" alt="Advanced settings: a search field, Reset all, and switches for Hear changes while you drag, Mouse wheel moves sliders and Random voice button, each with a line about what it does">
+</p>
+
+At the bottom of Settings, **Advanced settings** has switches for tinkerers, like the flags of a
+browser. Some are experiments and may change.
 
 </details>
 
