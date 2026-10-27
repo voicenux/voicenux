@@ -2285,14 +2285,14 @@ msgstr "Wenn deine Freunde das Soundboard nicht hören"
 msgid "Discord removes sounds that are not speech, so your friends may not hear the soundboard. In Discord, open Settings, then Voice & Video:\n\n• Set Noise Suppression to None.\n• Turn off Advanced Voice Activity, or use Push to Talk."
 msgstr "Discord entfernt Geräusche, die keine Sprache sind. Deshalb hören deine Freunde das Soundboard vielleicht nicht. Öffne in Discord die Einstellungen, dann Sprache & Video:\n\n• Stell die Rauschunterdrückung auf Keine.\n• Schalte die Erweiterte Sprachaktivität aus, oder nutze Push-to-Talk."
 
-msgid "Let an unknown app control Voicenux?"
-msgstr "Darf eine unbekannte App Voicenux steuern?"
+msgid "Allow an unknown app to control Voicenux?"
+msgstr "Einer unbekannten App erlauben, Voicenux zu steuern?"
 
 msgid "Start Voicenux with the computer"
 msgstr "Voicenux mit dem Computer starten"
 
-msgid "Plugin {}"
-msgstr "Plugin {}"
+msgid "{} Plugin"
+msgstr "{} Plugin"
 
 msgid "Only apps you allow"
 msgstr "Nur Apps, die du erlaubst"
@@ -2312,8 +2312,8 @@ msgstr "Apps: {}"
 msgid "Take back"
 msgstr "Zurücknehmen"
 
-msgid "Let {} control Voicenux?"
-msgstr "Darf {} Voicenux steuern?"
+msgid "Allow {} to control Voicenux?"
+msgstr "{} erlauben, Voicenux zu steuern?"
 
 msgid "The app could change your voice and play sounds into your microphone. You can take it back in Settings, under Other apps."
 msgstr "Die App könnte deine Stimme ändern und Sounds in dein Mikrofon spielen. Du kannst das in den Einstellungen unter Andere Apps zurücknehmen."

@@ -944,17 +944,21 @@ fn api_group(st: &St) -> Group {
 /// Asks whether an app may control Voicenux, see `api::answer`. You have to pick: closing the
 /// window leaves the question for next time.
 pub fn ask_app(st: &St, window: &adw::ApplicationWindow, peer: &crate::api::Peer) {
-    let heading = if peer.name.is_empty() {
-        t("Let an unknown app control Voicenux?").to_string()
-    } else {
-        fill(t("Let {} control Voicenux?"), &[&peer.name])
-    };
     let dialog = adw::AlertDialog::new(
-        Some(&heading),
+        None,
         Some(t(
             "The app could change your voice and play sounds into your microphone. You can take it back in Settings, under Other apps.",
         )),
     );
+    if peer.name.is_empty() {
+        dialog.set_heading(Some(t("Allow an unknown app to control Voicenux?")));
+    } else {
+        // The name of the app stands out in the color of links.
+        let color = if adw::StyleManager::default().is_dark() { "#7fb0ff" } else { "#1d63d8" };
+        let name = format!("<span foreground=\"{color}\">{}</span>", glib::markup_escape_text(&peer.name));
+        dialog.set_heading_use_markup(true);
+        dialog.set_heading(Some(&fill(&glib::markup_escape_text(t("Allow {} to control Voicenux?")), &[&name])));
+    }
     if !peer.key.is_empty() {
         let path = label(&peer.key, &["dim-label", "caption"]);
         path.set_wrap(true);

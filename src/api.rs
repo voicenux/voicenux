@@ -432,7 +432,7 @@ fn describe(proc: &Path) -> Option<Peer> {
         let manifest: Value =
             std::fs::read_to_string(dir.join("manifest.json")).ok().and_then(|t| serde_json::from_str(&t).ok())?;
         let name = manifest["Name"].as_str().map_or(program.clone(), String::from);
-        return Some(Peer { key: exe, name: fill(t("Plugin {}"), &[&name]) });
+        return Some(Peer { key: exe, name: fill(t("{} Plugin"), &[&name]) });
     }
     let bare = program.trim_end_matches(|c: char| c.is_ascii_digit() || c == '.');
     if INTERPRETERS.contains(&bare) {
@@ -865,7 +865,7 @@ mod tests {
         std::fs::write(plugin.join("manifest.json"), r#"{"Name": "Voicenux"}"#).unwrap();
         link(&plugin.join("bin/voicenux-plugin"), "exe");
         let p = describe(&proc).unwrap();
-        assert_eq!(p.name, fill(t("Plugin {}"), &["Voicenux"]));
+        assert_eq!(p.name, fill(t("{} Plugin"), &["Voicenux"]));
         std::fs::remove_dir_all(&dir).unwrap();
     }
 
