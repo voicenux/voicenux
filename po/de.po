@@ -2279,8 +2279,17 @@ msgstr "Sounds in Discord"
 msgid "If your friends do not hear the soundboard"
 msgstr "Wenn deine Freunde das Soundboard nicht hören"
 
-msgid "Discord removes sounds that are not speech, so your friends may not hear the soundboard. In Discord, open Settings, then Voice & Video:\n\n• Set Noise Suppression to None.\n• Turn off Echo Cancellation, Automatic Gain Control and Advanced Voice Activity.\n• Use Push to Talk, or turn off Automatically determine input sensitivity and move its slider far to the left."
-msgstr "Discord entfernt Geräusche, die keine Sprache sind. Deshalb hören deine Freunde das Soundboard vielleicht nicht. Öffne in Discord die Einstellungen, dann Sprache & Video:\n\n• Stell die Rauschunterdrückung auf Keine.\n• Schalte Echounterdrückung, Automatische Verstärkungsregelung und Erweiterte Sprachaktivität aus.\n• Nutze Push-to-Talk, oder schalte Eingabeempfindlichkeit automatisch bestimmen aus und schieb den Regler weit nach links."
+msgid "Discord removes sounds that are not speech, so your friends may not hear the soundboard. In Discord, open Settings, then Voice & Video:"
+msgstr "Discord entfernt Geräusche, die keine Sprache sind. Deshalb hören deine Freunde das Soundboard vielleicht nicht. Öffne in Discord die Einstellungen, dann Sprache & Video:"
+
+msgid "Set Noise Suppression to None."
+msgstr "Stell die Rauschunterdrückung auf Keine."
+
+msgid "Turn off Echo Cancellation, Automatic Gain Control and Advanced Voice Activity."
+msgstr "Schalte Echounterdrückung, Automatische Verstärkungsregelung und Erweiterte Sprachaktivität aus."
+
+msgid "Use Push to Talk, or turn off Automatically determine input sensitivity and move its slider far to the left."
+msgstr "Nutze Push-to-Talk, oder schalte Eingabeempfindlichkeit automatisch bestimmen aus und schieb den Regler weit nach links."
 
 msgid "Allow an unknown app to control Voicenux?"
 msgstr "Einer unbekannten App erlauben, Voicenux zu steuern?"

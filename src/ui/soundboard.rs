@@ -913,9 +913,35 @@ pub fn discord_help(st: &St, parent: &impl IsA<gtk::Widget>) {
     let dialog = adw::AlertDialog::new(
         Some(t("Sounds in Discord")),
         Some(t(
-            "Discord removes sounds that are not speech, so your friends may not hear the soundboard. In Discord, open Settings, then Voice & Video:\n\n• Set Noise Suppression to None.\n• Turn off Echo Cancellation, Automatic Gain Control and Advanced Voice Activity.\n• Use Push to Talk, or turn off Automatically determine input sensitivity and move its slider far to the left.",
+            "Discord removes sounds that are not speech, so your friends may not hear the soundboard. In Discord, open Settings, then Voice & Video:",
         )),
     );
+    // The steps read from the left, one a row, like the facts of an AI voice.
+    let steps = [
+        ("waves", t("Set Noise Suppression to None.")),
+        ("sliders-horizontal", t("Turn off Echo Cancellation, Automatic Gain Control and Advanced Voice Activity.")),
+        (
+            "mic",
+            t(
+                "Use Push to Talk, or turn off Automatically determine input sensitivity and move its slider far to the left.",
+            ),
+        ),
+    ];
+    let list = gtk::Grid::builder().column_spacing(12).row_spacing(12).build();
+    list.add_css_class("vn-facts");
+    for (row, (pic, text)) in steps.into_iter().enumerate() {
+        let pic = line_icon(pic, 16);
+        pic.add_css_class("dim-label");
+        pic.set_valign(gtk::Align::Start);
+        pic.set_margin_top(2);
+        let text = label(text, &[]);
+        text.set_xalign(0.0);
+        text.set_wrap(true);
+        text.set_hexpand(true);
+        list.attach(&pic, 0, row as i32, 1, 1);
+        list.attach(&text, 1, row as i32, 1, 1);
+    }
+    dialog.set_extra_child(Some(&list));
     dialog.add_response("ok", t("Got it"));
     dialog.connect_response(None, {
         let st = st.clone();
