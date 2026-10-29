@@ -117,6 +117,6 @@ The state:
 
 A voice: `{"id": "robot", "name": "Robot", "icon": "robot", "category": "scifi", "favorite": false, "custom": false}`. Categories are `characters`, `horror`, `scifi`, `places`, `devices`, `music`, `funny` and `custom` for voices made in Voicelab.
 
-A sound: `{"id": "airhorn", "name": "Air Horn", "icon": "postal-horn", "mode": "restart", "volume": 100}`. `mode` is how a click plays it, the same for all sounds: `restart`, `toggle` or `overlap`.
+A sound: `{"id": "airhorn", "name": "Air Horn", "icon": "postal-horn", "mode": "restart", "volume": 100, "favorite": false}`. `mode` is how a click plays it, the same for all sounds: `restart`, `toggle` or `overlap`. `favorite` is true for a sound with a star.
 
 Names come in the language of the app. `api` in the greeting goes up when a change breaks clients.

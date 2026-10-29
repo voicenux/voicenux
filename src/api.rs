@@ -935,6 +935,7 @@ fn sounds(st: &St) -> Value {
                 "icon": s.icon,
                 "mode": st.sound_mode(),
                 "volume": (s.volume * 100.0).round() as i64,
+                "favorite": s.favorite,
             })
         })
         .collect();
