@@ -40,6 +40,14 @@ pub fn t(s: &'static str) -> &'static str {
     catalog().get(s).copied().unwrap_or(s)
 }
 
+/// `s` in every language there is, like a voice name. For what people say, whatever the language
+/// of the app.
+pub fn every_language(s: &str) -> Vec<&str> {
+    static ALL: OnceLock<Vec<HashMap<&'static str, &'static str>>> = OnceLock::new();
+    let all = ALL.get_or_init(|| CATALOGS.iter().map(|(_, text)| parse(text)).collect());
+    std::iter::once(s).chain(all.iter().filter_map(|cat| cat.get(s).copied())).collect()
+}
+
 /// For texts that are not literals in the code, like voice names from the voice file.
 pub fn t_dyn(s: &str) -> String {
     catalog().get(s).map(|v| v.to_string()).unwrap_or_else(|| s.to_string())
@@ -168,6 +176,12 @@ pub fn source_strings() -> Vec<String> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn names_come_in_every_language() {
+        assert_eq!(every_language("Santa"), ["Santa", "Weihnachtsmann"]);
+        assert_eq!(every_language("not a text"), ["not a text"]);
+    }
 
     #[test]
     fn parses_po() {

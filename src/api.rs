@@ -556,6 +556,8 @@ fn command(
         Some(Value::String(s)) => Some(s.clone()),
         Some(Value::Bool(b)) => Some(if *b { "on" } else { "off" }.to_string()),
         Some(Value::Number(n)) => Some(n.to_string()),
+        // As JSON text, for actions that take more than one thing, like find-sound.
+        Some(v @ (Value::Object(_) | Value::Array(_))) => Some(v.to_string()),
         _ => None,
     };
     let result = match msg.get("action").and_then(Value::as_str) {
@@ -653,6 +655,7 @@ fn handle(st: &St, action: &str, arg: Option<&str>) -> Result<Value, String> {
     match action {
         "state" => return Ok(state(st)),
         "voices" => return Ok(voices(st)),
+        "find-voice" => return voice_said(st, need()?),
         "sounds" => return Ok(sounds(st)),
         "voice" => {
             let id = find_voice(st, need()?)?;
@@ -747,28 +750,45 @@ fn slow(st: &St, action: &str, arg: Option<&str>) -> Option<Later> {
         // The sound on MyInstants most people liked, for a key of the app. It is kept off the
         // soundboard, see soundboard::found. One on the soundboard already is taken as it is.
         "find-sound" => Some(Box::pin(async move {
-            let words = arg.ok_or("find-sound needs an \"arg\"")?;
+            let arg = arg.ok_or("find-sound needs an \"arg\"")?;
+            // The words, or {"words": "…", "rank": 2} for the one with the second most likes.
+            let (words, rank) = match serde_json::from_str::<Value>(&arg) {
+                Ok(Value::Object(o)) => (
+                    o.get("words").and_then(Value::as_str).unwrap_or_default().to_string(),
+                    o.get("rank").and_then(Value::as_u64).unwrap_or(1).max(1) as usize,
+                ),
+                _ => (arg, 1),
+            };
             let words = words.trim_matches(|c: char| c.is_ascii_punctuation() || c.is_whitespace()).to_string();
+            if words.is_empty() {
+                return Err("find-sound needs words".into());
+            }
             // A sound you have by that name: that one, without asking MyInstants.
-            if let Some(id) = st.sound_named(&words) {
-                return Ok(found_sound(&st, &id, None));
+            if rank == 1
+                && let Some(id) = st.sound_named(&words)
+            {
+                return Ok(found_sound(&st, &id, None, 1, None));
             }
             let query = words.clone();
-            let (found, stats) = off_main(move || online::most_liked(&query))
-                .await?
-                .map_err(online_error)?
-                .ok_or_else(|| format!("nothing found for \"{words}\""))?;
+            let mut ranked = off_main(move || online::ranked(&query)).await?.map_err(online_error)?;
+            if ranked.is_empty() {
+                return Err(format!("nothing found for \"{words}\""));
+            }
+            // Past the last one it starts over.
+            let of = ranked.len();
+            let rank = (rank - 1) % of + 1;
+            let (found, stats) = ranked.swap_remove(rank - 1);
             let likes = stats.as_ref().map(|s| s.likes);
             // There already: no second download. Sounds added before Voicenux kept where they
             // came from go by their name.
             if let Some(id) = st.sound_from(&found.url).or_else(|| st.sound_named(&found.title)) {
-                return Ok(found_sound(&st, &id, likes));
+                return Ok(found_sound(&st, &id, likes, rank, Some(of)));
             }
             let f = found.clone();
             let bytes = off_main(move || download(&f)).await?.map_err(online_error)?;
             let icon = crate::ui::find_sounds::picture(&found.title, stats.as_ref()).unwrap_or("loudspeaker");
             let id = st.keep_found(&found.title, &found.ext, &bytes, icon, &found.url).map_err(|e| e.to_string())?;
-            Ok(found_sound(&st, &id, likes))
+            Ok(found_sound(&st, &id, likes, rank, Some(of)))
         })),
         _ => None,
     }
@@ -790,9 +810,9 @@ fn online_error(e: online::Error) -> String {
     .to_string()
 }
 
-/// A sound like in the list of sounds, with its likes (None: not looked up), and whether it is on
-/// the soundboard.
-fn found_sound(st: &St, id: &str, likes: Option<u32>) -> Value {
+/// A sound like in the list of sounds, with its likes, whether it is on the soundboard, and its
+/// rank out of `of` found online. Likes and `of` are None for a sound found by its name.
+fn found_sound(st: &St, id: &str, likes: Option<u32>, rank: usize, of: Option<usize>) -> Value {
     let s = st.sound(id);
     json!({
         "id": id,
@@ -800,7 +820,25 @@ fn found_sound(st: &St, id: &str, likes: Option<u32>) -> Value {
         "icon": s.as_ref().map(|s| s.icon.clone()),
         "likes": likes,
         "soundboard": st.library.borrow().find(id).is_some(),
+        "rank": rank,
+        "of": of,
     })
+}
+
+/// The voice that fits what someone said best, by its name in any language, also when speech
+/// recognition heard it a little off. Only voices Voicenux has: none are found online.
+fn voice_said(st: &St, said: &str) -> Result<Value, String> {
+    let voices = st.voices.borrow();
+    let fit = |v: &crate::voice::Voice| {
+        let names = crate::i18n::every_language(&v.name);
+        names.iter().map(|name| crate::names::likeness(said, name)).fold(0.0, f32::max)
+    };
+    let best = voices.iter().map(|v| (fit(v), v)).filter(|(f, _)| *f >= 0.7).max_by(|a, b| a.0.total_cmp(&b.0));
+    let Some((_, v)) = best else {
+        let said = said.trim_matches(|c: char| c.is_ascii_punctuation() || c.is_whitespace());
+        return Err(format!("no voice called \"{said}\""));
+    };
+    Ok(json!({ "id": v.id, "name": t_dyn(&v.name), "icon": v.icon, "favorite": st.is_favorite(&v.id) }))
 }
 
 /// Runs `work` on a thread of its own, and waits for it without blocking the main thread.

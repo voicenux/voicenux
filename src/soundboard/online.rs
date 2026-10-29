@@ -182,10 +182,9 @@ pub fn stats(found: &Found) -> Result<Stats, Error> {
     })
 }
 
-/// The sound for `query` that most people liked, out of the first ones the search finds, with
-/// its numbers when MyInstants gave them. None when it finds nothing. Blocks: call it off the
-/// main thread.
-pub fn most_liked(query: &str) -> Result<Option<(Found, Option<Stats>)>, Error> {
+/// The first sounds the search finds for `query`, the one most people liked first, each with its
+/// numbers when MyInstants gave them. Blocks: call it off the main thread.
+pub fn ranked(query: &str) -> Result<Vec<(Found, Option<Stats>)>, Error> {
     // The search puts the best ones first anyway. Asking for more pages only takes longer.
     const LOOK_AT: usize = 8;
     let found: Vec<Found> = search(query, 1)?.into_iter().take(LOOK_AT).collect();
@@ -199,10 +198,10 @@ pub fn most_liked(query: &str) -> Result<Option<(Found, Option<Stats>)>, Error> 
             })
         })
         .collect();
-    let likes = |i: usize| stats[i].as_ref().map_or(0, |s| s.likes);
-    // The first one wins a tie.
-    let best = (0..found.len()).max_by_key(|&i| (likes(i), std::cmp::Reverse(i)));
-    Ok(best.map(|i| (found[i].clone(), stats[i].clone())))
+    let mut ranked: Vec<(Found, Option<Stats>)> = found.into_iter().zip(stats).collect();
+    // A stable sort: the order of the search decides a tie.
+    ranked.sort_by_key(|(_, s)| std::cmp::Reverse(s.as_ref().map_or(0, |s| s.likes)));
+    Ok(ranked)
 }
 
 /// What the uploader wrote and the tags: `<div id="instant-page-description"><p>Brain Meme</p>`
@@ -403,9 +402,10 @@ mod tests {
         let stats = stats(&found[0]).unwrap();
         assert!(stats.likes > 0 && stats.views > stats.likes);
         assert!(popular(1).unwrap().len() > 10);
-        let (best, stats) = most_liked("vine boom").unwrap().unwrap();
-        assert!(stats.is_some_and(|s| s.likes > 0), "{best:?}");
-        assert!(most_liked("qwxzzk").unwrap().is_none());
+        let best = ranked("vine boom").unwrap();
+        let likes: Vec<u32> = best.iter().map(|(_, s)| s.as_ref().map_or(0, |s| s.likes)).collect();
+        assert!(likes[0] > 0 && likes.windows(2).all(|w| w[0] >= w[1]), "{likes:?}");
+        assert!(ranked("qwxzzk").unwrap().is_empty());
         let more = search("vine boom", 2).unwrap();
         assert!(!more.is_empty() && more[0] != found[0]);
         assert!(search("vine boom", 999).unwrap().is_empty());

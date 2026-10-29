@@ -362,18 +362,6 @@ pub fn delete_file(sound: &Sound) {
 
 impl Library {}
 
-/// Whether two names are the same sound, whatever the case and the punctuation: "Vine Boom!" and
-/// "vine boom" are.
-pub fn same_name(a: &str, b: &str) -> bool {
-    let plain = |s: &str| {
-        let s: String =
-            s.chars().flat_map(char::to_lowercase).map(|c| if c.is_alphanumeric() { c } else { ' ' }).collect();
-        s.split_whitespace().collect::<Vec<_>>().join(" ")
-    };
-    let a = plain(a);
-    !a.is_empty() && a == plain(b)
-}
-
 /// The sounds of the switches, on and off: Kenney's Interface Sounds (CC0), see
 /// `data/feedback/SOURCES.md`. None if they do not decode, which a test rules out.
 pub fn cues() -> Option<&'static [Arc<SoundData>; 2]> {
@@ -665,15 +653,6 @@ mod tests {
             let peak = cue.frames.iter().fold(0f32, |p, [l, r]| p.max(l.abs()).max(r.abs()));
             assert!(peak > 0.5, "audible: {peak}");
         }
-    }
-
-    #[test]
-    fn names_match_whatever_the_case_and_the_punctuation() {
-        assert!(same_name("Vine Boom", "vine boom."));
-        assert!(same_name("What the hell (speed up)", "what the hell speed up"));
-        assert!(same_name("Ärger!", "ärger"));
-        assert!(!same_name("Vine Boom", "Vine Boom 2"));
-        assert!(!same_name("", "  ?! "), "nothing is no name");
     }
 
     fn ids(lib: &Library) -> Vec<&str> {

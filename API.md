@@ -21,7 +21,7 @@ Connect to `ws://127.0.0.1:41967`. Voicenux greets you, then sends everything yo
 {"event": "sounds", "data": [ … ]}
 ```
 
-Send an action. `id` is optional and comes back with the answer:
+Send an action. `id` is optional and comes back with the answer. An `arg` can be text, a number, a switch as `true` or `false`, or an object for actions that take more than one thing:
 
 ```json
 {"id": 1, "action": "voice", "arg": "robot"}
@@ -79,7 +79,8 @@ curl http://127.0.0.1:41967/api/icon/robot -o robot.png
 | `mute` | switch | Mutes the microphone |
 | `listen` | switch | Listens to the microphone, for 15 s at most. Others do not hear you meanwhile, sounds still play. `off` throws away what it heard |
 | `transcribe` | language | Stops listening and answers with what you said: `{"text": "vine boom"}`, or `""`. Leave out the language (`en`, `de`, …) for English or the language of the app |
-| `find-sound` | words | Finds the sound most people liked on MyInstants, for a key of your own. It stays off the soundboard: Voicenux keeps the last 50 of them, and drops the one used longest ago. A sound you have already is taken as it is, without a download: one with that name, or the same file on MyInstants. Answers `{"id": "found-3", "name": "Vine boom sound", "icon": "collision", "likes": 3276, "soundboard": false}`, `likes` is `null` for a sound found by its name. Play it with the sound actions, by its id |
+| `find-voice` | words | Answers with the voice that fits what someone said, like `{"id": "vader", "name": "Darth Vader", "icon": "…", "favorite": false}`, also when speech recognition heard it a little off. Only voices you have in Voicenux. It does not use the voice: send `voice` with its id for that |
+| `find-sound` | words, or `{"words": "…", "rank": 2}` | Finds the sound most people liked on MyInstants, for a key of your own. `rank` 2 is the one with the second most likes, and so on; past the last it starts over. It stays off the soundboard: Voicenux keeps the last 50 of them, and drops the one used longest ago. A sound you have already is taken as it is, without a download: one with that name, or the same file on MyInstants. Answers `{"id": "found-3", "name": "Vine boom sound", "icon": "collision", "likes": 3276, "soundboard": false, "rank": 1, "of": 8}`. `likes` and `of` are `null` for a sound found by its name. Play it with the sound actions, by its id |
 | `favorite` | voice | Stars a voice, or takes the star away |
 | `sound` | sound | Plays a sound, as the play mode of the soundboard says (from the start, play and stop, on top) |
 | `sound-restart`, `sound-toggle`, `sound-overlap` | sound | Plays a sound from the start, plays or stops it, or plays another copy on top, whatever the soundboard says |

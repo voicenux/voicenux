@@ -1050,13 +1050,15 @@ impl State {
             .borrow()
             .sound
             .iter()
-            .find(|s| soundboard::same_name(&s.name, name) || soundboard::same_name(&crate::i18n::t_dyn(&s.name), name))
+            .find(|s| {
+                crate::names::same_name(&s.name, name) || crate::names::same_name(&crate::i18n::t_dyn(&s.name), name)
+            })
             .map(|s| s.id.clone());
         if on_board.is_some() {
             return on_board;
         }
         let id =
-            self.found.borrow().sound.iter().find(|s| soundboard::same_name(&s.name, name)).map(|s| s.id.clone())?;
+            self.found.borrow().sound.iter().find(|s| crate::names::same_name(&s.name, name)).map(|s| s.id.clone())?;
         self.use_found(&id);
         Some(id)
     }
