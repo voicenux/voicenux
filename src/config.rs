@@ -1,7 +1,7 @@
 //! Settings. They live in `~/.config/voicenux/config.toml`, but people change them in the
 //! app, never in the file.
 
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, HashSet};
 use std::path::PathBuf;
 
 use serde::{Deserialize, Serialize};
@@ -175,12 +175,20 @@ impl Config {
 
     pub fn load() -> Self {
         match std::fs::read_to_string(Self::path()) {
-            Ok(text) => toml::from_str(&text).unwrap_or_else(|e| {
-                log::warn!("config.toml is broken, using defaults: {e}");
-                Self::default()
-            }),
+            Ok(text) => Self::parse(&text),
             Err(_) => Self::default(),
         }
+    }
+
+    fn parse(text: &str) -> Self {
+        let mut c: Self = toml::from_str(text).unwrap_or_else(|e| {
+            log::warn!("config.toml is broken, using defaults: {e}");
+            Self::default()
+        });
+        // 0.3.0 kept an app once more for every click on Allow.
+        let mut seen = HashSet::new();
+        c.api_apps.retain(|a| seen.insert(a.key.clone()));
+        c
     }
 
     pub fn save(&self) {
@@ -215,5 +223,11 @@ mod tests {
         let c: Config = toml::from_str("voice = \"robot\"\nunknown = 1\n").unwrap();
         assert_eq!(c.voice, "robot");
         assert!(c.voice_on);
+    }
+
+    #[test]
+    fn an_app_is_allowed_once() {
+        let app = "[[api_apps]]\nkey = \"/usr/bin/curl\"\nname = \"curl\"\n\n";
+        assert_eq!(Config::parse(&app.repeat(3)).api_apps.len(), 1);
     }
 }

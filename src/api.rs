@@ -393,9 +393,11 @@ pub fn answer(st: &St, peer: &Peer, allow: Option<bool>) {
         asking.iter().position(|(p, _)| p.key == peer.key).map(|i| asking.remove(i).1).unwrap_or_default()
     });
     match allow {
-        Some(true) if !peer.key.is_empty() => {
-            st.update(|c| c.api_apps.push(ApiApp { key: peer.key.clone(), name: peer.name.clone() }))
-        }
+        Some(true) if !peer.key.is_empty() => st.update(|c| {
+            if !c.api_apps.iter().any(|a| a.key == peer.key) {
+                c.api_apps.push(ApiApp { key: peer.key.clone(), name: peer.name.clone() })
+            }
+        }),
         Some(ok) => ANSWERED.with_borrow_mut(|a| a.push((peer.key.clone(), ok))),
         None => {}
     }

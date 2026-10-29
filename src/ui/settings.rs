@@ -1126,9 +1126,11 @@ pub fn ask_app(st: &St, window: &adw::ApplicationWindow, peer: &crate::api::Peer
     let answered = Rc::new(std::cell::Cell::new(false));
     dialog.connect_response(None, {
         let (st, peer, answered) = (st.clone(), peer.clone(), answered.clone());
-        move |_, response| {
+        move |d, response| {
             answered.set(true);
             crate::api::answer(&st, &peer, Some(response == "allow"));
+            // The buttons close it the normal way, which `can_close` stops.
+            d.force_close();
         }
     });
     dialog.connect_closed({
