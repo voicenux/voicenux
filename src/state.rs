@@ -16,6 +16,11 @@ use crate::voice::{self, BlockDef, Voice};
 
 /// The realtime id of a preview. Pads count up from 1, so they never get it.
 const PREVIEW: u32 = u32::MAX;
+/// The realtime id of the sounds of the switches.
+const CUE: u32 = u32::MAX - 1;
+/// How loud the sounds of the switches are, whatever the soundboard volume is. A little quieter
+/// than the sounds of the soundboard.
+const CUE_VOLUME: f32 = 0.25;
 /// How long an app may listen to you at most. Then others hear you again.
 const LISTEN_MAX: std::time::Duration = std::time::Duration::from_secs(15);
 
@@ -677,30 +682,48 @@ impl State {
     // Toggles
 
     pub fn set_voice_on(self: &Rc<Self>, on: bool) {
-        self.config.borrow_mut().voice_on = on;
+        let was = std::mem::replace(&mut self.config.borrow_mut().voice_on, on);
         self.engine.rt(RtCmd::VoiceOn(on));
+        self.cue(was, on);
         self.save_later();
         self.notify(Change::Toggles);
     }
 
     pub fn set_hear_myself(self: &Rc<Self>, on: bool) {
-        self.config.borrow_mut().hear_myself = on;
+        let was = std::mem::replace(&mut self.config.borrow_mut().hear_myself, on);
         self.engine.rt(RtCmd::HearMyself(on));
+        self.cue(was, on);
         self.save_later();
         self.notify(Change::Toggles);
     }
 
     pub fn set_background(self: &Rc<Self>, on: bool) {
-        self.config.borrow_mut().background = on;
+        let was = std::mem::replace(&mut self.config.borrow_mut().background, on);
         self.engine.rt(RtCmd::Background(on));
+        self.cue(was, on);
         self.save_later();
         self.notify(Change::Toggles);
     }
 
     pub fn set_muted(&self, on: bool) {
-        self.muted.set(on);
+        let was = self.muted.replace(on);
         self.engine.rt(RtCmd::Mute(on));
+        // Muted is the microphone going off.
+        self.cue(!was, !on);
         self.notify(Change::Toggles);
+    }
+
+    /// A short sound in your headphones when a switch turned on or off, unless that is off in
+    /// Settings. Only you hear it, like a preview.
+    fn cue(&self, was: bool, on: bool) {
+        if was == on || !self.config.borrow().switch_sounds {
+            return;
+        }
+        let Some([on_cue, off_cue]) = soundboard::cues() else { return };
+        // Previews play at the soundboard volume: make up for it.
+        let volume = CUE_VOLUME / self.config.borrow().sound_volume.max(0.1);
+        let data = if on { on_cue } else { off_cue }.clone();
+        self.engine.rt(RtCmd::Play { id: CUE, data, volume, restart: true, preview: true });
     }
 
     /// An app listens to your microphone, like to find a sound by what you say. Others do not

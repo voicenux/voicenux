@@ -374,6 +374,17 @@ pub fn same_name(a: &str, b: &str) -> bool {
     !a.is_empty() && a == plain(b)
 }
 
+/// The sounds of the switches, on and off: Kenney's Interface Sounds (CC0), see
+/// `data/feedback/SOURCES.md`. None if they do not decode, which a test rules out.
+pub fn cues() -> Option<&'static [Arc<SoundData>; 2]> {
+    static CUES: std::sync::OnceLock<Option<[Arc<SoundData>; 2]>> = std::sync::OnceLock::new();
+    CUES.get_or_init(|| {
+        let cue = |bytes: &[u8]| decode_bytes(bytes.to_vec(), "ogg").ok().map(Arc::new);
+        Some([cue(include_bytes!("../../data/feedback/on.ogg"))?, cue(include_bytes!("../../data/feedback/off.ogg"))?])
+    })
+    .as_ref()
+}
+
 /// A safe file name made from the name of a sound, without its extension.
 fn file_stem(name: &str) -> String {
     let stem: String = name.chars().map(|c| if c.is_alphanumeric() { c.to_ascii_lowercase() } else { '-' }).collect();
@@ -645,6 +656,16 @@ fn gcd(a: u32, b: u32) -> u32 {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn the_sounds_of_the_switches_are_short() {
+        let [on, off] = cues().expect("they decode");
+        for cue in [on, off] {
+            assert!((0.2..0.6).contains(&cue.seconds()), "{}", cue.seconds());
+            let peak = cue.frames.iter().fold(0f32, |p, [l, r]| p.max(l.abs()).max(r.abs()));
+            assert!(peak > 0.5, "audible: {peak}");
+        }
+    }
 
     #[test]
     fn names_match_whatever_the_case_and_the_punctuation() {

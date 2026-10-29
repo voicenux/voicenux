@@ -93,6 +93,9 @@
   repo. A new starter pack raises `PACK`, so older soundboards get the new sounds. **Find sounds**
   (`src/soundboard/online.rs`) searches MyInstants too. It reads the search page, and the page of
   each sound for its likes, since MyInstants has no API.
+- The sounds of the switches (voice changer, hear myself, background, mute) are Kenney's
+  Interface Sounds (CC0) in `data/feedback`, made by `scripts/feedback.sh`. They play like a
+  preview: only in your headphones, never into the Voicenux Microphone.
 
 ## Tests
 

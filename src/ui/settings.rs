@@ -460,6 +460,16 @@ pub fn build(st: &St, window: &adw::ApplicationWindow) -> SettingsPage {
             move |v| st.update(|c| c.monitor_volume = v as f32)
         },
     ));
+    let cues = adw::SwitchRow::builder()
+        .title(t("Switch sounds"))
+        .subtitle(t("A short sound when you turn something on or off, like the voice changer. Only you hear it."))
+        .active(c.switch_sounds)
+        .build();
+    cues.connect_active_notify({
+        let st = st.clone();
+        move |r| st.update(|c| c.switch_sounds = r.is_active())
+    });
+    hear.add(&cues);
     page.append(&hear.widget);
 
     // Shortcuts.

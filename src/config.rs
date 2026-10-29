@@ -35,6 +35,8 @@ pub struct Config {
     pub gate_db: f32,
     pub low_latency: bool,
     pub hear_sounds: bool,
+    /// A short sound in your headphones when a switch turns on or off.
+    pub switch_sounds: bool,
     pub sound_volume: f32,
     /// What a click on a sound does, for the sounds without a mode of their own.
     pub sound_mode: PlayMode,
@@ -115,6 +117,7 @@ impl Default for Config {
             gate_db: -50.0,
             low_latency: false,
             hear_sounds: true,
+            switch_sounds: true,
             sound_volume: 0.8,
             sound_mode: PlayMode::Restart,
             sounds_by_name: false,
