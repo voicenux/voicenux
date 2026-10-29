@@ -444,8 +444,11 @@ fn history(win: &Window) {
         if win.window.visible_dialog().is_some() {
             return;
         }
-        // In a folder, back goes up out of it first.
+        // Back goes up first: out of a folder, or from Advanced to Settings.
         if back && win.stack.visible_child().is_some_and(|page| super::board::up_on(&page)) {
+            return;
+        }
+        if back && win.stack.visible_child_name().as_deref() == Some("settings") && win.settings.pop() {
             return;
         }
         let next = {
