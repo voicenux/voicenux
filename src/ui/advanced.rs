@@ -38,6 +38,12 @@ pub const FLAGS: &[Flag] = &[
         get: |c| c.random_voice_button,
         set: |c, on| c.random_voice_button = on,
     },
+    Flag {
+        title: "Use EasyEffects",
+        about: "Your EasyEffects microphone effects, like noise reduction, run before the voice, when EasyEffects works on the same microphone.",
+        get: |c| c.easyeffects,
+        set: |c, on| c.easyeffects = on,
+    },
 ];
 
 pub struct AdvancedPage {

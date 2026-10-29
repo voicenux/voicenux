@@ -35,11 +35,6 @@ fn settings_files() -> [Option<std::path::PathBuf>; 2] {
     ]
 }
 
-/// EasyEffects has run on this computer once, as a package or a Flatpak.
-pub fn installed() -> bool {
-    settings_files().iter().flatten().any(|p| p.exists())
-}
-
 /// The microphone EasyEffects is set to, from its settings. None when it follows the default.
 pub fn configured_input() -> Option<String> {
     let text = settings_files().iter().flatten().find_map(|p| std::fs::read_to_string(p).ok())?;
