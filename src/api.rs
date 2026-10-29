@@ -737,45 +737,70 @@ fn slow(st: &St, action: &str, arg: Option<&str>) -> Option<Later> {
         // What you said while Voicenux listened. Stops listening.
         "transcribe" => Some(Box::pin(async move {
             let (heard, rate) = st.stop_listening().ok_or("not listening, send listen first")?;
-            let language = arg.filter(|a| a != "auto");
-            let text: String = off_main(move || {
+            // The language, or {"language": "de", "expect": "voices"} to listen for names of voices
+            // instead of sounds.
+            let (language, voices) = match arg.as_deref().map(serde_json::from_str::<Value>) {
+                Some(Ok(Value::Object(o))) => (
+                    o.get("language").and_then(Value::as_str).map(String::from),
+                    o.get("expect").and_then(Value::as_str) == Some("voices"),
+                ),
+                _ => (arg, false),
+            };
+            let language = language.filter(|a| a != "auto");
+            let expect = st.names_to_hear(voices);
+            let heard: Vec<String> = off_main(move || {
                 crate::speech::download().map_err(|e| {
                     log::warn!("speech model: {e:#}");
                     "could not download the speech recognition".to_string()
                 })?;
-                crate::speech::transcribe(&crate::speech::resample(&heard, rate), language.as_deref())
+                crate::speech::transcribe(&crate::speech::resample(&heard, rate), language.as_deref(), &expect)
                     .map_err(|e| e.to_string())
             })
             .await??;
-            Ok(json!({ "text": text }))
+            let text = heard.first().cloned().unwrap_or_default();
+            Ok(json!({ "text": text, "alternatives": heard.get(1..).unwrap_or_default() }))
         })),
         // The sound on MyInstants most people liked, for a key of the app. It is kept off the
         // soundboard, see soundboard::found. One on the soundboard already is taken as it is.
         "find-sound" => Some(Box::pin(async move {
             let arg = arg.ok_or("find-sound needs an \"arg\"")?;
-            // The words, or {"words": "…", "rank": 2} for the one with the second most likes.
-            let (words, rank) = match serde_json::from_str::<Value>(&arg) {
+            // The words, or {"words": "…", "alternatives": ["…"], "rank": 2}: the one with the
+            // second most likes, for the words or else the first alternative that finds any.
+            let (words, alternatives, rank) = match serde_json::from_str::<Value>(&arg) {
                 Ok(Value::Object(o)) => (
                     o.get("words").and_then(Value::as_str).unwrap_or_default().to_string(),
+                    o.get("alternatives").and_then(Value::as_array).cloned().unwrap_or_default(),
                     o.get("rank").and_then(Value::as_u64).unwrap_or(1).max(1) as usize,
                 ),
-                _ => (arg, 1),
+                _ => (arg, Vec::new(), 1),
             };
-            let words = words.trim_matches(|c: char| c.is_ascii_punctuation() || c.is_whitespace()).to_string();
-            if words.is_empty() {
+            let readings: Vec<String> = std::iter::once(words.as_str())
+                .chain(alternatives.iter().filter_map(Value::as_str))
+                .map(|w| w.trim_matches(|c: char| c.is_ascii_punctuation() || c.is_whitespace()).to_string())
+                .filter(|w| !w.is_empty())
+                .collect();
+            if readings.is_empty() {
                 return Err("find-sound needs words".into());
             }
             // A sound you have by that name: that one, without asking MyInstants.
             if rank == 1
-                && let Some(id) = st.sound_named(&words)
+                && let Some((words, id)) = readings.iter().find_map(|w| Some((w, st.sound_named(w)?)))
             {
-                return Ok(found_sound(&st, &id, None, 1, None));
+                return Ok(found_sound(&st, &id, words, None, 1, None));
             }
-            let query = words.clone();
-            let mut ranked = off_main(move || online::ranked(&query)).await?.map_err(online_error)?;
-            if ranked.is_empty() {
-                return Err(format!("nothing found for \"{words}\""));
-            }
+            let asked = readings.clone();
+            let Some((words, found)) = off_main(move || online::first_found(&asked)).await?.map_err(online_error)?
+            else {
+                return Err(format!("nothing found for \"{}\"", readings[0]));
+            };
+            // Most of the time the search has the one most people liked first: its file comes
+            // while the likes do.
+            let first = found[0].clone();
+            let early = st.sound_from(&first.url).is_none().then(|| {
+                let f = first.clone();
+                off_main(move || download(&f))
+            });
+            let mut ranked = off_main(move || online::ranked(found)).await?;
             // Past the last one it starts over.
             let of = ranked.len();
             let rank = (rank - 1) % of + 1;
@@ -784,13 +809,19 @@ fn slow(st: &St, action: &str, arg: Option<&str>) -> Option<Later> {
             // There already: no second download. Sounds added before Voicenux kept where they
             // came from go by their name.
             if let Some(id) = st.sound_from(&found.url).or_else(|| st.sound_named(&found.title)) {
-                return Ok(found_sound(&st, &id, likes, rank, Some(of)));
+                return Ok(found_sound(&st, &id, &words, likes, rank, Some(of)));
             }
-            let f = found.clone();
-            let bytes = off_main(move || download(&f)).await?.map_err(online_error)?;
+            let bytes = match early {
+                Some(early) if found.url == first.url => early.await?,
+                _ => {
+                    let f = found.clone();
+                    off_main(move || download(&f)).await?
+                }
+            }
+            .map_err(online_error)?;
             let icon = crate::ui::find_sounds::picture(&found.title, stats.as_ref()).unwrap_or("loudspeaker");
             let id = st.keep_found(&found.title, &found.ext, &bytes, icon, &found.url).map_err(|e| e.to_string())?;
-            Ok(found_sound(&st, &id, likes, rank, Some(of)))
+            Ok(found_sound(&st, &id, &words, likes, rank, Some(of)))
         })),
         _ => None,
     }
@@ -812,14 +843,16 @@ fn online_error(e: online::Error) -> String {
     .to_string()
 }
 
-/// A sound like in the list of sounds, with its likes, whether it is on the soundboard, and its
-/// rank out of `of` found online. Likes and `of` are None for a sound found by its name.
-fn found_sound(st: &St, id: &str, likes: Option<u32>, rank: usize, of: Option<usize>) -> Value {
+/// A sound like in the list of sounds, with the words that found it, its likes, whether it is on
+/// the soundboard, and its rank out of `of` found online. Likes and `of` are None for a sound
+/// found by its name.
+fn found_sound(st: &St, id: &str, words: &str, likes: Option<u32>, rank: usize, of: Option<usize>) -> Value {
     let s = st.sound(id);
     json!({
         "id": id,
         "name": s.as_ref().map(|s| t_dyn(&s.name)),
         "icon": s.as_ref().map(|s| s.icon.clone()),
+        "words": words,
         "likes": likes,
         "soundboard": st.library.borrow().find(id).is_some(),
         "rank": rank,
@@ -843,13 +876,16 @@ fn voice_said(st: &St, said: &str) -> Result<Value, String> {
     Ok(json!({ "id": v.id, "name": t_dyn(&v.name), "icon": v.icon, "favorite": st.is_favorite(&v.id) }))
 }
 
-/// Runs `work` on a thread of its own, and waits for it without blocking the main thread.
-async fn off_main<T: Send + 'static>(work: impl FnOnce() -> T + Send + 'static) -> Result<T, String> {
+/// Runs `work` on a thread of its own, right away, and waits for it without blocking the main
+/// thread.
+fn off_main<T: Send + 'static>(
+    work: impl FnOnce() -> T + Send + 'static,
+) -> impl std::future::Future<Output = Result<T, String>> {
     let (tx, rx) = async_channel::bounded(1);
     std::thread::spawn(move || {
         let _ = tx.send_blocking(work());
     });
-    rx.recv().await.map_err(|_| "that did not work".to_string())
+    async move { rx.recv().await.map_err(|_| "that did not work".to_string()) }
 }
 
 /// "on", "off" or "toggle" (also without an argument).

@@ -1,8 +1,10 @@
 //! Finds sounds online on MyInstants. It has no API, so this reads its front page and its search
 //! page, and the page of each sound for its likes and views. Nothing goes out before you open Find
-//! sounds; then only your country for the front page and the words you search for.
+//! sounds or an app listens for a sound; then only your country for the front page and the words
+//! you search for.
 
 use std::sync::LazyLock;
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::time::Duration;
 
 use ureq::config::IpFamily;
@@ -182,26 +184,170 @@ pub fn stats(found: &Found) -> Result<Stats, Error> {
     })
 }
 
-/// The first sounds the search finds for `query`, the one most people liked first, each with its
-/// numbers when MyInstants gave them. Blocks: call it off the main thread.
-pub fn ranked(query: &str) -> Result<Vec<(Found, Option<Stats>)>, Error> {
-    // The search puts the best ones first anyway. Asking for more pages only takes longer.
-    const LOOK_AT: usize = 8;
-    let found: Vec<Found> = search(query, 1)?.into_iter().take(LOOK_AT).collect();
-    // Four at a time, not all at once: MyInstants turns floods away.
-    let stats: Vec<Option<Stats>> = found
-        .chunks(4)
-        .flat_map(|four| {
-            std::thread::scope(|s| {
-                let asks: Vec<_> = four.iter().map(|f| s.spawn(move || stats(f).ok())).collect();
-                asks.into_iter().map(|a| a.join().ok().flatten()).collect::<Vec<_>>()
-            })
-        })
-        .collect();
+/// The first of `readings` that finds sounds, with the first sounds it found. Readings are what
+/// speech recognition heard, the likeliest first. None when none of them finds any. Blocks: call
+/// it off the main thread.
+pub fn first_found(readings: &[String]) -> Result<Option<(String, Vec<Found>)>, Error> {
+    // The search puts the best ones first anyway. Looking at more only takes longer.
+    const LOOK_AT: usize = 5;
+    for words in readings {
+        let found = search(words, 1)?;
+        if !found.is_empty() {
+            return Ok(Some((words.clone(), found.into_iter().take(LOOK_AT).collect())));
+        }
+    }
+    Ok(None)
+}
+
+/// `found` with their numbers when MyInstants gave them, the one most people liked first. Few
+/// sounds: all their pages at once. Blocks: call it off the main thread.
+pub fn ranked(found: Vec<Found>) -> Vec<(Found, Option<Stats>)> {
+    let stats: Vec<Option<Stats>> = std::thread::scope(|s| {
+        let asks: Vec<_> = found.iter().map(|f| s.spawn(move || stats(f).ok())).collect();
+        asks.into_iter().map(|a| a.join().ok().flatten()).collect()
+    });
     let mut ranked: Vec<(Found, Option<Stats>)> = found.into_iter().zip(stats).collect();
     // A stable sort: the order of the search decides a tie.
     ranked.sort_by_key(|(_, s)| std::cmp::Reverse(s.as_ref().map_or(0, |s| s.likes)));
-    Ok(ranked)
+    ranked
+}
+
+/// Names of sounds people play a lot, for speech recognition before it has asked MyInstants.
+const FAVORITES: &[&str] = &[
+    "Vine Boom",
+    "Bruh",
+    "Fart",
+    "Buzzer",
+    "Discord Notification",
+    "Anime Wow",
+    "Taco Bell Bong",
+    "SpongeBob Fail",
+    "MLG Air Horn",
+    "Rizz",
+    "Roblox Oof",
+    "Sad Violin",
+    "Among Us",
+    "Emotional Damage",
+    "Metal Pipe",
+    "Windows XP Error",
+    "Halt Stop",
+    "Kann es sein dass du dumm bist",
+];
+
+/// The names of the sounds people play most: MyInstants' favorites of all time and what is
+/// trending, for your country and the US, the most played first. What speech recognition should
+/// expect. From the last week, see [`refresh_favorites`].
+pub fn favorites() -> Vec<String> {
+    let kept = std::fs::read_to_string(favorites_path()).unwrap_or_default();
+    let names: Vec<String> = kept.lines().map(str::trim).filter(|l| !l.is_empty()).map(String::from).collect();
+    if names.is_empty() { FAVORITES.iter().map(|n| n.to_string()).collect() } else { names }
+}
+
+fn favorites_path() -> std::path::PathBuf {
+    dirs::data_dir().unwrap_or_else(|| ".".into()).join("voicenux").join("speech").join("favorites.txt")
+}
+
+/// Asks MyInstants for [`favorites`] again in the background, once they are a week old.
+pub fn refresh_favorites() {
+    static BUSY: AtomicBool = AtomicBool::new(false);
+    let age = std::fs::metadata(favorites_path()).and_then(|m| m.modified()).ok().and_then(|t| t.elapsed().ok());
+    if age.is_some_and(|age| age < Duration::from_secs(7 * 24 * 3600)) || BUSY.swap(true, Ordering::Relaxed) {
+        return;
+    }
+    std::thread::spawn(|| {
+        match fetch_favorites() {
+            Ok(names) if !names.is_empty() => {
+                let path = favorites_path();
+                let written = path.parent().map_or(Ok(()), std::fs::create_dir_all).and_then(|()| {
+                    let tmp = path.with_extension("tmp");
+                    std::fs::write(&tmp, names.join("\n") + "\n")?;
+                    std::fs::rename(tmp, &path)
+                });
+                if let Err(e) = written {
+                    log::warn!("favorite sounds: {e}");
+                }
+            }
+            Ok(_) => {}
+            Err(e) => log::warn!("favorite sounds: {e:?}"),
+        }
+        BUSY.store(false, Ordering::Relaxed);
+    });
+}
+
+fn fetch_favorites() -> Result<Vec<String>, Error> {
+    let mut countries = vec![region()];
+    if countries[0] != "us" {
+        countries.push("us".into());
+    }
+    let pages: Vec<(String, u32)> = [("best_of_all_time", 1), ("index", 1), ("best_of_all_time", 2)]
+        .iter()
+        .flat_map(|(kind, page)| countries.iter().map(move |c| (format!("{SITE}/en/{kind}/{c}/"), *page)))
+        .collect();
+    let lists = std::thread::scope(|s| {
+        let asks: Vec<_> = pages
+            .iter()
+            .map(|(url, page)| s.spawn(move || read(|a| a.get(url).query("page", page.to_string()).call())))
+            .collect();
+        asks.into_iter()
+            .map(|a| a.join().unwrap_or(Err(Error::Failed)).map(|text| parse(&text)))
+            .collect::<Result<Vec<_>, _>>()
+    })?;
+    // One of each country in turn, the most played first.
+    let mut names: Vec<String> = Vec::new();
+    for pair in lists.chunks(countries.len()) {
+        for i in 0..pair.iter().map(Vec::len).max().unwrap_or(0) {
+            for name in pair.iter().filter_map(|l| l.get(i)).filter_map(|f| spoken(&f.title)) {
+                if !names.iter().any(|n| n.eq_ignore_ascii_case(&name)) {
+                    names.push(name);
+                }
+            }
+        }
+    }
+    Ok(names)
+}
+
+/// A title as people say it: "Vine boom sound" is "Vine boom", "Sad Violin (the meme one)" is
+/// "Sad Violin", "FAHHHHHH" is "FAHH". None for titles with no word in them.
+fn spoken(title: &str) -> Option<String> {
+    const FILLER: &[&str] = &[
+        "sound",
+        "sounds",
+        "soundss",
+        "effect",
+        "effects",
+        "soundeffect",
+        "sfx",
+        "meme",
+        "button",
+        "loud",
+        "bass",
+        "boost",
+        "boosted",
+        "ringtone",
+        "klingelton",
+        "earrape",
+        "hd",
+        "original",
+    ];
+    let mut plain = String::new();
+    let mut inside = 0;
+    for c in title.chars() {
+        match c {
+            '(' | '[' => inside += 1,
+            ')' | ']' => inside = 0.max(inside - 1),
+            _ if inside > 0 => {}
+            c if c.is_alphanumeric() || c == '\'' => {
+                // Not more than two of a letter in a row.
+                if !plain.ends_with(&format!("{c}{c}")) {
+                    plain.push(c);
+                }
+            }
+            _ => plain.push(' '),
+        }
+    }
+    let words: Vec<&str> = plain.split_whitespace().filter(|w| !FILLER.contains(&w.to_lowercase().as_str())).collect();
+    let name = words.join(" ");
+    (name.chars().filter(|c| c.is_alphabetic()).count() >= 2).then_some(name)
 }
 
 /// What the uploader wrote and the tags: `<div id="instant-page-description"><p>Brain Meme</p>`
@@ -373,6 +519,19 @@ mod tests {
     }
 
     #[test]
+    fn titles_turn_into_what_people_say() {
+        assert_eq!(spoken("Vine boom sound").as_deref(), Some("Vine boom"));
+        assert_eq!(spoken("Sad Violin (the meme one)").as_deref(), Some("Sad Violin"));
+        assert_eq!(spoken("FAHHHHHHHHHHHHHH").as_deref(), Some("FAHH"));
+        assert_eq!(spoken("MLG AIR HORN!!!!!!!!!!!").as_deref(), Some("MLG AIR HORN"));
+        assert_eq!(spoken("Tuco: GET OUT").as_deref(), Some("Tuco GET OUT"));
+        assert_eq!(spoken("It's over").as_deref(), Some("It's over"));
+        assert_eq!(spoken("Звук фотоаппарата").as_deref(), Some("Звук фотоаппарата"));
+        assert_eq!(spoken("__"), None);
+        assert_eq!(spoken("67"), None);
+    }
+
+    #[test]
     fn titles_turn_into_names() {
         assert_eq!(clean_title("airhorn_01.wav"), "Airhorn 01");
         assert_eq!(clean_title("  WOW male voice.MP3 "), "WOW male voice");
@@ -402,10 +561,15 @@ mod tests {
         let stats = stats(&found[0]).unwrap();
         assert!(stats.likes > 0 && stats.views > stats.likes);
         assert!(popular(1).unwrap().len() > 10);
-        let best = ranked("vine boom").unwrap();
+        // A German "vine boom" finds nothing, the English one does.
+        let (words, first) = first_found(&["Weinbumm".into(), "Vine boom".into()]).unwrap().unwrap();
+        assert_eq!((words.as_str(), first.len()), ("Vine boom", 5));
+        let best = ranked(first);
         let likes: Vec<u32> = best.iter().map(|(_, s)| s.as_ref().map_or(0, |s| s.likes)).collect();
         assert!(likes[0] > 0 && likes.windows(2).all(|w| w[0] >= w[1]), "{likes:?}");
-        assert!(ranked("qwxzzk").unwrap().is_empty());
+        assert!(first_found(&["qwxzzk".into()]).unwrap().is_none());
+        let names = fetch_favorites().unwrap();
+        assert!(names.len() > 50 && names.iter().any(|n| n.eq_ignore_ascii_case("vine boom")), "{names:?}");
         let more = search("vine boom", 2).unwrap();
         assert!(!more.is_empty() && more[0] != found[0]);
         assert!(search("vine boom", 999).unwrap().is_empty());

@@ -877,9 +877,18 @@ fn dictate_button(st: &St, search: &gtk::SearchEntry) -> gtk::Button {
             button.set_sensitive(false);
             button.set_child(Some(&adw::Spinner::new()));
             let (tx, rx) = async_channel::bounded(1);
+            let expect = st.names_to_hear(false);
             std::thread::spawn(move || {
                 let text = crate::speech::download()
-                    .and_then(|()| crate::speech::transcribe(&crate::speech::resample(&heard, rate), None));
+                    .and_then(|()| crate::speech::transcribe(&crate::speech::resample(&heard, rate), None, &expect))
+                    .map(|heard| match heard.len() {
+                        // The first reading that finds sounds, like "Vine boom" for a "Weinbumm".
+                        2.. => match online::first_found(&heard) {
+                            Ok(Some((words, _))) => words,
+                            _ => heard[0].clone(),
+                        },
+                        _ => heard.into_iter().next().unwrap_or_default(),
+                    });
                 let _ = tx.send_blocking(text);
             });
             let (st, search, idle) = (st.clone(), search.clone(), idle.clone());

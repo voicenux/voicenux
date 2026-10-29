@@ -762,6 +762,7 @@ impl State {
         });
         self.listening.replace(Some(Listening { ring: rx, heard: Vec::new(), rate, timer: Some(timer) }));
         crate::speech::prepare();
+        soundboard::online::refresh_favorites();
         self.notify(Change::Toggles);
     }
 
@@ -1045,6 +1046,30 @@ impl State {
         let id = self.found.borrow().with_source(source).map(|s| s.id.clone())?;
         self.use_found(&id);
         Some(id)
+    }
+
+    /// Names speech recognition should expect, the likeliest first: your voices, or the sounds of
+    /// your soundboard in turn with the ones most people play on MyInstants.
+    pub fn names_to_hear(&self, voices: bool) -> Vec<String> {
+        let mut names: Vec<String> = Vec::new();
+        let mut add = |name: &str| {
+            if !names.iter().any(|n| crate::names::same_name(n, name)) {
+                names.push(name.to_string());
+            }
+        };
+        if voices {
+            for v in self.voices.borrow().iter() {
+                crate::i18n::every_language(&v.name).into_iter().for_each(&mut add);
+            }
+            return names;
+        }
+        let mine: Vec<String> =
+            self.library.borrow().sound.iter().map(|s| crate::i18n::t_dyn(&s.name).to_string()).collect();
+        let popular = soundboard::online::favorites();
+        for i in 0..mine.len().max(popular.len()) {
+            mine.get(i).into_iter().chain(popular.get(i)).for_each(|n| add(n));
+        }
+        names
     }
 
     /// The sound you have with this name: on the soundboard, in English or in the language of the
