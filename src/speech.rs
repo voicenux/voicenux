@@ -1,11 +1,13 @@
-//! Speech to text, for apps that find a sound by what you say, like the plugin for OpenDeck.
-//! Whisper (base, by OpenAI, MIT) runs in plain Rust with candle, on the processor, in about half
-//! a second. The model is not in the app: Voicenux downloads it the first time an app listens,
-//! about 290 MB, pinned to a commit on Hugging Face.
+//! Speech to text, to find a sound by what you say: in Find sounds, and for apps like the plugin
+//! for OpenDeck. Whisper (base, by OpenAI, MIT) runs in plain Rust with candle, on the processor,
+//! in about half a second. The model is not in the app: Voicenux downloads it the first time it is
+//! needed, or from Settings, about 290 MB, pinned to a commit on Hugging Face.
 
 use std::collections::HashMap;
+use std::io::{Read, Write};
 use std::path::{Path, PathBuf};
 use std::sync::Mutex;
+use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use std::time::Duration;
 
 use anyhow::{Context, bail};
@@ -35,6 +37,30 @@ pub fn ready() -> bool {
     FILES.iter().all(|(file, size)| complete(&dir().join(file), *size))
 }
 
+/// What the model takes on disk.
+pub fn size() -> u64 {
+    FILES.iter().map(|(_, size)| size).sum()
+}
+
+static DOWNLOADING: AtomicBool = AtomicBool::new(false);
+static DONE: AtomicU64 = AtomicU64::new(0);
+
+/// How far the download is, from 0 to 1, while it runs. Settings shows it.
+pub fn progress() -> Option<f64> {
+    DOWNLOADING.load(Ordering::Relaxed).then(|| DONE.load(Ordering::Relaxed) as f64 / size() as f64)
+}
+
+/// Deletes the model. It downloads again when it is needed.
+pub fn remove() -> std::io::Result<()> {
+    if DOWNLOADING.load(Ordering::Relaxed) {
+        return Ok(());
+    }
+    match std::fs::remove_dir_all(dir()) {
+        Err(e) if e.kind() != std::io::ErrorKind::NotFound => Err(e),
+        _ => Ok(()),
+    }
+}
+
 /// Starts the download in the background, so the model is there once it is needed.
 pub fn prepare() {
     if !ready() {
@@ -51,15 +77,27 @@ pub fn download() -> anyhow::Result<()> {
     // One download at a time. A second caller waits for the first one.
     static ONE: Mutex<()> = Mutex::new(());
     let _one = ONE.lock().unwrap_or_else(|e| e.into_inner());
+    if ready() {
+        return Ok(());
+    }
+    DOWNLOADING.store(true, Ordering::Relaxed);
+    let result = fetch();
+    DOWNLOADING.store(false, Ordering::Relaxed);
+    result
+}
+
+fn fetch() -> anyhow::Result<()> {
     let agent: ureq::Agent = ureq::Agent::config_builder()
         .timeout_connect(Some(Duration::from_secs(10)))
         .timeout_recv_response(Some(Duration::from_secs(30)))
         .user_agent(concat!("Voicenux/", env!("CARGO_PKG_VERSION"), " (+https://github.com/voicenux/voicenux)"))
         .build()
         .into();
+    DONE.store(0, Ordering::Relaxed);
     for (file, size) in FILES {
         let path = dir().join(file);
         if complete(&path, *size) {
+            DONE.fetch_add(*size, Ordering::Relaxed);
             continue;
         }
         let url = format!("{REPO}/{file}");
@@ -68,7 +106,16 @@ pub fn download() -> anyhow::Result<()> {
         std::fs::create_dir_all(dir())?;
         let part = dir().join(format!("{file}.part"));
         let mut out = std::fs::File::create(&part)?;
-        std::io::copy(&mut resp.body_mut().with_config().limit(*size + 1).reader(), &mut out)?;
+        let mut body = resp.body_mut().with_config().limit(*size + 1).reader();
+        let mut buf = vec![0u8; 256 * 1024];
+        loop {
+            let n = body.read(&mut buf)?;
+            if n == 0 {
+                break;
+            }
+            out.write_all(&buf[..n])?;
+            DONE.fetch_add(n as u64, Ordering::Relaxed);
+        }
         if !complete(&part, *size) {
             let _ = std::fs::remove_file(&part);
             bail!("{url} came in broken");

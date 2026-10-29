@@ -547,6 +547,7 @@ pub fn build(st: &St, window: &adw::ApplicationWindow) -> SettingsPage {
     perf.add(&low);
     page.append(&perf.widget);
     page.append(&ai_group(st).widget);
+    page.append(&speech_group().widget);
 
     // App.
     let app = Group::new("settings", t("App"), "");
@@ -706,6 +707,99 @@ pub fn build(st: &St, window: &adw::ApplicationWindow) -> SettingsPage {
 fn gigabytes(bytes: u64) -> String {
     let text = format!("{:.1} GB", bytes as f64 / 1e9);
     if crate::i18n::language() == "de" { text.replace('.', ",") } else { text }
+}
+
+/// The speech recognition: whether it is there, how far its download is, and buttons to download or
+/// remove it.
+fn speech_group() -> Group {
+    let group = Group::new(
+        "mic-vocal",
+        t("Speech recognition"),
+        t(
+            "Hears what you say, to find sounds in Find sounds and for apps like the Stream Deck plugin. It runs on your computer, nothing you say goes online.",
+        ),
+    );
+    let row = adw::ActionRow::builder().title(t("Whisper by OpenAI")).build();
+    let bar = gtk::ProgressBar::new();
+    bar.set_valign(gtk::Align::Center);
+    bar.set_size_request(120, -1);
+    let download = gtk::Button::with_label(t("Download"));
+    download.add_css_class("suggested-action");
+    let remove = gtk::Button::with_label(t("Remove"));
+    remove.add_css_class("destructive-action");
+    for w in [download.upcast_ref::<gtk::Widget>(), bar.upcast_ref(), remove.upcast_ref()] {
+        w.set_valign(gtk::Align::Center);
+        row.add_suffix(w);
+    }
+    group.add(&row);
+    let size = format!("{} MB", crate::speech::size() / 1_000_000);
+    let refresh = {
+        let (row, bar, download, remove) = (row.clone(), bar.clone(), download.clone(), remove.clone());
+        move || {
+            let progress = crate::speech::progress();
+            let ready = progress.is_none() && crate::speech::ready();
+            bar.set_visible(progress.is_some());
+            download.set_visible(progress.is_none() && !ready);
+            remove.set_visible(ready);
+            row.set_subtitle(&match progress {
+                Some(p) => {
+                    bar.set_fraction(p);
+                    fill(t("Downloading, {} done"), &[&format!("{} %", (p * 100.0).round())])
+                }
+                None if ready => fill(t("Downloaded, it takes {} on disk."), &[&size]),
+                None => fill(t("Not downloaded yet. It comes the first time you use it, {}."), &[&size]),
+            });
+        }
+    };
+    refresh();
+    // The download may also start from an app. Looked at only while the page is in sight.
+    let timer: Rc<std::cell::RefCell<Option<glib::SourceId>>> = Rc::default();
+    row.connect_map({
+        let (timer, refresh) = (timer.clone(), refresh.clone());
+        move |_| {
+            let refresh = refresh.clone();
+            let id = glib::timeout_add_local(std::time::Duration::from_millis(400), move || {
+                refresh();
+                glib::ControlFlow::Continue
+            });
+            if let Some(old) = timer.replace(Some(id)) {
+                old.remove();
+            }
+        }
+    });
+    row.connect_unmap(move |_| {
+        if let Some(id) = timer.take() {
+            id.remove();
+        }
+    });
+    download.connect_clicked({
+        let refresh = refresh.clone();
+        move |_| {
+            crate::speech::prepare();
+            refresh();
+        }
+    });
+    remove.connect_clicked(move |b| {
+        let dialog = adw::AlertDialog::new(
+            Some(t("Remove the speech recognition?")),
+            Some(t("It downloads again the first time you use it.")),
+        );
+        dialog.add_response("cancel", t("Cancel"));
+        dialog.add_response("remove", t("Remove"));
+        dialog.set_response_appearance("remove", adw::ResponseAppearance::Destructive);
+        dialog.set_default_response(Some("cancel"));
+        let refresh = refresh.clone();
+        dialog.connect_response(None, move |_, r| {
+            if r == "remove" {
+                if let Err(e) = crate::speech::remove() {
+                    log::warn!("remove speech recognition: {e}");
+                }
+                refresh();
+            }
+        });
+        dialog.present(Some(b));
+    });
+    group
 }
 
 /// AI voices: on the processor or not, what the engine takes on disk, and a button to remove it.

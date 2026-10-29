@@ -380,6 +380,30 @@ msgstr "Kopfhörer"
 msgid "Only for you, apps do not hear this."
 msgstr "Nur für dich, Apps hören das nicht."
 
+msgid "Speech recognition"
+msgstr "Spracherkennung"
+
+msgid "Hears what you say, to find sounds in Find sounds and for apps like the Stream Deck plugin. It runs on your computer, nothing you say goes online."
+msgstr "Versteht, was du sagst, um Sounds zu finden: in „Sounds finden“ und für Apps wie das Stream-Deck-Plugin. Sie läuft auf deinem Computer, nichts, was du sagst, geht ins Internet."
+
+msgid "Whisper by OpenAI"
+msgstr "Whisper von OpenAI"
+
+msgid "Downloading, {} done"
+msgstr "Wird geladen, {} fertig"
+
+msgid "Downloaded, it takes {} on disk."
+msgstr "Geladen, belegt {} auf der Festplatte."
+
+msgid "Not downloaded yet. It comes the first time you use it, {}."
+msgstr "Noch nicht geladen. Sie kommt, wenn du sie zum ersten Mal nutzt, {}."
+
+msgid "Remove the speech recognition?"
+msgstr "Spracherkennung entfernen?"
+
+msgid "It downloads again the first time you use it."
+msgstr "Sie wird wieder geladen, wenn du sie das nächste Mal nutzt."
+
 msgid "Switch sounds"
 msgstr "Schaltgeräusche"
 
