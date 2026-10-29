@@ -649,9 +649,9 @@ mod tests {
     fn the_sounds_of_the_switches_are_short() {
         let [on, off] = cues().expect("they decode");
         for cue in [on, off] {
-            assert!((0.2..0.6).contains(&cue.seconds()), "{}", cue.seconds());
+            assert!((0.05..0.15).contains(&cue.seconds()), "{}", cue.seconds());
             let peak = cue.frames.iter().fold(0f32, |p, [l, r]| p.max(l.abs()).max(r.abs()));
-            assert!(peak > 0.5, "audible: {peak}");
+            assert!((0.3..0.7).contains(&peak), "audible, but soft: {peak}");
         }
     }
 
