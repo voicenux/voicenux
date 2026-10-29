@@ -487,6 +487,13 @@ button.vn-reset {
   box-shadow: inset 0 0 0 1px rgba(229, 40, 60, 0.4);
 }
 
+/* Say what to search: red while Voicenux listens, like a muted microphone. */
+.vn-dictate.listening {
+  background-color: rgba(229, 40, 60, 0.14);
+  color: #d81e33;
+  box-shadow: inset 0 0 0 1px rgba(229, 40, 60, 0.4);
+}
+
 .vn-mute.muted image {
   animation: vn-shake 420ms ease-out;
 }

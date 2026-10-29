@@ -111,7 +111,7 @@ sound, like rain or a campfire.
 </p>
 
 Sounds play into the Voicenux Microphone, so others hear them too. **Find sounds** searches
-[MyInstants](https://www.myinstants.com), or drop your own audio files on the page. Right-click a
+[MyInstants](https://www.myinstants.com): type, or click the microphone and say what you want. Or drop your own audio files on the page. Right-click a
 sound to change or trim it, right-click an empty spot for folders. Starred sounds come first.
 Tips on the first visit show what is where. Friends in Discord do not hear them? Discord filters
 out sounds that are not speech: Voicenux shows you what to change there.

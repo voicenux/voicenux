@@ -97,10 +97,14 @@ pub fn panel(st: &St) -> (gtk::Box, gtk::SearchEntry) {
     search.set_placeholder_text(Some(t("Search MyInstants")));
     // Searches while typing, after a short pause. Enter searches at once.
     search.set_search_delay(250);
-    search.set_margin_top(12);
-    search.set_margin_start(12);
-    search.set_margin_end(12);
-    search.set_margin_bottom(6);
+    search.set_hexpand(true);
+    let top = gtk::Box::new(gtk::Orientation::Horizontal, 8);
+    top.set_margin_top(12);
+    top.set_margin_start(12);
+    top.set_margin_end(12);
+    top.set_margin_bottom(6);
+    top.append(&search);
+    top.append(&dictate_button(st, &search));
 
     let list = gtk::ListBox::new();
     list.set_selection_mode(gtk::SelectionMode::None);
@@ -173,7 +177,7 @@ pub fn panel(st: &St) -> (gtk::Box, gtk::SearchEntry) {
     panel.add_css_class("vn-detail");
     panel.add_css_class("vn-find");
     panel.set_width_request(340);
-    panel.append(&search);
+    panel.append(&top);
     panel.append(&bar);
     panel.append(&stack);
     panel.append(&volume);
@@ -840,6 +844,88 @@ fn error_text(e: online::Error) -> &'static str {
         online::Error::TooMany => t("Too many searches. Wait a minute and try again."),
         online::Error::Failed => t("That did not work. Try again."),
     }
+}
+
+/// A button to say what to search, like a dictation button: it only fills in the search, it adds
+/// nothing. Others do not hear you meanwhile. A second click ends it, or 15 s.
+fn dictate_button(st: &St, search: &gtk::SearchEntry) -> gtk::Button {
+    let button = gtk::Button::new();
+    // Round, like the button to mute the microphone.
+    button.add_css_class("vn-mute");
+    button.add_css_class("vn-dictate");
+    button.set_valign(gtk::Align::Center);
+    let idle = {
+        let button = button.clone();
+        move || {
+            button.set_child(Some(&super::line_icon("mic", 16)));
+            button.set_tooltip_text(Some(t("Say what to search")));
+            button.remove_css_class("listening");
+            button.set_sensitive(true);
+        }
+    };
+    idle();
+    // This button listens, not an app.
+    let mine = Rc::new(Cell::new(false));
+    let hear = Rc::new({
+        let (st, button, search, mine) = (st.clone(), button.clone(), search.clone(), mine.clone());
+        move || {
+            if !mine.replace(false) {
+                return;
+            }
+            let Some((heard, rate)) = st.stop_listening() else { return idle() };
+            button.remove_css_class("listening");
+            button.set_sensitive(false);
+            button.set_child(Some(&adw::Spinner::new()));
+            let (tx, rx) = async_channel::bounded(1);
+            std::thread::spawn(move || {
+                let text = crate::speech::download()
+                    .and_then(|()| crate::speech::transcribe(&crate::speech::resample(&heard, rate), None));
+                let _ = tx.send_blocking(text);
+            });
+            let (st, search, idle) = (st.clone(), search.clone(), idle.clone());
+            glib::spawn_future_local(async move {
+                let text = rx.recv().await.unwrap_or_else(|_| Err(anyhow::anyhow!("no answer")));
+                idle();
+                match text {
+                    Ok(text) if !text.is_empty() => {
+                        search.set_text(text.trim_matches(|c: char| c.is_ascii_punctuation() || c.is_whitespace()));
+                        search.set_position(-1);
+                    }
+                    Ok(_) => st.notify(Change::Notice(t("Nothing heard. Try again.").into())),
+                    Err(e) => {
+                        log::warn!("dictate: {e:#}");
+                        st.notify(Change::Notice(t("Speech recognition did not work. Are you online?").into()));
+                    }
+                }
+            });
+        }
+    });
+    button.connect_clicked({
+        let (st, mine, hear) = (st.clone(), mine.clone(), hear.clone());
+        move |b| {
+            if mine.get() {
+                return hear();
+            }
+            // An app listens already.
+            if st.is_listening() {
+                return;
+            }
+            mine.set(true);
+            st.listen();
+            b.add_css_class("listening");
+            b.set_tooltip_text(Some(t("Stop and search")));
+        }
+    });
+    // The 15 s are up: search with what was heard.
+    st.subscribe({
+        let st = st.clone();
+        move |c| {
+            if matches!(c, Change::Toggles) && mine.get() && !st.is_listening() {
+                hear();
+            }
+        }
+    });
+    button
 }
 
 /// Runs `work` on its own thread and hands the result to `done` on the main thread.

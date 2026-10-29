@@ -404,6 +404,18 @@ msgstr "Spracherkennung entfernen?"
 msgid "It downloads again the first time you use it."
 msgstr "Sie wird wieder geladen, wenn du sie das nächste Mal nutzt."
 
+msgid "Say what to search"
+msgstr "Sag, wonach du suchst"
+
+msgid "Stop and search"
+msgstr "Stoppen und suchen"
+
+msgid "Nothing heard. Try again."
+msgstr "Nichts gehört. Versuch es noch mal."
+
+msgid "Speech recognition did not work. Are you online?"
+msgstr "Die Spracherkennung hat nicht geklappt. Bist du online?"
+
 msgid "Switch sounds"
 msgstr "Schaltgeräusche"
 
