@@ -14,10 +14,12 @@
 //! action.
 
 use std::cell::{Cell, RefCell};
+use std::future::Future;
 use std::io::{Read, Write};
 use std::net::{TcpListener, TcpStream};
 use std::os::unix::fs::MetadataExt;
 use std::path::Path;
+use std::pin::Pin;
 use std::rc::Rc;
 use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use std::sync::{Arc, Mutex, mpsc};
@@ -30,12 +32,19 @@ use tungstenite::Message;
 
 use crate::config::ApiApp;
 use crate::i18n::{fill, t, t_dyn};
-use crate::soundboard::PlayMode;
+use crate::soundboard::online::{self, Found};
+use crate::soundboard::{PlayMode, decode_bytes};
 use crate::state::{Change, St};
 
 pub const PORT: u16 = 41967;
 /// Goes up when a change breaks clients.
 const VERSION: u32 = 1;
+/// Actions that take a while: they answer when they are done, and a WebSocket client can send
+/// others meanwhile. The first transcribe downloads the speech model.
+const SLOW: &[&str] = &["transcribe", "find-sound"];
+
+/// The answer of a slow action, later.
+type Later = Pin<Box<dyn Future<Output = Result<Value, String>>>>;
 
 /// A question from a client, answered on the main thread, where the state lives.
 struct Request {
@@ -103,7 +112,16 @@ pub fn start(st: &St) {
         let st = st.clone();
         async move {
             while let Ok(req) = rx.recv().await {
-                let _ = req.reply.send(handle(&st, &req.action, req.arg.as_deref()));
+                match slow(&st, &req.action, req.arg.as_deref()) {
+                    Some(later) => {
+                        glib::spawn_future_local(async move {
+                            let _ = req.reply.send(later.await);
+                        });
+                    }
+                    None => {
+                        let _ = req.reply.send(handle(&st, &req.action, req.arg.as_deref()));
+                    }
+                }
             }
         }
     });
@@ -484,7 +502,20 @@ fn websocket(
                 return Ok(());
             }
             match ws.read() {
-                Ok(Message::Text(text)) => ws.send(Message::text(command(tx, text.as_str())))?,
+                Ok(Message::Text(text)) => {
+                    // A slow answer goes out through the outbox once it is there.
+                    let outbox = || {
+                        clients
+                            .lock()
+                            .unwrap_or_else(|e| e.into_inner())
+                            .iter()
+                            .find(|c| c.0 == id)
+                            .map(|c| c.2.clone())
+                    };
+                    if let Some(answer) = command(tx, text.as_str(), outbox) {
+                        ws.send(Message::text(answer))?;
+                    }
+                }
                 Ok(Message::Close(_)) => return Ok(()),
                 // Pings get their pong by themselves.
                 Ok(_) => {}
@@ -513,7 +544,12 @@ fn websocket(
 }
 
 /// A WebSocket message: `{"id": …, "action": "…", "arg": …}`. The answer carries the same id.
-fn command(tx: &async_channel::Sender<Request>, text: &str) -> String {
+/// None: a slow action answers through the `outbox` of the client later.
+fn command(
+    tx: &async_channel::Sender<Request>,
+    text: &str,
+    outbox: impl FnOnce() -> Option<mpsc::Sender<String>>,
+) -> Option<String> {
     let msg: Value = serde_json::from_str(text).unwrap_or(Value::Null);
     let id = msg.get("id").cloned().unwrap_or(Value::Null);
     let arg = match msg.get("arg") {
@@ -528,8 +564,19 @@ fn command(tx: &async_channel::Sender<Request>, text: &str) -> String {
             Some(bytes) => Ok(json!({ "png": base64(&bytes) })),
             None => Err("no such icon".to_string()),
         },
+        Some(action) if SLOW.contains(&action) => {
+            let (tx, action, out) = (tx.clone(), action.to_string(), outbox()?);
+            std::thread::spawn(move || {
+                let _ = out.send(reply(id, ask(&tx, &action, arg)));
+            });
+            return None;
+        }
         Some(action) => ask(tx, action, arg),
     };
+    Some(reply(id, result))
+}
+
+fn reply(id: Value, result: Result<Value, String>) -> String {
     match result {
         Ok(result) => json!({ "id": id, "ok": true, "result": result }),
         Err(error) => json!({ "id": id, "ok": false, "error": error }),
@@ -596,7 +643,8 @@ fn ask(tx: &async_channel::Sender<Request>, action: &str, arg: Option<String>) -
     let (reply, answer) = mpsc::channel();
     tx.send_blocking(Request { action: action.to_string(), arg, reply })
         .map_err(|_| "Voicenux is closing".to_string())?;
-    answer.recv_timeout(Duration::from_secs(5)).map_err(|_| "no answer".to_string())?
+    let wait = Duration::from_secs(if SLOW.contains(&action) { 600 } else { 5 });
+    answer.recv_timeout(wait).map_err(|_| "no answer".to_string())?
 }
 
 /// Does an action on the main thread. Actions that change something answer with the new state.
@@ -634,6 +682,15 @@ fn handle(st: &St, action: &str, arg: Option<&str>) -> Result<Value, String> {
             st.set_background(on);
         }
         "mute" => st.set_muted(switch(arg, st.muted.get())?),
+        // Off throws away what was heard.
+        "listen" => {
+            let now = st.is_listening();
+            if switch(arg, now)? {
+                st.listen();
+            } else {
+                st.stop_listening();
+            }
+        }
         "favorite" => {
             let id = find_voice(st, need()?)?;
             st.toggle_favorite(&id);
@@ -667,6 +724,94 @@ fn handle(st: &St, action: &str, arg: Option<&str>) -> Result<Value, String> {
     Ok(state(st))
 }
 
+/// The slow actions, see [`SLOW`]. None for any other.
+fn slow(st: &St, action: &str, arg: Option<&str>) -> Option<Later> {
+    let arg = arg.map(str::trim).filter(|a| !a.is_empty()).map(String::from);
+    let st = st.clone();
+    match action {
+        // What you said while Voicenux listened. Stops listening.
+        "transcribe" => Some(Box::pin(async move {
+            let (heard, rate) = st.stop_listening().ok_or("not listening, send listen first")?;
+            let language = arg.filter(|a| a != "auto");
+            let text: String = off_main(move || {
+                crate::speech::download().map_err(|e| {
+                    log::warn!("speech model: {e:#}");
+                    "could not download the speech recognition".to_string()
+                })?;
+                crate::speech::transcribe(&crate::speech::resample(&heard, rate), language.as_deref())
+                    .map_err(|e| e.to_string())
+            })
+            .await??;
+            Ok(json!({ "text": text }))
+        })),
+        // The sound on MyInstants most people liked, for a key of the app. It is kept off the
+        // soundboard, see soundboard::found. One on the soundboard already is taken as it is.
+        "find-sound" => Some(Box::pin(async move {
+            let words = arg.ok_or("find-sound needs an \"arg\"")?;
+            let words = words.trim_matches(|c: char| c.is_ascii_punctuation() || c.is_whitespace()).to_string();
+            // A sound you have by that name: that one, without asking MyInstants.
+            if let Some(id) = st.sound_named(&words) {
+                return Ok(found_sound(&st, &id, None));
+            }
+            let query = words.clone();
+            let (found, stats) = off_main(move || online::most_liked(&query))
+                .await?
+                .map_err(online_error)?
+                .ok_or_else(|| format!("nothing found for \"{words}\""))?;
+            let likes = stats.as_ref().map(|s| s.likes);
+            // There already: no second download. Sounds added before Voicenux kept where they
+            // came from go by their name.
+            if let Some(id) = st.sound_from(&found.url).or_else(|| st.sound_named(&found.title)) {
+                return Ok(found_sound(&st, &id, likes));
+            }
+            let f = found.clone();
+            let bytes = off_main(move || download(&f)).await?.map_err(online_error)?;
+            let icon = crate::ui::find_sounds::picture(&found.title, stats.as_ref()).unwrap_or("loudspeaker");
+            let id = st.keep_found(&found.title, &found.ext, &bytes, icon, &found.url).map_err(|e| e.to_string())?;
+            Ok(found_sound(&st, &id, likes))
+        })),
+        _ => None,
+    }
+}
+
+/// A sound that plays: MyInstants may send files that do not.
+fn download(found: &Found) -> Result<Vec<u8>, online::Error> {
+    let bytes = online::download(found)?;
+    decode_bytes(bytes.clone(), &found.ext).map_err(|_| online::Error::Failed)?;
+    Ok(bytes)
+}
+
+fn online_error(e: online::Error) -> String {
+    match e {
+        online::Error::Offline => "could not reach MyInstants",
+        online::Error::TooMany => "MyInstants wants a break, try again in a minute",
+        online::Error::Failed => "the sound does not play",
+    }
+    .to_string()
+}
+
+/// A sound like in the list of sounds, with its likes (None: not looked up), and whether it is on
+/// the soundboard.
+fn found_sound(st: &St, id: &str, likes: Option<u32>) -> Value {
+    let s = st.sound(id);
+    json!({
+        "id": id,
+        "name": s.as_ref().map(|s| t_dyn(&s.name)),
+        "icon": s.as_ref().map(|s| s.icon.clone()),
+        "likes": likes,
+        "soundboard": st.library.borrow().find(id).is_some(),
+    })
+}
+
+/// Runs `work` on a thread of its own, and waits for it without blocking the main thread.
+async fn off_main<T: Send + 'static>(work: impl FnOnce() -> T + Send + 'static) -> Result<T, String> {
+    let (tx, rx) = async_channel::bounded(1);
+    std::thread::spawn(move || {
+        let _ = tx.send_blocking(work());
+    });
+    rx.recv().await.map_err(|_| "that did not work".to_string())
+}
+
 /// "on", "off" or "toggle" (also without an argument).
 fn switch(arg: Option<&str>, now: bool) -> Result<bool, String> {
     match arg.map(|a| a.trim().to_ascii_lowercase()).as_deref() {
@@ -688,14 +833,18 @@ fn find_voice(st: &St, name: &str) -> Result<String, String> {
         .ok_or_else(|| format!("no voice called \"{name}\""))
 }
 
+/// A sound by id or by name, in any language. Sounds apps found go by id only.
 fn find_sound(st: &St, name: &str) -> Result<String, String> {
     let name = name.to_lowercase();
-    st.library
+    let on_board = st
+        .library
         .borrow()
         .sound
         .iter()
         .find(|s| s.id == name || s.name.to_lowercase() == name || t_dyn(&s.name).to_lowercase() == name)
-        .map(|s| s.id.clone())
+        .map(|s| s.id.clone());
+    on_board
+        .or_else(|| st.found.borrow().find(&name).map(|s| s.id.clone()))
         .ok_or_else(|| format!("no sound called \"{name}\""))
 }
 
@@ -708,6 +857,7 @@ fn state(st: &St) -> Value {
         "hear_myself": c.hear_myself,
         "background": c.background,
         "mute": st.muted.get(),
+        "listening": st.is_listening(),
         "sound_volume": (c.sound_volume * 100.0).round() as i64,
         "hear_sounds": c.hear_sounds,
         "playing": st.playing_sounds(),

@@ -72,19 +72,18 @@ impl Builtin {
         super::dir().join("starter").join(format!("{}.{}", self.id, self.ext()))
     }
 
+    /// Its file on MyInstants.
+    pub fn url(&self) -> String {
+        format!("https://www.myinstants.com/media/sounds/{}", self.file)
+    }
+
     pub fn downloaded(&self) -> bool {
         self.path().is_file()
     }
 
     /// Downloads the sound and keeps it, if it plays. Blocks: call it off the main thread.
     pub fn fetch(&self) -> Result<(), online::Error> {
-        let found = Found {
-            title: self.name.into(),
-            url: format!("https://www.myinstants.com/media/sounds/{}", self.file),
-            ext: self.ext().into(),
-            page: None,
-            id: 0,
-        };
+        let found = Found { title: self.name.into(), url: self.url(), ext: self.ext().into(), page: None, id: 0 };
         let bytes = online::download(&found)?;
         decode_bytes(bytes.clone(), self.ext()).map_err(|e| {
             log::warn!("starter sound {}: {e}", self.id);

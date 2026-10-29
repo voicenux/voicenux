@@ -595,7 +595,7 @@ impl Finder {
                 let (me, f, button) = (me.clone(), f2.clone(), button.clone());
                 move |stats: Option<&Stats>| {
                     let icon = picture(&f.title, stats).unwrap_or("loudspeaker");
-                    match me.st.add_found(&f.title, &f.ext, &audio.0, icon) {
+                    match me.st.add_found(&f.title, &f.ext, &audio.0, icon, &f.url) {
                         Ok(()) => {
                             button.set_icon_name("object-select-symbolic");
                             button.add_css_class("vn-added");
@@ -871,7 +871,7 @@ fn row_index(line: &gtk::Box) -> i32 {
 
 /// A picture for a found sound: one its name fits, or else one what its page says fits, or else
 /// one for its category, like a clown for a prank.
-fn picture(title: &str, stats: Option<&Stats>) -> Option<&'static str> {
+pub fn picture(title: &str, stats: Option<&Stats>) -> Option<&'static str> {
     super::emoji::guess(title).or_else(|| {
         let stats = stats?;
         super::emoji::guess(&stats.about).or(match stats.category.as_str() {

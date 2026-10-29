@@ -1,5 +1,6 @@
 //! Soundboard: the list of sounds, loading audio files and the starter sounds.
 
+pub mod found;
 pub mod online;
 pub mod starter;
 
@@ -105,6 +106,9 @@ pub struct Sound {
     /// Starred, for a random favorite.
     #[serde(default, skip_serializing_if = "is_false")]
     pub favorite: bool,
+    /// The file on MyInstants it came from, so it is not added twice.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub source: Option<String>,
 }
 
 fn full() -> f32 {
@@ -260,6 +264,7 @@ impl Library {
             end: None,
             folder: None,
             favorite: false,
+            source: None,
         };
         self.sound.push(sound.clone());
         sound
@@ -270,10 +275,7 @@ impl Library {
     pub fn add_bytes(&mut self, name: &str, ext: &str, data: &[u8], icon: &str) -> anyhow::Result<Sound> {
         let dir = dir();
         std::fs::create_dir_all(&dir)?;
-        let stem: String =
-            name.chars().map(|c| if c.is_alphanumeric() { c.to_ascii_lowercase() } else { '-' }).collect();
-        let stem = stem.trim_matches('-');
-        let target = free_path(&dir, if stem.is_empty() { "sound" } else { stem }, &format!(".{ext}"));
+        let target = free_path(&dir, &file_stem(name), &format!(".{ext}"));
         std::fs::write(&target, data)?;
         Ok(self.add_file(target.file_name().unwrap().to_string_lossy().to_string(), name, icon))
     }
@@ -347,6 +349,7 @@ fn starter_sound(b: &starter::Builtin) -> Sound {
         end: None,
         folder: None,
         favorite: false,
+        source: None,
     }
 }
 
@@ -358,6 +361,25 @@ pub fn delete_file(sound: &Sound) {
 }
 
 impl Library {}
+
+/// Whether two names are the same sound, whatever the case and the punctuation: "Vine Boom!" and
+/// "vine boom" are.
+pub fn same_name(a: &str, b: &str) -> bool {
+    let plain = |s: &str| {
+        let s: String =
+            s.chars().flat_map(char::to_lowercase).map(|c| if c.is_alphanumeric() { c } else { ' ' }).collect();
+        s.split_whitespace().collect::<Vec<_>>().join(" ")
+    };
+    let a = plain(a);
+    !a.is_empty() && a == plain(b)
+}
+
+/// A safe file name made from the name of a sound, without its extension.
+fn file_stem(name: &str) -> String {
+    let stem: String = name.chars().map(|c| if c.is_alphanumeric() { c.to_ascii_lowercase() } else { '-' }).collect();
+    let stem = stem.trim_matches('-');
+    if stem.is_empty() { "sound".into() } else { stem.into() }
+}
 
 /// `dir/stem.ext`, or with a number added when that file is there already.
 fn free_path(dir: &Path, stem: &str, ext: &str) -> PathBuf {
@@ -623,6 +645,15 @@ fn gcd(a: u32, b: u32) -> u32 {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn names_match_whatever_the_case_and_the_punctuation() {
+        assert!(same_name("Vine Boom", "vine boom."));
+        assert!(same_name("What the hell (speed up)", "what the hell speed up"));
+        assert!(same_name("Ärger!", "ärger"));
+        assert!(!same_name("Vine Boom", "Vine Boom 2"));
+        assert!(!same_name("", "  ?! "), "nothing is no name");
+    }
 
     fn ids(lib: &Library) -> Vec<&str> {
         lib.sound.iter().map(|s| s.id.as_str()).collect()

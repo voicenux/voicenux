@@ -49,6 +49,11 @@
   themselves.
 - `src/api.rs` lets other apps control Voicenux (WebSocket and HTTP on 127.0.0.1:41967, off by
   default). Keep `API.md` in step with it. Raise `VERSION` there only for changes that break clients.
+- `src/speech.rs` turns what you say into text for apps (API `listen`, `transcribe`): Whisper base
+  in plain Rust with candle, on the processor. Voicenux downloads the model the first time (290 MB,
+  pinned to a commit) into the data folder. While an app listens, others do not hear you (`quiet`
+  in `src/audio/rt.rs`). `find-sound` picks the sound with the most likes on MyInstants and
+  keeps it off the soundboard (`src/soundboard/found.rs`, the last 50 used).
 - Users never touch a config file. Every option has a place in the app, `src/config.rs` only
   stores it. Options for tinkerers and experiments are switches in **Advanced settings**
   (`src/ui/advanced.rs`, like the flags of a browser): one line in `FLAGS` each, not in Settings.

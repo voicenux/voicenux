@@ -69,6 +69,10 @@ pub struct Processor {
     voice_on: Ramp,
     hear: Ramp,
     mute: Ramp,
+    /// Your voice while an app listens to you: nobody else hears it then.
+    quiet: Ramp,
+    /// Where the microphone goes while an app listens.
+    listen: Option<rtrb::Producer<f32>>,
     hear_sounds: Ramp,
     background: bool,
     input_gain: f32,
@@ -104,6 +108,8 @@ impl Processor {
             voice_on: Ramp::new(1.0),
             hear: Ramp::new(0.0),
             mute: Ramp::new(1.0),
+            quiet: Ramp::new(1.0),
+            listen: None,
             hear_sounds: Ramp::new(1.0),
             background: true,
             input_gain: 1.0,
@@ -196,6 +202,12 @@ impl Processor {
                         p.volume = volume;
                     }
                 }
+                RtCmd::Listen(ring) => {
+                    self.quiet.target = if ring.is_some() { 0.0 } else { 1.0 };
+                    if let Some(old) = std::mem::replace(&mut self.listen, ring) {
+                        self.throw(Trash::Listen(old));
+                    }
+                }
             }
         }
     }
@@ -268,6 +280,14 @@ impl Processor {
             }
         }
         self.meters.input.raise(peak(dry));
+        if let Some(ring) = &mut self.listen {
+            // A full ring drops the rest: nobody reads it anymore.
+            for x in dry.iter() {
+                if ring.push(*x).is_err() {
+                    break;
+                }
+            }
+        }
 
         let ctx = Ctx { background: self.background };
         let wet = &mut self.wet[..n];
@@ -297,11 +317,11 @@ impl Processor {
             let _ = self.trash.push(Trash::Chain(old));
         }
 
-        // Voice changer on/off, mute and mic volume.
+        // Voice changer on/off, mute, listening and mic volume.
         let mut voice_peak = 0.0f32;
         for (w, d) in wet.iter_mut().zip(dry.iter()) {
             let on = self.voice_on.next();
-            let v = (*w * on + *d * (1.0 - on)) * self.mute.next() * self.mic_volume;
+            let v = (*w * on + *d * (1.0 - on)) * self.mute.next() * self.quiet.next() * self.mic_volume;
             voice_peak = voice_peak.max(v.abs());
             *w = v;
         }
@@ -448,6 +468,22 @@ mod tests {
         run(&mut p, &vec![0.0; 4800]);
         assert!(matches!(trash.pop(), Ok(Trash::Sound(_))));
         assert_eq!(meters.playing[0].load(Ordering::Relaxed), 0);
+    }
+
+    #[test]
+    fn a_listening_app_gets_the_microphone_and_nobody_else_hears_it() {
+        let (mut p, mut tx, mut trash, _) = setup();
+        let (ring, mut heard) = rtrb::RingBuffer::new(48000);
+        tx.push(RtCmd::Listen(Some(ring))).unwrap();
+        let input = vec![0.5f32; 24000];
+        let (out, _) = run(&mut p, &input);
+        assert!(out[20000].abs() < 1e-6, "others hear nothing");
+        assert_eq!(heard.slots(), 24000);
+        assert!(heard.pop().is_ok_and(|x| (x - 0.5).abs() < 1e-6));
+        tx.push(RtCmd::Listen(None)).unwrap();
+        let (out, _) = run(&mut p, &input);
+        assert!((out[20000] - 0.5).abs() < 1e-3, "and then they hear you again");
+        assert!(matches!(trash.pop(), Ok(Trash::Listen(_))));
     }
 
     #[test]

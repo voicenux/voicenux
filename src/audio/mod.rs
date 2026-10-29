@@ -91,12 +91,16 @@ pub enum RtCmd {
         id: u32,
         volume: f32,
     },
+    /// Some: the microphone goes into this ring, and others no longer hear your voice. None: back
+    /// to normal.
+    Listen(Option<rtrb::Producer<f32>>),
 }
 
 /// Things the realtime side is done with. They are freed on another thread.
 pub enum Trash {
     Chain(#[allow(dead_code)] Box<Chain>),
     Sound(#[allow(dead_code)] Arc<SoundData>),
+    Listen(#[allow(dead_code)] rtrb::Producer<f32>),
 }
 
 /// Commands for the engine thread.

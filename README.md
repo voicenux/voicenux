@@ -207,5 +207,6 @@ browser. Some are experiments and may change.
 - Background sounds: CC0 recordings from [Freesound](https://freesound.org), see [SOURCES.md](data/ambience/SOURCES.md).
 - RNNoise by Xiph.Org through [nnnoiseless](https://github.com/jneem/nnnoiseless), Freeverb by Jezar at Dreampoint, [Symphonia](https://github.com/pdeljanov/Symphonia).
 - AI voices: [infer-rvc-python](https://github.com/R3gm/infer_rvc_python) (MIT) and models shared on Hugging Face.
+- Speech recognition for apps: [Whisper](https://github.com/openai/whisper) by OpenAI (MIT), run by [candle](https://github.com/huggingface/candle).
 
 BSD-3-Clause.

@@ -5,7 +5,7 @@ pub mod ai;
 pub mod board;
 pub mod bottombar;
 pub mod emoji;
-mod find_sounds;
+pub mod find_sounds;
 mod glyph;
 pub mod help;
 pub mod keys;

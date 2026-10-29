@@ -16,6 +16,17 @@ use crate::voice::{self, BlockDef, Voice};
 
 /// The realtime id of a preview. Pads count up from 1, so they never get it.
 const PREVIEW: u32 = u32::MAX;
+/// How long an app may listen to you at most. Then others hear you again.
+const LISTEN_MAX: std::time::Duration = std::time::Duration::from_secs(15);
+
+/// An app listens to your microphone, see [`State::listen`].
+struct Listening {
+    ring: rtrb::Consumer<f32>,
+    heard: Vec<f32>,
+    rate: u32,
+    /// Moves what was heard out of the ring. None once it ended by itself.
+    timer: Option<glib::SourceId>,
+}
 
 #[derive(Clone, Debug, PartialEq)]
 pub enum Change {
@@ -77,6 +88,8 @@ pub struct State {
     pub config: RefCell<Config>,
     pub voices: RefCell<Vec<Voice>>,
     pub library: RefCell<Library>,
+    /// Sounds apps found for a key of their own. Not on the soundboard.
+    pub found: RefCell<soundboard::found::Found>,
     pub engine: Engine,
     pub inputs: RefCell<Vec<Device>>,
     pub outputs: RefCell<Vec<Device>>,
@@ -85,6 +98,9 @@ pub struct State {
     pub users: RefCell<Vec<String>>,
     pub easyeffects: Cell<EasyEffects>,
     pub muted: Cell<bool>,
+    listening: RefCell<Option<Listening>>,
+    /// What an app heard until its time ran out, with the rate, kept for when it asks.
+    heard: RefCell<Option<(Vec<f32>, u32)>>,
     pub ready: Cell<bool>,
     /// A tray icon is there to bring the window back.
     pub tray: Cell<bool>,
@@ -125,6 +141,7 @@ impl State {
             config: RefCell::new(config),
             voices: RefCell::new(voices),
             library: RefCell::new(Library::load()),
+            found: RefCell::new(soundboard::found::Found::load()),
             engine,
             inputs: RefCell::default(),
             outputs: RefCell::default(),
@@ -133,6 +150,8 @@ impl State {
             users: RefCell::default(),
             easyeffects: Cell::default(),
             muted: Cell::new(false),
+            listening: RefCell::default(),
+            heard: RefCell::default(),
             ready: Cell::new(false),
             tray: Cell::new(false),
             fetching: Cell::new(false),
@@ -684,6 +703,57 @@ impl State {
         self.notify(Change::Toggles);
     }
 
+    /// An app listens to your microphone, like to find a sound by what you say. Others do not
+    /// hear you meanwhile, sounds of the soundboard still play. Ends after 15 s at most.
+    pub fn listen(self: &Rc<Self>) {
+        if self.is_listening() {
+            return;
+        }
+        self.heard.take();
+        let rate = match self.engine.meters.rate.load(std::sync::atomic::Ordering::Relaxed) {
+            0 => 48000,
+            rate => rate,
+        };
+        // A second fits, it is emptied 20 times a second.
+        let (ring, rx) = rtrb::RingBuffer::new(rate as usize);
+        self.engine.rt(RtCmd::Listen(Some(ring)));
+        let started = std::time::Instant::now();
+        let weak = Rc::downgrade(self);
+        let timer = glib::timeout_add_local(std::time::Duration::from_millis(50), move || {
+            let Some(st) = weak.upgrade() else { return glib::ControlFlow::Break };
+            if let Some(l) = st.listening.borrow_mut().as_mut() {
+                l.take_in();
+                if started.elapsed() < LISTEN_MAX {
+                    return glib::ControlFlow::Continue;
+                }
+                l.timer = None;
+            }
+            let heard = st.stop_listening();
+            st.heard.replace(heard);
+            glib::ControlFlow::Break
+        });
+        self.listening.replace(Some(Listening { ring: rx, heard: Vec::new(), rate, timer: Some(timer) }));
+        crate::speech::prepare();
+        self.notify(Change::Toggles);
+    }
+
+    pub fn is_listening(&self) -> bool {
+        self.listening.borrow().is_some()
+    }
+
+    /// Stops listening: others hear you again. Gives what was heard and its rate, also when the
+    /// time ran out before.
+    pub fn stop_listening(&self) -> Option<(Vec<f32>, u32)> {
+        let Some(mut l) = self.listening.take() else { return self.heard.take() };
+        if let Some(timer) = l.timer.take() {
+            timer.remove();
+        }
+        self.engine.rt(RtCmd::Listen(None));
+        l.take_in();
+        self.notify(Change::Toggles);
+        Some((l.heard, l.rate))
+    }
+
     // Settings
 
     pub fn update(self: &Rc<Self>, f: impl FnOnce(&mut Config)) {
@@ -767,7 +837,7 @@ impl State {
                 Err(e) => return st.sound_failed(&sound, e),
             };
             // Removed or cut again while it decoded: this audio is not the sound any more.
-            let now = st.library.borrow().find(&sound.id).cloned();
+            let now = st.sound(&sound.id);
             let Some(now) = now.filter(|n| (n.start, n.end) == (sound.start, sound.end)) else { return };
             st.sounds.borrow_mut().insert(now.id.clone(), data.clone());
             st.start_sound(&now, data, mode);
@@ -825,7 +895,8 @@ impl State {
     /// Plays a sound the way `mode` says, whatever the soundboard is set to. For other apps, like
     /// a Stream Deck key that always plays on top.
     pub fn play_sound_as(self: &Rc<Self>, id: &str, mode: PlayMode) {
-        let Some(sound) = self.library.borrow().find(id).cloned() else { return };
+        let Some(sound) = self.sound(id) else { return };
+        self.use_found(id);
         let rt = self.sound_rt_id(id);
         let playing = self.is_playing(id);
         if playing && mode == PlayMode::Toggle {
@@ -897,17 +968,81 @@ impl State {
     }
 
     /// Adds a sound found online. It plays leveled, like in Find sounds.
-    pub fn add_found(&self, name: &str, ext: &str, data: &[u8], icon: &str) -> anyhow::Result<()> {
+    /// A sound of the soundboard, or one an app found.
+    pub fn sound(&self, id: &str) -> Option<soundboard::Sound> {
+        let on_board = self.library.borrow().find(id).cloned();
+        on_board.or_else(|| self.found.borrow().find(id).cloned())
+    }
+
+    /// Keeps a sound an app found on MyInstants, from `source` there, off the soundboard. Gives
+    /// its id.
+    pub fn keep_found(&self, name: &str, ext: &str, data: &[u8], icon: &str, source: &str) -> anyhow::Result<String> {
+        let (sound, gone) = self.found.borrow_mut().add(name, ext, data, icon, source)?;
+        self.found.borrow().save();
+        for s in gone {
+            self.sounds.borrow_mut().remove(&s.id);
+        }
+        Ok(sound.id)
+    }
+
+    /// Adds a sound found on MyInstants, from `source` there.
+    pub fn add_found(&self, name: &str, ext: &str, data: &[u8], icon: &str, source: &str) -> anyhow::Result<()> {
         {
             let mut lib = self.library.borrow_mut();
             let id = lib.add_bytes(name, ext, data, icon)?.id;
             if let Some(s) = lib.sound.iter_mut().find(|s| s.id == id) {
                 s.level = true;
+                s.source = Some(source.to_string());
             }
             lib.save();
         }
         self.notify(Change::Sounds);
         Ok(())
+    }
+
+    /// The sound from this file on MyInstants: on the soundboard (a starter sound too), or one an
+    /// app found before. That one counts as used.
+    pub fn sound_from(&self, source: &str) -> Option<String> {
+        let starter = |id: &str| soundboard::starter::find(id).is_some_and(|b| b.url() == source);
+        let on_board = self
+            .library
+            .borrow()
+            .sound
+            .iter()
+            .find(|s| s.source.as_deref() == Some(source) || s.builtin.as_deref().is_some_and(starter))
+            .map(|s| s.id.clone());
+        if on_board.is_some() {
+            return on_board;
+        }
+        let id = self.found.borrow().with_source(source).map(|s| s.id.clone())?;
+        self.use_found(&id);
+        Some(id)
+    }
+
+    /// The sound you have with this name: on the soundboard, in English or in the language of the
+    /// app, or one an app found before. That one counts as used.
+    pub fn sound_named(&self, name: &str) -> Option<String> {
+        let on_board = self
+            .library
+            .borrow()
+            .sound
+            .iter()
+            .find(|s| soundboard::same_name(&s.name, name) || soundboard::same_name(&crate::i18n::t_dyn(&s.name), name))
+            .map(|s| s.id.clone());
+        if on_board.is_some() {
+            return on_board;
+        }
+        let id =
+            self.found.borrow().sound.iter().find(|s| soundboard::same_name(&s.name, name)).map(|s| s.id.clone())?;
+        self.use_found(&id);
+        Some(id)
+    }
+
+    /// A sound an app found was used: it goes last when old ones have to go.
+    fn use_found(&self, id: &str) {
+        if self.found.borrow_mut().used(id) {
+            self.found.borrow().save();
+        }
     }
 
     pub fn update_sound(&self, sound: soundboard::Sound) {
@@ -1221,5 +1356,18 @@ impl State {
                 st.notify(Change::Sounds);
             }
         });
+    }
+}
+
+impl Listening {
+    /// Moves what came in out of the ring.
+    fn take_in(&mut self) {
+        let n = self.ring.slots();
+        if let Ok(chunk) = self.ring.read_chunk(n) {
+            let (a, b) = chunk.as_slices();
+            self.heard.extend_from_slice(a);
+            self.heard.extend_from_slice(b);
+            chunk.commit_all();
+        }
     }
 }

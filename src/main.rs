@@ -10,6 +10,7 @@ mod i18n;
 mod order;
 mod shortcuts;
 mod soundboard;
+mod speech;
 mod state;
 mod tray;
 mod ui;

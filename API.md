@@ -77,6 +77,9 @@ curl http://127.0.0.1:41967/api/icon/robot -o robot.png
 | `hear-myself` | switch | Hear myself on or off |
 | `background` | switch | Background sounds of the voice on or off |
 | `mute` | switch | Mutes the microphone |
+| `listen` | switch | Listens to the microphone, for 15 s at most. Others do not hear you meanwhile, sounds still play. `off` throws away what it heard |
+| `transcribe` | language | Stops listening and answers with what you said: `{"text": "vine boom"}`, or `""`. Leave out the language (`en`, `de`, …) for English or the language of the app |
+| `find-sound` | words | Finds the sound most people liked on MyInstants, for a key of your own. It stays off the soundboard: Voicenux keeps the last 50 of them, and drops the one used longest ago. A sound you have already is taken as it is, without a download: one with that name, or the same file on MyInstants. Answers `{"id": "found-3", "name": "Vine boom sound", "icon": "collision", "likes": 3276, "soundboard": false}`, `likes` is `null` for a sound found by its name. Play it with the sound actions, by its id |
 | `favorite` | voice | Stars a voice, or takes the star away |
 | `sound` | sound | Plays a sound, as the play mode of the soundboard says (from the start, play and stop, on top) |
 | `sound-restart`, `sound-toggle`, `sound-overlap` | sound | Plays a sound from the start, plays or stops it, or plays another copy on top, whatever the soundboard says |
@@ -87,6 +90,8 @@ curl http://127.0.0.1:41967/api/icon/robot -o robot.png
 | `icon` | picture | WebSocket only: answers `{"png": "…base64…"}`. Over HTTP use `GET /api/icon/NAME` |
 
 Actions that change something answer with the new state.
+
+`transcribe` and `find-sound` take a few seconds, or longer the first time: `transcribe` downloads the speech recognition then (Whisper base, about 290 MB). Over WebSocket other actions go on meanwhile, so their answers may come first.
 
 ## Data
 
@@ -99,6 +104,7 @@ The state:
   "hear_myself": false,
   "background": true,
   "mute": false,
+  "listening": false,
   "sound_volume": 80,
   "hear_sounds": true,
   "playing": ["airhorn"],
@@ -106,7 +112,7 @@ The state:
 }
 ```
 
-`apps` are the apps that hear your voice right now.
+`apps` are the apps that hear your voice right now. `listening` is true while an app listens, see `listen`.
 
 A voice: `{"id": "robot", "name": "Robot", "icon": "robot", "category": "scifi", "favorite": false, "custom": false}`. Categories are `characters`, `horror`, `scifi`, `places`, `devices`, `music`, `funny` and `custom` for voices made in Voicelab.
 
