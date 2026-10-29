@@ -465,11 +465,36 @@ pub fn build(st: &St, window: &adw::ApplicationWindow) -> SettingsPage {
         .subtitle(t("A short sound when you turn something on or off, like the voice changer. Only you hear it."))
         .active(c.switch_sounds)
         .build();
-    cues.connect_active_notify({
+    let cue_volume = scale_row(
+        t("Volume of the switch sounds"),
+        t("Only for you, apps do not hear this."),
+        0.0,
+        1.0,
+        c.switch_volume as f64,
+        Unit::Percent,
+        {
+            let st = st.clone();
+            move |v| st.update(|c| c.switch_volume = v as f32)
+        },
+    );
+    let test = gtk::Button::with_label(t("Test"));
+    test.set_valign(gtk::Align::Center);
+    test.set_tooltip_text(Some(t("Plays a switch sound at this volume")));
+    test.connect_clicked({
         let st = st.clone();
-        move |r| st.update(|c| c.switch_sounds = r.is_active())
+        move |_| st.play_cue(true)
+    });
+    cue_volume.add_suffix(&test);
+    cue_volume.set_sensitive(c.switch_sounds);
+    cues.connect_active_notify({
+        let (st, cue_volume) = (st.clone(), cue_volume.clone());
+        move |r| {
+            st.update(|c| c.switch_sounds = r.is_active());
+            cue_volume.set_sensitive(r.is_active());
+        }
     });
     hear.add(&cues);
+    hear.add(&cue_volume);
     page.append(&hear.widget);
 
     // Shortcuts.

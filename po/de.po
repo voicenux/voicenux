@@ -380,6 +380,15 @@ msgstr "Kopfhörer"
 msgid "Only for you, apps do not hear this."
 msgstr "Nur für dich, Apps hören das nicht."
 
+msgid "Volume of the switch sounds"
+msgstr "Lautstärke der Schaltgeräusche"
+
+msgid "Test"
+msgstr "Testen"
+
+msgid "Plays a switch sound at this volume"
+msgstr "Spielt ein Schaltgeräusch in dieser Lautstärke"
+
 msgid "Speech recognition"
 msgstr "Spracherkennung"
 

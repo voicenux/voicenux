@@ -37,6 +37,8 @@ pub struct Config {
     pub hear_sounds: bool,
     /// A short sound in your headphones when a switch turns on or off.
     pub switch_sounds: bool,
+    /// How loud those are, 0 to 1. Half is a little quieter than the sounds of the soundboard.
+    pub switch_volume: f32,
     pub sound_volume: f32,
     /// What a click on a sound does, for the sounds without a mode of their own.
     pub sound_mode: PlayMode,
@@ -118,6 +120,7 @@ impl Default for Config {
             low_latency: false,
             hear_sounds: true,
             switch_sounds: true,
+            switch_volume: 0.5,
             sound_volume: 0.8,
             sound_mode: PlayMode::Restart,
             sounds_by_name: false,

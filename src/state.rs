@@ -18,9 +18,9 @@ use crate::voice::{self, BlockDef, Voice};
 const PREVIEW: u32 = u32::MAX;
 /// The realtime id of the sounds of the switches.
 const CUE: u32 = u32::MAX - 1;
-/// How loud the sounds of the switches are, whatever the soundboard volume is. A little quieter
-/// than the sounds of the soundboard.
-const CUE_VOLUME: f32 = 0.25;
+/// How loud the sounds of the switches are at full volume in Settings, whatever the soundboard
+/// volume is.
+const CUE_GAIN: f32 = 0.5;
 /// How long an app may listen to you at most. Then others hear you again.
 const LISTEN_MAX: std::time::Duration = std::time::Duration::from_secs(15);
 
@@ -716,12 +716,17 @@ impl State {
     /// A short sound in your headphones when a switch turned on or off, unless that is off in
     /// Settings. Only you hear it, like a preview.
     fn cue(&self, was: bool, on: bool) {
-        if was == on || !self.config.borrow().switch_sounds {
-            return;
+        if was != on && self.config.borrow().switch_sounds {
+            self.play_cue(on);
         }
+    }
+
+    /// The sound of a switch turning on or off, at its volume in Settings. Only you hear it.
+    pub fn play_cue(&self, on: bool) {
         let Some([on_cue, off_cue]) = soundboard::cues() else { return };
+        let c = self.config.borrow();
         // Previews play at the soundboard volume: make up for it.
-        let volume = CUE_VOLUME / self.config.borrow().sound_volume.max(0.1);
+        let volume = c.switch_volume * CUE_GAIN / c.sound_volume.max(0.1);
         let data = if on { on_cue } else { off_cue }.clone();
         self.engine.rt(RtCmd::Play { id: CUE, data, volume, restart: true, preview: true });
     }
