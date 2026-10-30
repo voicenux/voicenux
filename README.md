@@ -24,7 +24,7 @@
 
 <p align="center">
   <img width="720" src="res/voices.png" alt="Voicenux with the Baby voice selected: a grid of voice cards, the voice with its pitch settings on the right, and the switches for voice changer, hear myself and background at the bottom">
-  <img width="720" src="res/soundboard.png" alt="The soundboard with a Memes folder and sound pads; Drum Roll and Applause are playing and show their progress as a ring. Under the sounds, a bar with their volume, Hear them myself, the play modes and Stop all. On the right, Find sounds lists applause sounds from MyInstants with their likes and views">
+  <img width="720" src="res/soundboard.png" alt="The soundboard with a Memes folder and sound pads; Drum Roll and Applause are playing and show their progress as a ring. Under the sounds, a bar with their volume, Hear them myself, the play modes and Stop all. On the right, Find sounds with a microphone button next to its search lists applause sounds from MyInstants with their likes and views">
 </p>
 
 ## Install
@@ -107,7 +107,7 @@ sound, like rain or a campfire.
 <summary>Soundboard</summary>
 
 <p align="center">
-  <img width="720" src="res/soundboard.png" alt="The soundboard with a Memes folder and sound pads; Drum Roll and Applause are playing and show their progress as a ring. Under the sounds, a bar with their volume, Hear them myself, the play modes and Stop all. On the right, Find sounds lists applause sounds from MyInstants with their likes and views">
+  <img width="720" src="res/soundboard.png" alt="The soundboard with a Memes folder and sound pads; Drum Roll and Applause are playing and show their progress as a ring. Under the sounds, a bar with their volume, Hear them myself, the play modes and Stop all. On the right, Find sounds with a microphone button next to its search lists applause sounds from MyInstants with their likes and views">
 </p>
 
 Sounds play into the Voicenux Microphone, so others hear them too. **Find sounds** searches
@@ -175,7 +175,7 @@ new app may control it.
 <summary>Advanced settings</summary>
 
 <p align="center">
-  <img width="720" src="res/advanced.png" alt="Advanced settings: a search field, Reset all, and switches for Hear changes while you drag, Mouse wheel moves sliders and Random voice button, each with a line about what it does">
+  <img width="720" src="res/advanced.png" alt="Advanced settings: a search field, Reset all, and switches for Hear changes while you drag, Mouse wheel moves sliders, Random voice button and Use EasyEffects, each with a line about what it does">
 </p>
 
 At the bottom of Settings, **Advanced settings** has switches for tinkerers, like the flags of a
