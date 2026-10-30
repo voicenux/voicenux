@@ -196,7 +196,17 @@ mod tests {
     fn names_come_in_every_language() {
         assert_eq!(
             every_language("Santa"),
-            ["Santa", "Weihnachtsmann", "Papá Noel", "Père Noël", "Papai Noel", "Babbo Natale", "Mikołaj", "Дед Мороз", "Noel Baba"]
+            [
+                "Santa",
+                "Weihnachtsmann",
+                "Papá Noel",
+                "Père Noël",
+                "Papai Noel",
+                "Babbo Natale",
+                "Mikołaj",
+                "Дед Мороз",
+                "Noel Baba"
+            ]
         );
         assert_eq!(every_language("not a text"), ["not a text"]);
     }
