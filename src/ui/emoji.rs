@@ -1,4 +1,5 @@
-//! The picture picker: all Fluent emoji in a grid, with a search in English and German.
+//! The picture picker: all Fluent emoji in a grid, with a search in English, German and the
+//! language of the user.
 
 use std::cell::RefCell;
 use std::collections::HashMap;
@@ -8,28 +9,35 @@ use std::sync::OnceLock;
 use adw::prelude::*;
 
 use super::{fold, icon, label, load_picture, popup, smooth_scroll};
-use crate::i18n::{language, t};
+use crate::i18n::{CATALOGS, language, t};
 
 /// One picture of `data/emoji.tsv`.
 struct Emoji {
     id: &'static str,
     /// In the language of the user.
     name: &'static str,
-    /// Names and keywords in both languages, folded for search.
+    /// Names and keywords in English, German and the language of the user, folded for search.
     words: String,
 }
 
 fn index() -> &'static [Emoji] {
     static INDEX: OnceLock<Vec<Emoji>> = OnceLock::new();
     INDEX.get_or_init(|| {
-        let german = language() == "de";
+        // Each line has the id, then a name and the words in English and each language of
+        // CATALOGS. English and German words are always there, sound names come in both.
+        let lang = language();
+        let own = CATALOGS.iter().position(|(code, _)| *code == lang).map_or(0, |i| i + 1);
         include_str!("../../data/emoji.tsv")
             .lines()
             .filter(|l| !l.starts_with('#'))
             .filter_map(|l| {
-                let mut cols = l.split('\t');
-                let (id, en, de, words) = (cols.next()?, cols.next()?, cols.next()?, cols.next()?);
-                Some(Emoji { id, name: if german { de } else { en }, words: fold(words) })
+                let cols: Vec<&'static str> = l.split('\t').collect();
+                let name = *cols.get(1 + 2 * own)?;
+                let mut words = format!("{} {}", cols.get(2)?, cols.get(4)?);
+                if own > 1 {
+                    words = format!("{words} {}", cols.get(2 + 2 * own)?);
+                }
+                Some(Emoji { id: cols[0], name, words: fold(&words) })
             })
             .collect()
     })

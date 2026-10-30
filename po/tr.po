@@ -1,0 +1,2397 @@
+# Turkish translation of Voicenux.
+# Texts are English in the code, see src/i18n.rs.
+msgid ""
+msgstr ""
+"Content-Type: text/plain; charset=UTF-8\n"
+"Language: tr\n"
+
+msgid "My {}"
+msgstr "Benim {}"
+
+msgid "{} copy"
+msgstr "{} (kopya)"
+
+msgid "New voice"
+msgstr "Yeni ses"
+
+msgid "Use voice"
+msgstr "Sesi kullan"
+
+msgid "Could not play {}"
+msgstr "{} çalınamadı"
+
+msgid "Voice: {}"
+msgstr "Ses: {}"
+
+msgid "Sound: {}"
+msgstr "Ses efekti: {}"
+
+msgid "Voice changer off"
+msgstr "Ses değiştirici kapalı"
+
+msgid "Star voices to see them here"
+msgstr "Burada görmek için sesleri yıldızla"
+
+msgid "Open Voicenux"
+msgstr "Voicenux’u aç"
+
+msgid "Voice changer"
+msgstr "Ses değiştirici"
+
+msgid "Hear myself"
+msgstr "Kendimi duy"
+
+msgid "Background"
+msgstr "Arka plan"
+
+msgid "Mute microphone"
+msgstr "Mikrofonu sessize al"
+
+msgid "Favorite voices"
+msgstr "Favori sesler"
+
+msgid "Random voice"
+msgstr "Rastgele ses"
+
+msgid "Random favorite"
+msgstr "Rastgele favori"
+
+msgid "Star two voices or more first"
+msgstr "Önce en az iki sesi yıldızla"
+
+msgid "Stop all sounds"
+msgstr "Tüm ses efektlerini durdur"
+
+msgid "Quit"
+msgstr "Çık"
+
+msgid "Voice changer on"
+msgstr "Ses değiştirici açık"
+
+msgid "Hear myself on"
+msgstr "Kendimi duy açık"
+
+msgid "Hear myself off"
+msgstr "Kendimi duy kapalı"
+
+msgid "Background on"
+msgstr "Arka plan açık"
+
+msgid "Background off"
+msgstr "Arka plan kapalı"
+
+msgid "Microphone muted"
+msgstr "Mikrofon sessizde"
+
+msgid "Microphone on"
+msgstr "Mikrofon açık"
+
+msgid "Voice changer for Linux"
+msgstr "Linux için ses değiştirici"
+
+msgid "Change picture"
+msgstr "Resmi değiştir"
+
+msgid "Search emojis"
+msgstr "Emoji ara"
+
+msgid "No pictures found"
+msgstr "Resim bulunamadı"
+
+msgid "Search voices"
+msgstr "Ses ara"
+
+msgid "No voices found"
+msgstr "Ses bulunamadı"
+
+msgid "Try another word or category."
+msgstr "Başka bir kelime veya kategori dene."
+
+msgid "All"
+msgstr "Tümü"
+
+msgid "Favorites"
+msgstr "Favoriler"
+
+msgid "My voices"
+msgstr "Seslerim"
+
+msgid "Favorite"
+msgstr "Favori"
+
+msgid "Customize"
+msgstr "Özelleştir"
+
+msgid "Voice settings"
+msgstr "Ses ayarları"
+
+msgid "Reset"
+msgstr "Sıfırla"
+
+msgid "Made by you in Voicelab."
+msgstr "Bunu Voicelab’de sen yaptın."
+
+msgid "Add to favorites"
+msgstr "Favorilere ekle"
+
+msgid "This voice has a background sound. Turn on Background below to hear it."
+msgstr "Bu sesin bir arka plan sesi var. Duymak için aşağıdan “Arka plan”ı aç."
+
+msgid "This voice has nothing to adjust."
+msgstr "Bu seste ayarlanacak bir şey yok."
+
+msgid "Turn your voice changer on or off"
+msgstr "Ses değiştiriciyi aç veya kapat"
+
+msgid "Hear your changed voice in your headphones"
+msgstr "Değişen sesini kulaklıkta duy"
+
+msgid "Play the background sounds of a voice"
+msgstr "Bir sesin arka plan seslerini çal"
+
+msgid "Audio engine stopped"
+msgstr "Ses motoru durdu"
+
+msgid "No microphone found"
+msgstr "Mikrofon bulunamadı"
+
+msgid "Not used by any app"
+msgstr "Hiçbir uygulama kullanmıyor"
+
+msgid "Live in {}"
+msgstr "Canlı: {}"
+
+msgid "Use your new voice in apps"
+msgstr "Yeni sesini uygulamalarda kullan"
+
+msgid "In Discord, OBS, games or your browser, pick “Voicenux Microphone” as the microphone."
+msgstr "Discord’da, OBS’de, oyunlarda veya tarayıcında mikrofon olarak “Voicenux Mikrofonu”nu seç."
+
+msgid "Or turn on “Use as default microphone” in Settings. Then every app gets your changed voice."
+msgstr "Ya da Ayarlar’da “Varsayılan mikrofon yap”ı aç. Böylece her uygulama değişen sesini alır."
+
+msgid "Wear headphones when you use Hear myself, or your speakers feed back into the mic."
+msgstr "“Kendimi duy” açıkken kulaklık tak, yoksa hoparlörlerin mikrofonda yankı yapar."
+
+msgid "Saved a copy in Voicelab. Change it as you like."
+msgstr "Voicelab’e bir kopya kaydedildi. İstediğin gibi değiştir."
+
+msgid "The audio engine stopped: {}. Is PipeWire running?"
+msgstr "Ses motoru durdu: {}. PipeWire çalışıyor mu?"
+
+msgid "Your voice"
+msgstr "Sesin"
+
+msgid "Soundboard"
+msgstr "Soundboard"
+
+msgid "Add sounds"
+msgstr "Ses efekti ekle"
+
+msgid "Stop all"
+msgstr "Tümünü durdur"
+
+msgid "No sounds yet"
+msgstr "Henüz ses efekti yok"
+
+msgid "Add audio files, or drop them here. MP3, OGG, FLAC and WAV work."
+msgstr "Ses dosyası ekle ya da buraya bırak. MP3, OGG, FLAC ve WAV olur."
+
+msgid "Bring back the starter sounds"
+msgstr "Başlangıç ses efektlerini geri getir"
+
+msgid "Audio files"
+msgstr "Ses dosyaları"
+
+msgid "Could not add {}"
+msgstr "{} eklenemedi"
+
+msgid "Hear sounds myself"
+msgstr "Ses efektlerini kendim duy"
+
+msgid "Edit sound"
+msgstr "Ses efektini düzenle"
+
+msgid "Volume"
+msgstr "Ses düzeyi"
+
+msgid "Click to type a value"
+msgstr "Değer yazmak için tıkla"
+
+msgid "What a click on a sound does"
+msgstr "Ses efektine tıklayınca ne olur"
+
+msgid "Remove"
+msgstr "Kaldır"
+
+msgid "Welcome to Voicenux"
+msgstr "Voicenux’a hoş geldin"
+
+msgid "Change your voice in real time: in Discord, games, streams and calls. Here is how to get going, it takes a minute."
+msgstr "Sesini gerçek zamanlı değiştir: Discord’da, oyunlarda, yayınlarda ve aramalarda. Başlamak bir dakika sürer."
+
+msgid "Your microphone"
+msgstr "Mikrofonun"
+
+msgid "Say something. The bar should move. If not, pick another microphone."
+msgstr "Bir şey söyle. Çubuk hareket etmeli. Etmiyorsa başka bir mikrofon seç."
+
+msgid "System default"
+msgstr "Sistem varsayılanı"
+
+msgid "Use it in your apps"
+msgstr "Uygulamalarında kullan"
+
+msgid "Apps hear your new voice through the “Voicenux Microphone”. Make it the default, or pick it in each app."
+msgstr "Uygulamalar yeni sesini “Voicenux Mikrofonu” üzerinden duyar. Varsayılan yap ya da her uygulamada seç."
+
+msgid "Use as default microphone"
+msgstr "Varsayılan mikrofon yap"
+
+msgid "Try a voice"
+msgstr "Bir ses dene"
+
+msgid "Click any voice and turn on Hear myself to hear it. Wear headphones, or your speakers feed back into the microphone."
+msgstr "Bir sese tıkla ve duymak için “Kendimi duy”u aç. Kulaklık tak, yoksa hoparlörlerin mikrofonda yankı yapar."
+
+msgid "Back"
+msgstr "Geri"
+
+msgid "Next"
+msgstr "İleri"
+
+msgid "Let’s go"
+msgstr "Hadi başlayalım"
+
+msgid "Voicelab"
+msgstr "Voicelab"
+
+msgid "Build your own voices"
+msgstr "Kendi seslerini yap"
+
+msgid "Make a voice of your own"
+msgstr "Kendine bir ses yap"
+
+msgid "Stack effects like pitch, echo or robot and tune every setting. Start from scratch, or press Customize on any voice."
+msgstr "Perde, yankı veya robot gibi efektleri üst üste koy ve her ayarı yap. Sıfırdan başla ya da bir seste “Özelleştir”e bas."
+
+msgid "Name of the voice"
+msgstr "Sesin adı"
+
+msgid "Short description (optional)"
+msgstr "Kısa açıklama (isteğe bağlı)"
+
+msgid "Duplicate"
+msgstr "Çoğalt"
+
+msgid "Delete"
+msgstr "Sil"
+
+msgid "Delete {}?"
+msgstr "{} silinsin mi?"
+
+msgid "The voice is gone for good."
+msgstr "Ses tamamen silinir."
+
+msgid "Cancel"
+msgstr "İptal"
+
+msgid "Effects run from top to bottom. Turn on Hear myself to hear every change right away."
+msgstr "Efektler yukarıdan aşağıya çalışır. Her değişikliği hemen duymak için “Kendimi duy”u aç."
+
+msgid "Add effect"
+msgstr "Efekt ekle"
+
+msgid "Effect on or off"
+msgstr "Efekt açık veya kapalı"
+
+msgid "Move up"
+msgstr "Yukarı taşı"
+
+msgid "Move down"
+msgstr "Aşağı taşı"
+
+msgid "Remove effect"
+msgstr "Efekti kaldır"
+
+msgid "System default ({})"
+msgstr "Sistem varsayılanı ({})"
+
+msgid "{} (not connected)"
+msgstr "{} (bağlı değil)"
+
+msgid "Settings"
+msgstr "Ayarlar"
+
+msgid "Microphone"
+msgstr "Mikrofon"
+
+msgid "The real microphone you talk into."
+msgstr "İçine konuştuğun gerçek mikrofon."
+
+msgid "Microphone volume"
+msgstr "Mikrofon ses düzeyi"
+
+msgid "Raise it if your voice is too quiet."
+msgstr "Sesin çok alçaksa artır."
+
+msgid "Noise suppression"
+msgstr "Gürültü engelleme"
+
+msgid "Removes fans, keyboards and other noise around you."
+msgstr "Fanları, klavyeleri ve etrafındaki diğer gürültüleri temizler."
+
+msgid "Noise gate"
+msgstr "Gürültü kapısı"
+
+msgid "Mutes the microphone while you are quiet."
+msgstr "Sessizken mikrofonu kapatır."
+
+msgid "Gate level"
+msgstr "Eşik"
+
+msgid "Sounds below this level are muted."
+msgstr "Bu seviyenin altındaki sesler kısılır."
+
+msgid "Voicenux Microphone"
+msgstr "Voicenux Mikrofonu"
+
+msgid "Apps hear your new voice through this microphone. Pick it in Discord, OBS or your game."
+msgstr "Uygulamalar yeni sesini bu mikrofondan duyar. Discord’da, OBS’de ya da oyununda seç."
+
+msgid "The easiest way: every app that uses the default microphone gets your new voice."
+msgstr "En kolay yol: varsayılan mikrofonu kullanan her uygulama yeni sesini alır."
+
+msgid "How loud apps hear you."
+msgstr "Uygulamaların seni ne kadar yüksek duyduğu."
+
+msgid "Used by"
+msgstr "Kullanan"
+
+msgid "No app right now"
+msgstr "Şu an hiçbir uygulama"
+
+msgid "Where you hear your own changed voice and the soundboard."
+msgstr "Değişen sesini ve soundboard’u duyduğun yer."
+
+msgid "Headphones"
+msgstr "Kulaklık"
+
+msgid "Only for you, apps do not hear this."
+msgstr "Sadece senin için, uygulamalar bunu duymaz."
+
+msgid "Volume of the switch sounds"
+msgstr "Açma kapama seslerinin düzeyi"
+
+msgid "Test"
+msgstr "Dene"
+
+msgid "Plays a switch sound at this volume"
+msgstr "Bu düzeyde bir açma kapama sesi çalar"
+
+msgid "Speech recognition"
+msgstr "Konuşma tanıma"
+
+msgid "Hears what you say, to find sounds in Find sounds and for apps like the Stream Deck plugin. It runs on your computer, nothing you say goes online."
+msgstr "Ne söylediğini anlar: “Ses efekti bul”da ses efekti bulmak ve Stream Deck eklentisi gibi uygulamalar için. Bilgisayarında çalışır, söylediğin hiçbir şey internete gitmez."
+
+msgid "Whisper by OpenAI"
+msgstr "OpenAI’ın Whisper’ı"
+
+msgid "Downloading, {} done"
+msgstr "İndiriliyor, {} tamam"
+
+msgid "Downloaded, it takes {} on disk."
+msgstr "İndirildi, diskte {} yer kaplıyor."
+
+msgid "Not downloaded yet. It comes the first time you use it, {}."
+msgstr "Henüz indirilmedi. İlk kullandığında iner, {}."
+
+msgid "Remove the speech recognition?"
+msgstr "Konuşma tanıma kaldırılsın mı?"
+
+msgid "It downloads again the first time you use it."
+msgstr "Bir dahaki kullanışında yeniden iner."
+
+msgid "Say what to search"
+msgstr "Ne arayacağını söyle"
+
+msgid "Stop and search"
+msgstr "Durdur ve ara"
+
+msgid "Nothing heard. Try again."
+msgstr "Hiçbir şey duyulmadı. Tekrar dene."
+
+msgid "Speech recognition did not work. Are you online?"
+msgstr "Konuşma tanıma çalışmadı. İnternete bağlı mısın?"
+
+msgid "Switch sounds"
+msgstr "Açma kapama sesleri"
+
+msgid "A short sound when you turn something on or off, like the voice changer. Only you hear it."
+msgstr "Ses değiştirici gibi bir şeyi açıp kapattığında kısa bir ses. Sadece sen duyarsın."
+
+msgid "Shortcuts"
+msgstr "Kısayollar"
+
+msgid "Work everywhere, even in games. Your desktop asks once to confirm the keys."
+msgstr "Her yerde çalışır, oyunlarda bile. Masaüstün tuşları onaylamanı bir kez ister."
+
+msgid "Set up shortcuts"
+msgstr "Kısayolları ayarla"
+
+msgid "Your desktop has no global shortcuts"
+msgstr "Masaüstünde genel kısayollar yok"
+
+msgid "Add a shortcut in your desktop's keyboard settings that runs a command like “voicenux toggle” or “voicenux voice robot”."
+msgstr "Masaüstünün klavye ayarlarında “voicenux toggle” veya “voicenux voice robot” gibi bir komut çalıştıran bir kısayol ekle."
+
+msgid "Change shortcuts"
+msgstr "Kısayolları değiştir"
+
+msgid "Not set"
+msgstr "Atanmadı"
+
+msgid "Performance"
+msgstr "Performans"
+
+msgid "Low latency"
+msgstr "Düşük gecikme"
+
+msgid "Less delay between talking and hearing yourself. Pitch effects sound a little rougher."
+msgstr "Konuşmakla kendini duymak arasında daha az gecikme. Perde efektleri biraz daha pürüzlü çıkar."
+
+msgid "App"
+msgstr "Uygulama"
+
+msgid "Start with the computer"
+msgstr "Bilgisayarla başlat"
+
+msgid "Always ready"
+msgstr "Her zaman hazır"
+
+msgid "Voicenux can start in the background when you log in. Then your voice works in every app right away."
+msgstr "Voicenux oturum açtığında arka planda başlayabilir. Böylece sesin her uygulamada hemen çalışır."
+
+msgid "Starts in the background, without a window."
+msgstr "Arka planda, pencere olmadan başlar."
+
+msgid "Keep running when closed"
+msgstr "Kapatınca çalışmaya devam et"
+
+msgid "Voicenux stays in the tray, so your voice keeps working after you close the window."
+msgstr "Voicenux sistem tepsisinde kalır, böylece pencereyi kapattıktan sonra da sesin çalışmaya devam eder."
+
+msgid "Appearance"
+msgstr "Görünüm"
+
+msgid "Follow system"
+msgstr "Sistemi izle"
+
+msgid "Light"
+msgstr "Açık"
+
+msgid "Dark"
+msgstr "Koyu"
+
+msgid "Show the welcome again"
+msgstr "Karşılamayı tekrar göster"
+
+msgid "About Voicenux"
+msgstr "Voicenux hakkında"
+
+msgid "Change your voice in real time, in any app. Made for Linux and PipeWire."
+msgstr "Sesini her uygulamada gerçek zamanlı değiştir. Linux ve PipeWire için yapıldı."
+
+msgid "Pictures"
+msgstr "Resimler"
+
+msgid "Thanks to"
+msgstr "Teşekkürler"
+
+msgid "Add shortcut"
+msgstr "Kısayol ekle"
+
+msgid "Shortcut for {}"
+msgstr "{} için kısayol"
+
+msgid "Press the keys you want, for example Ctrl+Alt+1."
+msgstr "İstediğin tuşlara bas, örneğin Ctrl+Alt+1."
+
+msgid "Waiting for keys…"
+msgstr "Tuşlar bekleniyor…"
+
+msgid "Save"
+msgstr "Kaydet"
+
+msgid "Baby"
+msgstr "Bebek"
+
+msgid "Tiny, high and a little wobbly."
+msgstr "Minicik, ince ve biraz titrek."
+
+msgid "Kid"
+msgstr "Çocuk"
+
+msgid "Sounds like a ten year old."
+msgstr "On yaşında biri gibi."
+
+msgid "Girl"
+msgstr "Kız"
+
+msgid "Higher and brighter, without sounding like a cartoon."
+msgstr "Daha ince ve parlak, çizgi film gibi olmadan."
+
+msgid "Deep Voice"
+msgstr "Kalın ses"
+
+msgid "Lower and bigger."
+msgstr "Daha kalın ve daha büyük."
+
+msgid "Elderly"
+msgstr "Yaşlı"
+
+msgid "A shaky, rough old voice."
+msgstr "Titrek, pürüzlü, yaşlı bir ses."
+
+msgid "Granny"
+msgstr "Nine"
+
+msgid "Warm, high and trembling."
+msgstr "Sıcak, ince ve titrek."
+
+msgid "Titan"
+msgstr "Titan"
+
+msgid "A voice as big as a mountain."
+msgstr "Dağ kadar büyük bir ses."
+
+msgid "Troll"
+msgstr "Trol"
+
+msgid "Slow, low and grumpy, from under the bridge."
+msgstr "Yavaş, kalın ve huysuz, köprünün altından."
+
+msgid "Santa"
+msgstr "Noel Baba"
+
+msgid "Ho ho ho, next to a warm fire."
+msgstr "Ho ho ho, sıcak bir ateşin başında."
+
+msgid "Pirate"
+msgstr "Korsan"
+
+msgid "Rough voice, salty sea."
+msgstr "Kaba ses, tuzlu deniz."
+
+msgid "Wizard"
+msgstr "Büyücü"
+
+msgid "Speaks from a tall stone tower."
+msgstr "Yüksek bir taş kuleden konuşur."
+
+msgid "Fairy"
+msgstr "Peri"
+
+msgid "Small, sparkly and in the woods."
+msgstr "Küçük, ışıltılı ve ormanda."
+
+msgid "Genie"
+msgstr "Cin"
+
+msgid "Your wish is my command."
+msgstr "Dileğin benim için emirdir."
+
+msgid "Hero"
+msgstr "Kahraman"
+
+msgid "Deep, firm and ready to save the day."
+msgstr "Kalın, sağlam ve günü kurtarmaya hazır."
+
+msgid "Announcer"
+msgstr "Spiker"
+
+msgid "Ladies and gentlemen, in a full stadium."
+msgstr "Bayanlar ve baylar, dolu bir stadyumda."
+
+msgid "Movie Trailer"
+msgstr "Film fragmanı"
+
+msgid "In a world where everyone talks like this."
+msgstr "Herkesin böyle konuştuğu bir dünyada."
+
+msgid "Noir Detective"
+msgstr "Kara film dedektifi"
+
+msgid "An old radio play on a rainy night."
+msgstr "Yağmurlu bir gecede eski bir radyo tiyatrosu."
+
+msgid "Demon"
+msgstr "İblis"
+
+msgid "Many voices at once, straight from below."
+msgstr "Aynı anda birçok ses, doğrudan aşağıdan."
+
+msgid "Monster"
+msgstr "Canavar"
+
+msgid "Big, growly and hungry."
+msgstr "Büyük, hırıltılı ve aç."
+
+msgid "Zombie"
+msgstr "Zombi"
+
+msgid "Brains..."
+msgstr "Beyinler..."
+
+msgid "Ghost"
+msgstr "Hayalet"
+
+msgid "A breathy voice that echoes through empty halls."
+msgstr "Boş salonlarda yankılanan nefesli bir ses."
+
+msgid "Vampire"
+msgstr "Vampir"
+
+msgid "Smooth and dark, in a castle with a heartbeat."
+msgstr "Yumuşak ve karanlık, kalp atışlı bir şatoda."
+
+msgid "Witch"
+msgstr "Cadı"
+
+msgid "Cackling over a bubbling pot."
+msgstr "Fokurdayan bir kazanın başında kıkırdar."
+
+msgid "Dragon"
+msgstr "Ejderha"
+
+msgid "Huge, hot and grumbling."
+msgstr "Kocaman, sıcak ve homurdanan."
+
+msgid "Goblin"
+msgstr "Goblin"
+
+msgid "Small, mean and very excited."
+msgstr "Küçük, huysuz ve çok heyecanlı."
+
+msgid "Possessed"
+msgstr "Ele geçirilmiş"
+
+msgid "Something else talks with you."
+msgstr "Seninle birlikte başka bir şey konuşur."
+
+msgid "Dark Lord"
+msgstr "Karanlık Lord"
+
+msgid "Deep voice behind a mask."
+msgstr "Maskenin ardında kalın bir ses."
+
+msgid "Creepy Clown"
+msgstr "Ürkütücü palyaço"
+
+msgid "Wants to play. Forever."
+msgstr "Oynamak istiyor. Sonsuza dek."
+
+msgid "Robot"
+msgstr "Robot"
+
+msgid "Beep boop. Flat and metallic."
+msgstr "Bip bup. Düz ve metalik."
+
+msgid "Alien"
+msgstr "Uzaylı"
+
+msgid "We come in peace. Probably."
+msgstr "Barış için geldik. Galiba."
+
+msgid "Cyborg"
+msgstr "Siborg"
+
+msgid "Half human, half machine."
+msgstr "Yarı insan, yarı makine."
+
+msgid "Invader"
+msgstr "İstilacı"
+
+msgid "Straight out of an arcade cabinet."
+msgstr "Doğrudan bir atari makinesinden."
+
+msgid "Astronaut"
+msgstr "Astronot"
+
+msgid "Houston, we have a problem. With beeps."
+msgstr "Houston, bir sorunumuz var. Biplerle."
+
+msgid "Glitch"
+msgstr "Glitch"
+
+msgid "A bad connection from the future."
+msgstr "Gelecekten gelen kötü bir bağlantı."
+
+msgid "Hologram"
+msgstr "Hologram"
+
+msgid "A flickering message from far away."
+msgstr "Çok uzaklardan titreyen bir mesaj."
+
+msgid "Echo"
+msgstr "Yankı"
+
+msgid "Shout from a mountain top."
+msgstr "Dağın tepesinden bağır."
+
+msgid "Cave"
+msgstr "Mağara"
+
+msgid "Deep inside, where the water drips."
+msgstr "Derinlerde, suyun damladığı yerde."
+
+msgid "Cathedral"
+msgstr "Katedral"
+
+msgid "A huge stone hall."
+msgstr "Devasa bir taş salon."
+
+msgid "Shower"
+msgstr "Duş"
+
+msgid "Everyone sings better in here."
+msgstr "Burada herkes daha iyi şarkı söyler."
+
+msgid "Stadium"
+msgstr "Stadyum"
+
+msgid "Thousands of fans and a big echo."
+msgstr "Binlerce hayran ve büyük bir yankı."
+
+msgid "Underwater"
+msgstr "Su altı"
+
+msgid "Blub. Muffled, wobbly and full of bubbles."
+msgstr "Blub. Boğuk, dalgalı ve kabarcık dolu."
+
+msgid "Deep Space"
+msgstr "Derin uzay"
+
+msgid "Floating far away from everything."
+msgstr "Her şeyden uzakta süzülmek."
+
+msgid "Storm"
+msgstr "Fırtına"
+
+msgid "Out in the rain, with thunder."
+msgstr "Dışarıda yağmurda, gök gürültüsüyle."
+
+msgid "Campfire"
+msgstr "Kamp ateşi"
+
+msgid "Stories by the fire."
+msgstr "Ateş başında hikâyeler."
+
+msgid "Forest"
+msgstr "Orman"
+
+msgid "Birds, leaves and fresh air."
+msgstr "Kuşlar, yapraklar ve temiz hava."
+
+msgid "Radio"
+msgstr "Radyo"
+
+msgid "On air, through a small speaker."
+msgstr "Yayında, küçük bir hoparlörden."
+
+msgid "Telephone"
+msgstr "Telefon"
+
+msgid "Hello? Can you hear me?"
+msgstr "Alo? Beni duyuyor musun?"
+
+msgid "Walkie-Talkie"
+msgstr "Telsiz"
+
+msgid "Over. Squelch included."
+msgstr "Tamam. Cızırtı dahil."
+
+msgid "Megaphone"
+msgstr "Megafon"
+
+msgid "Attention please!"
+msgstr "Dikkat, dikkat!"
+
+msgid "Pilot"
+msgstr "Pilot"
+
+msgid "This is your captain speaking."
+msgstr "Kaptanınız konuşuyor."
+
+msgid "1920s Film"
+msgstr "1920’ler filmi"
+
+msgid "Crackly, thin and a little wobbly."
+msgstr "Cızırtılı, ince ve biraz titrek."
+
+msgid "Potato Mic"
+msgstr "Patates mikrofon"
+
+msgid "The worst microphone in voice chat."
+msgstr "Sesli sohbetteki en kötü mikrofon."
+
+msgid "8-Bit"
+msgstr "8-bit"
+
+msgid "Retro console sound."
+msgstr "Retro konsol sesi."
+
+msgid "Fan"
+msgstr "Vantilatör"
+
+msgid "Talking into a spinning fan."
+msgstr "Dönen bir vantilatöre konuşmak."
+
+msgid "Auto-Tune"
+msgstr "Auto-Tune"
+
+msgid "Every note perfectly in tune. Sing!"
+msgstr "Her nota tam ayarında. Şarkı söyle!"
+
+msgid "Angel Choir"
+msgstr "Melek korosu"
+
+msgid "Heavenly harmonies in a big hall."
+msgstr "Büyük bir salonda göksel armoniler."
+
+msgid "Magic Chords"
+msgstr "Sihirli akorlar"
+
+msgid "Your voice plays changing chords."
+msgstr "Sesin değişen akorlar çalar."
+
+msgid "Talk Box"
+msgstr "Talk box"
+
+msgid "A synth that follows your voice."
+msgstr "Sesini izleyen bir synth."
+
+msgid "Duet"
+msgstr "Düet"
+
+msgid "Someone sings along, a third higher."
+msgstr "Biri bir üçlü yukarıdan eşlik eder."
+
+msgid "Chipmunk"
+msgstr "Sincap"
+
+msgid "Squeaky and fast talking."
+msgstr "Cırlak ve hızlı."
+
+msgid "Mouse"
+msgstr "Fare"
+
+msgid "Even tinier than a chipmunk."
+msgstr "Sincaptan bile küçük."
+
+msgid "Helium"
+msgstr "Helyum"
+
+msgid "One breath from a balloon."
+msgstr "Balondan bir nefes."
+
+msgid "Drunk"
+msgstr "Sarhoş"
+
+msgid "Had a few too many."
+msgstr "Birkaç tane fazla kaçırdı."
+
+msgid "Dizzy"
+msgstr "Başı dönen"
+
+msgid "Everything is spinning."
+msgstr "Her şey dönüyor."
+
+msgid "Whisper"
+msgstr "Fısıltı"
+
+msgid "Psst. Only breath, no voice."
+msgstr "Pışt. Sadece nefes, ses yok."
+
+msgid "Kitty"
+msgstr "Kedicik"
+
+msgid "Meow."
+msgstr "Miyav."
+
+msgid "Frog"
+msgstr "Kurbağa"
+
+msgid "Croaky and bumpy."
+msgstr "Vıraklayan ve tümsekli."
+
+msgid "Duck"
+msgstr "Ördek"
+
+msgid "Quack quack."
+msgstr "Vak vak."
+
+msgid "Characters"
+msgstr "Karakterler"
+
+msgid "Horror"
+msgstr "Korku"
+
+msgid "Sci-fi"
+msgstr "Bilim kurgu"
+
+msgid "Places"
+msgstr "Mekânlar"
+
+msgid "Devices"
+msgstr "Cihazlar"
+
+msgid "Music"
+msgstr "Müzik"
+
+msgid "Funny"
+msgstr "Komik"
+
+msgid "Pitch"
+msgstr "Perde"
+
+msgid "Higher or lower voice. Formant changes the size of the throat."
+msgstr "Daha ince veya kalın ses. Formant boğazın boyutunu değiştirir."
+
+msgid "Formant"
+msgstr "Formant"
+
+msgid "Mix"
+msgstr "Karışım"
+
+msgid "Harmony"
+msgstr "Armoni"
+
+msgid "Extra voices on top of yours: choirs, demons and duets."
+msgstr "Sesinin üstüne ek sesler: korolar, iblisler ve düetler."
+
+msgid "First voice"
+msgstr "Birinci ses"
+
+msgid "Second voice"
+msgstr "İkinci ses"
+
+msgid "Third voice"
+msgstr "Üçüncü ses"
+
+msgid "Extra voices"
+msgstr "Ek sesler"
+
+msgid "Formant follows"
+msgstr "Formant izler"
+
+msgid "Detune"
+msgstr "Akort kaydırma"
+
+msgid "Turns your voice into a flat, buzzing machine voice."
+msgstr "Sesini düz, vızıldayan bir makine sesine çevirir."
+
+msgid "Robot pitch"
+msgstr "Robot perdesi"
+
+msgid "Takes the tone out of your voice so only breath is left."
+msgstr "Sesindeki tonu alır, sadece nefes kalır."
+
+msgid "Pulls every note to the nearest note of a scale."
+msgstr "Her notayı bir dizinin en yakın notasına çeker."
+
+msgid "Key"
+msgstr "Ton"
+
+msgid "C"
+msgstr "Do"
+
+msgid "C#"
+msgstr "Do#"
+
+msgid "D"
+msgstr "Re"
+
+msgid "D#"
+msgstr "Re#"
+
+msgid "E"
+msgstr "Mi"
+
+msgid "F"
+msgstr "Fa"
+
+msgid "F#"
+msgstr "Fa#"
+
+msgid "G"
+msgstr "Sol"
+
+msgid "G#"
+msgstr "Sol#"
+
+msgid "A"
+msgstr "La"
+
+msgid "A#"
+msgstr "La#"
+
+msgid "B"
+msgstr "Si"
+
+msgid "Scale"
+msgstr "Dizi"
+
+msgid "Chromatic"
+msgstr "Kromatik"
+
+msgid "Major"
+msgstr "Majör"
+
+msgid "Minor"
+msgstr "Minör"
+
+msgid "Pentatonic"
+msgstr "Pentatonik"
+
+msgid "Blues"
+msgstr "Blues"
+
+msgid "Hardness"
+msgstr "Sertlik"
+
+msgid "Transpose"
+msgstr "Transpoze"
+
+msgid "Vocoder"
+msgstr "Vocoder"
+
+msgid "Your voice plays a synthesizer."
+msgstr "Sesin bir synth çalar."
+
+msgid "Synth plays"
+msgstr "Synth çalar"
+
+msgid "Chord"
+msgstr "Akor"
+
+msgid "Single note"
+msgstr "Tek nota"
+
+msgid "Follow voice"
+msgstr "Sesi izler"
+
+msgid "Noise"
+msgstr "Gürültü"
+
+msgid "Note"
+msgstr "Nota"
+
+msgid "Power"
+msgstr "Power"
+
+msgid "Major 7"
+msgstr "Majör 7"
+
+msgid "Minor 7"
+msgstr "Minör 7"
+
+msgid "Sus 4"
+msgstr "Sus 4"
+
+msgid "Chord changes"
+msgstr "Akor değişimi"
+
+msgid "Off"
+msgstr "Kapalı"
+
+msgid "Pop"
+msgstr "Pop"
+
+msgid "Sad"
+msgstr "Hüzünlü"
+
+msgid "Epic"
+msgstr "Epik"
+
+msgid "Chord length"
+msgstr "Akor süresi"
+
+msgid "Clarity"
+msgstr "Netlik"
+
+msgid "Repeats what you say."
+msgstr "Söylediğini tekrarlar."
+
+msgid "Echo time"
+msgstr "Yankı süresi"
+
+msgid "Repeats"
+msgstr "Tekrarlar"
+
+msgid "Echo volume"
+msgstr "Yankı düzeyi"
+
+msgid "Brightness"
+msgstr "Parlaklık"
+
+msgid "Reverb"
+msgstr "Reverb"
+
+msgid "Puts you in a room, a hall or a cave."
+msgstr "Seni bir odaya, salona veya mağaraya koyar."
+
+msgid "Room size"
+msgstr "Oda boyutu"
+
+msgid "Damping"
+msgstr "Sönümleme"
+
+msgid "Pre-delay"
+msgstr "Ön gecikme"
+
+msgid "Chorus"
+msgstr "Chorus"
+
+msgid "Makes one voice sound like a few."
+msgstr "Tek sesi birkaç ses gibi duyurur."
+
+msgid "Speed"
+msgstr "Hız"
+
+msgid "Depth"
+msgstr "Derinlik"
+
+msgid "Delay"
+msgstr "Gecikme"
+
+msgid "Flanger"
+msgstr "Flanger"
+
+msgid "A sweeping jet sound."
+msgstr "Süzülen bir jet sesi."
+
+msgid "Feedback"
+msgstr "Geri besleme"
+
+msgid "Phaser"
+msgstr "Phaser"
+
+msgid "A swirling, spacey sweep."
+msgstr "Dönen, uzaysı bir süpürme."
+
+msgid "Vibrato"
+msgstr "Vibrato"
+
+msgid "Makes the pitch wobble or shake."
+msgstr "Perdeyi dalgalandırır veya titretir."
+
+msgid "Wobble speed"
+msgstr "Dalgalanma hızı"
+
+msgid "Wobble"
+msgstr "Dalgalanma"
+
+msgid "Shakiness"
+msgstr "Titreme"
+
+msgid "Tremolo"
+msgstr "Tremolo"
+
+msgid "Makes the volume pulse, like talking into a fan."
+msgstr "Ses düzeyini vantilatöre konuşur gibi titreştirir."
+
+msgid "Pulse speed"
+msgstr "Nabız hızı"
+
+msgid "Pulse"
+msgstr "Nabız"
+
+msgid "Hard pulses"
+msgstr "Sert nabızlar"
+
+msgid "Ring modulator"
+msgstr "Halka modülatör"
+
+msgid "A metal, alien sound."
+msgstr "Metalik, uzaylı bir ses."
+
+msgid "Ring tone"
+msgstr "Halka frekansı"
+
+msgid "Ring wobble"
+msgstr "Halka dalgalanması"
+
+msgid "Metal"
+msgstr "Metal"
+
+msgid "Distortion"
+msgstr "Distorsiyon"
+
+msgid "Crunch, grit and growl."
+msgstr "Çatırtı, pürüz ve hırıltı."
+
+msgid "Grit"
+msgstr "Pürüz"
+
+msgid "Type"
+msgstr "Tür"
+
+msgid "Soft"
+msgstr "Yumuşak"
+
+msgid "Hard"
+msgstr "Sert"
+
+msgid "Fuzz"
+msgstr "Fuzz"
+
+msgid "Fold"
+msgstr "Katlama"
+
+msgid "Bit crusher"
+msgstr "Bitcrusher"
+
+msgid "Old video game and cheap digital sound."
+msgstr "Eski video oyunu ve ucuz dijital ses."
+
+msgid "Bits"
+msgstr "Bit"
+
+msgid "Sample rate"
+msgstr "Örnekleme hızı"
+
+msgid "Filter"
+msgstr "Filtre"
+
+msgid "Cuts or boosts some frequencies."
+msgstr "Bazı frekansları keser veya yükseltir."
+
+msgid "Low pass"
+msgstr "Alçak geçiren"
+
+msgid "High pass"
+msgstr "Yüksek geçiren"
+
+msgid "Band pass"
+msgstr "Bant geçiren"
+
+msgid "Peak"
+msgstr "Tepe"
+
+msgid "Low shelf"
+msgstr "Alçak raf"
+
+msgid "High shelf"
+msgstr "Yüksek raf"
+
+msgid "Notch"
+msgstr "Çentik"
+
+msgid "Frequency"
+msgstr "Frekans"
+
+msgid "Resonance"
+msgstr "Rezonans"
+
+msgid "Boost"
+msgstr "Yükseltme"
+
+msgid "Band limit"
+msgstr "Bant sınırı"
+
+msgid "Only the middle of your voice gets through, like on a phone."
+msgstr "Telefondaki gibi sesinin sadece orta frekansları geçer."
+
+msgid "Low cut"
+msgstr "Bas kesme"
+
+msgid "High cut"
+msgstr "Tiz kesme"
+
+msgid "Mid boost"
+msgstr "Orta yükseltme"
+
+msgid "Compressor"
+msgstr "Kompresör"
+
+msgid "Evens out loud and quiet parts."
+msgstr "Yüksek ve alçak kısımları dengeler."
+
+msgid "Threshold"
+msgstr "Eşik"
+
+msgid "Ratio"
+msgstr "Oran"
+
+msgid "Attack"
+msgstr "Atak"
+
+msgid "Release"
+msgstr "Bırakma"
+
+msgid "Gain"
+msgstr "Kazanç"
+
+msgid "Silences everything below a level."
+msgstr "Belli bir seviyenin altındaki her şeyi susturur."
+
+msgid "Louder or quieter."
+msgstr "Daha yüksek veya daha alçak."
+
+msgid "Static, hiss, crackle or hum on your voice."
+msgstr "Sesine parazit, tıslama, çıtırtı veya uğultu."
+
+msgid "White"
+msgstr "Beyaz"
+
+msgid "Pink"
+msgstr "Pembe"
+
+msgid "Brown"
+msgstr "Kahverengi"
+
+msgid "Hiss"
+msgstr "Tıslama"
+
+msgid "Crackle"
+msgstr "Çıtırtı"
+
+msgid "Hum"
+msgstr "Uğultu"
+
+msgid "Only while talking"
+msgstr "Sadece konuşurken"
+
+msgid "A sound behind your voice. Plays while Background is on."
+msgstr "Sesinin arkasında bir ses. “Arka plan” açıkken çalar."
+
+msgid "Sound"
+msgstr "Ses"
+
+msgid "Bubbles"
+msgstr "Kabarcıklar"
+
+msgid "Wind"
+msgstr "Rüzgâr"
+
+msgid "Rain"
+msgstr "Yağmur"
+
+msgid "Ocean"
+msgstr "Okyanus"
+
+msgid "Space"
+msgstr "Uzay"
+
+msgid "Radio static"
+msgstr "Telsiz paraziti"
+
+msgid "Cave drips"
+msgstr "Mağara damlaları"
+
+msgid "Heartbeat"
+msgstr "Kalp atışı"
+
+msgid "Computer"
+msgstr "Bilgisayar"
+
+msgid "Crowd"
+msgstr "Kalabalık"
+
+msgid "Birds"
+msgstr "Kuşlar"
+
+msgid "Engine"
+msgstr "Motor"
+
+msgid "Cauldron"
+msgstr "Kazan"
+
+msgid "Radio beeps"
+msgstr "Telsiz bipleri"
+
+msgid "A beep or squelch when you start or stop talking."
+msgstr "Konuşmaya başlayınca veya bitirince bir bip ya da cızırtı."
+
+msgid "Space (Quindar)"
+msgstr "Uzay (Quindar)"
+
+msgid "Roger beep"
+msgstr "Roger bip"
+
+msgid "Squelch"
+msgstr "Squelch"
+
+msgid "Walkie-talkie"
+msgstr "Telsiz"
+
+msgid "When you start"
+msgstr "Başlarken"
+
+msgid "When you stop"
+msgstr "Bitirirken"
+
+msgid "Repeats bits of what you say, like a bad connection."
+msgstr "Kötü bir bağlantıdaki gibi söylediklerinin parçalarını tekrarlar."
+
+msgid "Glitches"
+msgstr "Kesintiler"
+
+msgid "Length"
+msgstr "Uzunluk"
+
+msgid "Voice"
+msgstr "Ses"
+
+msgid "Motion"
+msgstr "Hareket"
+
+msgid "Tone"
+msgstr "Tını"
+
+msgid "Sounds"
+msgstr "Sesler"
+
+msgid "Air Horn"
+msgstr "Korna"
+
+msgid "Sad Trombone"
+msgstr "Hüzünlü trombon"
+
+msgid "Rimshot"
+msgstr "Rimshot"
+
+msgid "Drum Roll"
+msgstr "Davul gümbürtüsü"
+
+msgid "Applause"
+msgstr "Alkış"
+
+msgid "Ta-da!"
+msgstr "Tada!"
+
+msgid "Correct"
+msgstr "Doğru"
+
+msgid "Wrong"
+msgstr "Yanlış"
+
+msgid "Crickets"
+msgstr "Cırcır böcekleri"
+
+msgid "Boing"
+msgstr "Boing"
+
+msgid "Laser"
+msgstr "Lazer"
+
+msgid "Explosion"
+msgstr "Patlama"
+
+msgid "Coin"
+msgstr "Altın"
+
+msgid "Whoosh"
+msgstr "Vuuş"
+
+msgid "Play from the start"
+msgstr "Baştan çal"
+
+msgid "Play and stop"
+msgstr "Çal ve durdur"
+
+msgid "Play on top"
+msgstr "Üst üste çal"
+
+msgid "Voices"
+msgstr "Sesler"
+
+msgid "Voice changer on or off"
+msgstr "Ses değiştiriciyi aç/kapat"
+
+msgid "Hear myself on or off"
+msgstr "“Kendimi duy”u aç/kapat"
+
+msgid "Background sounds on or off"
+msgstr "Arka plan seslerini aç/kapat"
+
+msgid "Next voice"
+msgstr "Sonraki ses"
+
+msgid "Previous voice"
+msgstr "Önceki ses"
+
+msgid "Needs a tray icon area. On GNOME, install the AppIndicator extension."
+msgstr "Sistem tepsisi gerekir. GNOME’da AppIndicator eklentisini kur."
+
+msgid "Use EasyEffects"
+msgstr "EasyEffects’i kullan"
+
+msgid "Your EasyEffects microphone effects, like noise reduction, run before the voice, when EasyEffects works on the same microphone."
+msgstr "EasyEffects aynı mikrofon üzerinde çalışıyorsa, gürültü azaltma gibi mikrofon efektlerin sesten önce uygulanır."
+
+msgid "Find sounds"
+msgstr "Ses efekti bul"
+
+msgid "Listen"
+msgstr "Dinle"
+
+msgid "Add to soundboard"
+msgstr "Soundboard’a ekle"
+
+msgid "Added"
+msgstr "Eklendi"
+
+msgid "Could not reach the sound search. Are you online?"
+msgstr "Ses efekti aramasına ulaşılamadı. İnternete bağlı mısın?"
+
+msgid "Too many searches. Wait a minute and try again."
+msgstr "Çok fazla arama. Bir dakika bekle ve tekrar dene."
+
+msgid "Search sounds"
+msgstr "Ses efekti ara"
+
+msgid "Popular on MyInstants"
+msgstr "MyInstants’ta popüler"
+
+msgid "{} sounds"
+msgstr "{} ses efekti"
+
+msgid "Sort"
+msgstr "Sırala"
+
+msgid "Suggested"
+msgstr "Önerilen"
+
+msgid "Most views"
+msgstr "En çok görüntülenen"
+
+msgid "Most likes"
+msgstr "En çok beğenilen"
+
+msgid "Newest"
+msgstr "En yeni"
+
+msgid "A to Z"
+msgstr "A’dan Z’ye"
+
+msgid "{} views on MyInstants"
+msgstr "MyInstants’ta {} görüntülenme"
+
+msgid "Sounds from MyInstants"
+msgstr "MyInstants’tan ses efektleri"
+
+msgid "Volume of the sounds here"
+msgstr "Buradaki ses efektlerinin düzeyi"
+
+msgid "No sounds found. Try other words."
+msgstr "Ses efekti bulunamadı. Başka kelimeler dene."
+
+msgid "Searching MyInstants…"
+msgstr "MyInstants’ta aranıyor…"
+
+msgid "{} is on your soundboard now"
+msgstr "{} artık soundboard’unda"
+
+msgid "That did not work. Try again."
+msgstr "Olmadı. Tekrar dene."
+
+msgid "Trim sound"
+msgstr "Ses efektini kırp"
+
+msgid "Start"
+msgstr "Başlangıç"
+
+msgid "End"
+msgstr "Son"
+
+msgid "Pause"
+msgstr "Duraklat"
+
+msgid "Use all of it"
+msgstr "Tamamını kullan"
+
+msgid "Listening plays in your headphones only."
+msgstr "Dinleme sadece kulaklığında çalar."
+
+msgid "Waveform"
+msgstr "Dalga biçimi"
+
+msgid "Spacebar"
+msgstr "Boşluk"
+
+msgid "Move the playhead"
+msgstr "Oynatma imlecini taşı"
+
+msgid "Set start and end"
+msgstr "Başlangıç ve sonu ayarla"
+
+msgid "Ctrl"
+msgstr "Ctrl"
+
+msgid "Del"
+msgstr "Del"
+
+msgid "Home"
+msgstr "Home"
+
+msgid "Menu"
+msgstr "Menü"
+
+msgid "Find sounds on MyInstants"
+msgstr "MyInstants’ta ses efekti bul"
+
+msgid "Stop all sounds (Esc)"
+msgstr "Tüm ses efektlerini durdur (Esc)"
+
+msgid "No sounds found"
+msgstr "Ses efekti bulunamadı"
+
+msgid "Nothing on your soundboard is called “{}”."
+msgstr "Soundboard’unda “{}” adlı bir şey yok."
+
+msgid "Search MyInstants for “{}”"
+msgstr "MyInstants’ta “{}” ara"
+
+msgid "More"
+msgstr "Daha fazla"
+
+msgid "Sort by name"
+msgstr "Ada göre sırala"
+
+msgid "Your own order"
+msgstr "Kendi sıran"
+
+msgid "Remove from favorites"
+msgstr "Favorilerden kaldır"
+
+msgid "Change shortcut"
+msgstr "Kısayolu değiştir"
+
+msgid "Listen or pause (Space)"
+msgstr "Dinle veya duraklat (Boşluk)"
+
+msgid "Close without saving (Esc)"
+msgstr "Kaydetmeden kapat (Esc)"
+
+msgid "Undo"
+msgstr "Geri al"
+
+msgid "Search MyInstants"
+msgstr "MyInstants’ta ara"
+
+msgid "Everywhere"
+msgstr "Her yerde"
+
+msgid "Search"
+msgstr "Ara"
+
+msgid "Go to a page"
+msgstr "Bir sayfaya git"
+
+msgid "Background on or off"
+msgstr "Arka planı aç/kapat"
+
+msgid "Mute the microphone"
+msgstr "Mikrofonu sessize al"
+
+msgid "This list"
+msgstr "Bu liste"
+
+msgid "Close the window"
+msgstr "Pencereyi kapat"
+
+msgid "Move between voices"
+msgstr "Sesler arasında gezin"
+
+msgid "Use the voice"
+msgstr "Sesi kullan"
+
+msgid "More for a voice, or right-click it"
+msgstr "Bir ses için daha fazlası ya da sağ tıkla"
+
+msgid "Type anywhere to search"
+msgstr "Aramak için herhangi bir yerde yaz"
+
+msgid "Play the sound"
+msgstr "Ses efektini çal"
+
+msgid "Remove the sound"
+msgstr "Ses efektini kaldır"
+
+msgid "Move the sound"
+msgstr "Ses efektini taşı"
+
+msgid "Listen or pause"
+msgstr "Dinle veya duraklat"
+
+msgid "Move the playhead, Shift for 1 s, Ctrl for 0.01 s"
+msgstr "Oynatma imlecini taşı, Shift ile 1 sn, Ctrl ile 0,01 sn"
+
+msgid "Jump to the start or end"
+msgstr "Başa veya sona atla"
+
+msgid "Set start and end at the playhead"
+msgstr "Başlangıç ve sonu imlece ayarla"
+
+msgid "Undo, Ctrl+Shift+Z redoes"
+msgstr "Geri al, Ctrl+Shift+Z yineler"
+
+msgid "Keyboard shortcuts"
+msgstr "Klavye kısayolları"
+
+msgid "Keys in the app"
+msgstr "Uygulamadaki tuşlar"
+
+msgid "Ctrl+F searches, Ctrl+T turns the voice changer on or off, and more."
+msgstr "Ctrl+F arar, Ctrl+T ses değiştiriciyi açıp kapatır ve dahası."
+
+msgid "System"
+msgstr "Sistem"
+
+msgid "Removed {}"
+msgstr "{} kaldırıldı"
+
+msgid "Add audio files"
+msgstr "Ses dosyası ekle"
+
+msgid "Save the cut"
+msgstr "Kesimi kaydet"
+
+msgid "Trimmed"
+msgstr "Kırpıldı"
+
+msgid "Zoom in"
+msgstr "Yakınlaştır"
+
+msgid "Zoom out"
+msgstr "Uzaklaştır"
+
+msgid "Zoom in or out, also Ctrl with the wheel"
+msgstr "Yakınlaştır veya uzaklaştır, Ctrl ile tekerlek de olur"
+
+msgid "Show all of the sound"
+msgstr "Ses efektinin tamamını göster"
+
+msgid "Show the voice"
+msgstr "Sesi göster"
+
+msgid "Made by {}"
+msgstr "Yapan: {}"
+
+msgid "Website"
+msgstr "Web sitesi"
+
+msgid "Report a bug"
+msgstr "Hata bildir"
+
+msgid "Buy me a coffee"
+msgstr "Bana bir kahve ısmarla"
+
+msgid "Free software under the {} license."
+msgstr "{} lisansıyla özgür yazılım."
+
+msgid "Search effects"
+msgstr "Efekt ara"
+
+msgid "No effects found"
+msgstr "Efekt bulunamadı"
+
+msgid "Other apps"
+msgstr "Diğer uygulamalar"
+
+msgid "Stream Deck plugins, for example for OpenDeck, and scripts can use your voices and sounds."
+msgstr "Stream Deck eklentileri, örneğin OpenDeck için olanlar, ve betikler seslerini ve ses efektlerini kullanabilir."
+
+msgid "Let other apps control Voicenux"
+msgstr "Diğer uygulamalar Voicenux’u yönetebilsin"
+
+msgid "Only apps on this computer. Web pages can not use it."
+msgstr "Sadece bu bilgisayardaki uygulamalar. Web sayfaları kullanamaz."
+
+msgid "Copy"
+msgstr "Kopyala"
+
+msgid "Copied"
+msgstr "Kopyalandı"
+
+msgid "For plugin makers"
+msgstr "Eklenti yapanlar için"
+
+msgid "All actions and events, on GitHub."
+msgstr "Tüm eylemler ve olaylar, GitHub’da."
+
+msgid "Could not start"
+msgstr "Başlatılamadı"
+
+msgid "Port {} is taken, maybe by another Voicenux. {}"
+msgstr "{} portu dolu, belki başka bir Voicenux tarafından. {}"
+
+msgid "Address"
+msgstr "Adres"
+
+msgid "No app connected"
+msgstr "Bağlı uygulama yok"
+
+msgid "Apps connected: {}"
+msgstr "Bağlı uygulamalar: {}"
+
+msgid "{} people like this on MyInstants"
+msgstr "MyInstants’ta {} kişi bunu beğendi"
+
+msgid "Simple tray icon"
+msgstr "Sade tepsi simgesi"
+
+msgid "A plain icon in the color of your panel, instead of the blue logo."
+msgstr "Mavi logo yerine panelinin renginde sade bir simge."
+
+msgid "{} is still downloading. Try again in a moment."
+msgstr "{} hâlâ iniyor. Birazdan tekrar dene."
+
+msgid "Vine Boom"
+msgstr "Vine Boom"
+
+msgid "Bruh"
+msgstr "Bruh"
+
+msgid "Emotional Damage"
+msgstr "Emotional Damage"
+
+msgid "Sad Violin"
+msgstr "Hüzünlü keman"
+
+msgid "Metal Pipe"
+msgstr "Metal boru"
+
+msgid "Windows Error"
+msgstr "Windows hatası"
+
+msgid "Oh No No No"
+msgstr "Oh No No No"
+
+msgid "Rizz"
+msgstr "Rizz"
+
+msgid "Anime Wow"
+msgstr "Anime Wow"
+
+msgid "Among Us"
+msgstr "Among Us"
+
+msgid "Dun Dun Dun"
+msgstr "Dun Dun Dun"
+
+msgid "Discord Ping"
+msgstr "Discord pingi"
+
+msgid "Fart"
+msgstr "Osuruk"
+
+msgid "{} is not downloaded yet. Are you online?"
+msgstr "{} henüz inmedi. İnternete bağlı mısın?"
+
+msgid "AI voices need an NVIDIA or AMD graphics card, or Run on the processor in Settings."
+msgstr "Yapay zekâ sesleri NVIDIA veya AMD ekran kartı ister, ya da Ayarlar’da “İşlemcide çalıştır”."
+
+msgid "Run on the processor"
+msgstr "İşlemcide çalıştır"
+
+msgid "For computers without a graphics card from NVIDIA, or from AMD since the RX 6000. Takes much of the processor and adds about half a second of delay."
+msgstr "NVIDIA ya da RX 6000 ve sonrası AMD ekran kartı olmayan bilgisayarlar için. İşlemciyi çok kullanır ve yaklaşık yarım saniye gecikme ekler."
+
+msgid "The AI runs on your processor. It adds about {} of delay."
+msgstr "Yapay zekâ işlemcinde çalışıyor. Yaklaşık {} gecikme ekler."
+
+msgid "AI voices"
+msgstr "Yapay zekâ sesleri"
+
+msgid "Character voices made by AI, like SpongeBob or Darth Vader."
+msgstr "Yapay zekâyla yapılmış karakter sesleri, SüngerBob veya Darth Vader gibi."
+
+msgid "AI engine"
+msgstr "Yapay zekâ motoru"
+
+msgid "Not installed. It comes with the first AI voice you pick."
+msgstr "Kurulu değil. Seçtiğin ilk yapay zekâ sesiyle gelir."
+
+msgid "This computer has no graphics card the AI voices can use. Turn on Run on the processor above."
+msgstr "Bu bilgisayarda yapay zekâ seslerinin kullanabileceği bir ekran kartı yok. Yukarıdan “İşlemcide çalıştır”ı aç."
+
+msgid "Installed"
+msgstr "Kurulu"
+
+msgid "Installed, it takes {} on disk."
+msgstr "Kurulu, diskte {} yer kaplıyor."
+
+msgid "Remove the AI engine?"
+msgstr "Yapay zekâ motoru kaldırılsın mı?"
+
+msgid "All AI voices go with it. They download again when you pick one."
+msgstr "Tüm yapay zekâ sesleri de gider. Birini seçtiğinde yeniden iner."
+
+msgid "Not downloaded yet. Pick the voice to get it."
+msgstr "Henüz indirilmedi. Almak için sesi seç."
+
+msgid "Getting the installer…"
+msgstr "Yükleyici alınıyor…"
+
+msgid "Getting Python…"
+msgstr "Python alınıyor…"
+
+msgid "Getting PyTorch. This is the big part…"
+msgstr "PyTorch alınıyor. En büyük kısım bu…"
+
+msgid "Getting the voice converter…"
+msgstr "Ses dönüştürücü alınıyor…"
+
+msgid "Getting the speech models…"
+msgstr "Konuşma modelleri alınıyor…"
+
+msgid "Starting the AI…"
+msgstr "Yapay zekâ başlatılıyor…"
+
+msgid "Loading {}…"
+msgstr "{} yükleniyor…"
+
+msgid "The AI runs on your graphics card. It adds about {} of delay."
+msgstr "Yapay zekâ ekran kartında çalışıyor. Yaklaşık {} gecikme ekler."
+
+msgid "The AI did not work: {}"
+msgstr "Yapay zekâ çalışmadı: {}"
+
+msgid "Download {}?"
+msgstr "{} indirilsin mi?"
+
+msgid "Download"
+msgstr "İndir"
+
+msgid "Getting {}…"
+msgstr "{} alınıyor…"
+
+msgid "That did not work: {}"
+msgstr "Olmadı: {}"
+
+msgid "Check your connection and the free space, then try again."
+msgstr "Bağlantını ve boş alanı kontrol et, sonra tekrar dene."
+
+msgid "Try again"
+msgstr "Tekrar dene"
+
+msgid "SpongeBob"
+msgstr "SüngerBob"
+
+msgid "The cheerful fry cook from under the sea."
+msgstr "Deniz altının neşeli burger aşçısı."
+
+msgid "Patrick"
+msgstr "Patrick"
+
+msgid "His best friend, a slow pink star."
+msgstr "En iyi arkadaşı, yavaş pembe bir deniz yıldızı."
+
+msgid "Squidward"
+msgstr "Squidward"
+
+msgid "Grumpy neighbor with a clarinet."
+msgstr "Klarnetli huysuz komşu."
+
+msgid "Plankton"
+msgstr "Plankton"
+
+msgid "Tiny, green and full of evil plans."
+msgstr "Minicik, yeşil ve kötü planlarla dolu."
+
+msgid "Darth Vader"
+msgstr "Darth Vader"
+
+msgid "Deep breaths behind the mask."
+msgstr "Maskenin ardında derin nefesler."
+
+msgid "Yoda"
+msgstr "Yoda"
+
+msgid "Old and wise, the little green master is."
+msgstr "Yaşlı ve bilge, küçük yeşil usta o."
+
+msgid "Optimus Prime"
+msgstr "Optimus Prime"
+
+msgid "Leader of the robots in disguise."
+msgstr "Kılık değiştirmiş robotların lideri."
+
+msgid "GLaDOS"
+msgstr "GLaDOS"
+
+msgid "The calm AI that runs the tests."
+msgstr "Testleri yöneten sakin yapay zekâ."
+
+msgid "Rick Sanchez"
+msgstr "Rick Sanchez"
+
+msgid "Genius scientist with a portal gun."
+msgstr "Portal silahlı dahi bilim insanı."
+
+msgid "Homer Simpson"
+msgstr "Homer Simpson"
+
+msgid "Loves doughnuts and his couch."
+msgstr "Çöreklere ve kanepesine bayılır."
+
+msgid "AI"
+msgstr "Yapay zekâ"
+
+msgid "AI voice"
+msgstr "Yapay zekâ sesi"
+
+msgid "Turns your voice into a character with an AI model. Needs an NVIDIA or AMD graphics card."
+msgstr "Bir yapay zekâ modeliyle sesini bir karaktere çevirir. NVIDIA veya AMD ekran kartı ister."
+
+msgid "Character"
+msgstr "Karakter"
+
+msgid "Stop selecting (Esc)"
+msgstr "Seçimi bitir (Esc)"
+
+msgid "Move to folder"
+msgstr "Klasöre taşı"
+
+msgid "Select all"
+msgstr "Tümünü seç"
+
+msgid "{} selected"
+msgstr "{} seçildi"
+
+msgid "Nothing in this folder yet"
+msgstr "Bu klasörde henüz bir şey yok"
+
+msgid "Drag sounds onto the folder, or pick some with Ctrl+click and move them here."
+msgstr "Ses efektlerini klasöre sürükle ya da Ctrl+tıkla bazılarını seçip buraya taşı."
+
+msgid "No folder"
+msgstr "Klasör yok"
+
+msgid "New folder"
+msgstr "Yeni klasör"
+
+msgid "Create"
+msgstr "Oluştur"
+
+msgid "Rename"
+msgstr "Yeniden adlandır"
+
+msgid "Rename folder"
+msgstr "Klasörü yeniden adlandır"
+
+msgid "There is a folder called “{}” already"
+msgstr "“{}” adlı bir klasör zaten var"
+
+msgid "Delete folder"
+msgstr "Klasörü sil"
+
+msgid "Folder name"
+msgstr "Klasör adı"
+
+msgid "Removed {} sounds"
+msgstr "{} ses efekti kaldırıldı"
+
+msgid "Deselect all"
+msgstr "Seçimi kaldır"
+
+msgid "All sounds"
+msgstr "Tüm ses efektleri"
+
+msgid "Back to all sounds (Backspace)"
+msgstr "Tüm ses efektlerine dön (Geri tuşu)"
+
+msgid "1 sound"
+msgstr "1 ses efekti"
+
+msgid "Open"
+msgstr "Aç"
+
+msgid "Empty"
+msgstr "Boş"
+
+msgid "All voices"
+msgstr "Tüm sesler"
+
+msgid "Back to all voices (Backspace)"
+msgstr "Tüm seslere dön (Geri tuşu)"
+
+msgid "Deletes your own voices among them. The built-in ones stay."
+msgstr "Aralarındaki kendi seslerini siler. Hazır olanlar kalır."
+
+msgid "Drag voices onto the folder, or pick some with Ctrl+click and move them here."
+msgstr "Sesleri klasöre sürükle ya da Ctrl+tıkla bazılarını seçip buraya taşı."
+
+msgid "1 voice"
+msgstr "1 ses"
+
+msgid "{} voices"
+msgstr "{} ses"
+
+msgid "Delete {} voices?"
+msgstr "{} ses silinsin mi?"
+
+msgid "They are gone for good."
+msgstr "Tamamen silinirler."
+
+msgid "You changed this voice"
+msgstr "Bu sesi değiştirdin"
+
+msgid "Changed by you"
+msgstr "Senin değiştirdiğin"
+
+msgid "Back to how the voice comes"
+msgstr "Sesin ilk hâline dön"
+
+msgid "Back to {}"
+msgstr "{} değerine dön"
+
+msgid "From the start"
+msgstr "Baştan"
+
+msgid "Play/Stop"
+msgstr "Çal/Durdur"
+
+msgid "On top"
+msgstr "Üst üste"
+
+msgid "{} of {}"
+msgstr "{} / {}"
+
+msgid "Got it"
+msgstr "Anladım"
+
+msgid "Show the tips again"
+msgstr "İpuçlarını tekrar göster"
+
+msgid "They show when you open a page"
+msgstr "Bir sayfayı açtığında çıkar"
+
+msgid "The tips show again on each page"
+msgstr "İpuçları her sayfada yeniden çıkar"
+
+msgid "Search MyInstants for any sound and add it with one click."
+msgstr "MyInstants’ta istediğin ses efektini ara ve tek tıkla ekle."
+
+msgid "Right-click an empty spot"
+msgstr "Boş bir yere sağ tıkla"
+
+msgid "There you make folders, add your own audio files, sort the sounds or pick all. Right-click a sound to edit it."
+msgstr "Orada klasör yapar, kendi ses dosyalarını ekler, ses efektlerini sıralar ya da hepsini seçersin. Düzenlemek için bir ses efektine sağ tıkla."
+
+msgid "Drag to sort"
+msgstr "Sıralamak için sürükle"
+
+msgid "Drag a sound to another place, or onto a folder to put it in. Ctrl+click picks several."
+msgstr "Bir ses efektini başka bir yere ya da içine koymak için bir klasöre sürükle. Ctrl+tık birkaç tane seçer."
+
+msgid "Volume and play mode"
+msgstr "Ses düzeyi ve çalma şekli"
+
+msgid "Sounds play into the Voicenux Microphone, so others hear them too. Here you set how loud they are, if you hear them yourself, and what a click does."
+msgstr "Ses efektleri Voicenux Mikrofonu’na çalar, yani başkaları da duyar. Burada ne kadar yüksek olduklarını, kendin duyup duymayacağını ve bir tıklamanın ne yapacağını ayarlarsın."
+
+msgid "Pick a voice"
+msgstr "Bir ses seç"
+
+msgid "There you make folders and sort the voices. Drag voices to move them, Ctrl+click picks several."
+msgstr "Orada klasör yapar ve sesleri sıralarsın. Taşımak için sesleri sürükle, Ctrl+tık birkaç tane seçer."
+
+msgid "Make it yours"
+msgstr "Kendine göre ayarla"
+
+msgid "Change the main settings here, or click Customize for all of them. What you change gets a blue frame."
+msgstr "Ana ayarları burada değiştir ya da hepsi için “Özelleştir”e tıkla. Değiştirdiklerin mavi bir çerçeve alır."
+
+msgid "Skip"
+msgstr "Atla"
+
+msgid "For everyone"
+msgstr "Herkes için"
+
+msgid "How loud the sounds play for everyone: for others in the Voicenux Microphone, and for you when Hear them myself is on."
+msgstr "Ses efektlerinin herkes için ne kadar yüksek çaldığı: başkaları için Voicenux Mikrofonu’nda, senin için “Kendim de duyayım” açıkken."
+
+msgid "Hear them myself"
+msgstr "Kendim de duyayım"
+
+msgid "Volume of this sound"
+msgstr "Bu ses efektinin düzeyi"
+
+msgid "Only this sound. It comes on top of the volume for everyone under the sounds."
+msgstr "Sadece bu ses efekti. Ses efektlerinin altındaki “Herkes için” düzeyine eklenir."
+
+msgid "about {} s left"
+msgstr "yaklaşık {} sn kaldı"
+
+msgid "about {} min left"
+msgstr "yaklaşık {} dk kaldı"
+
+msgid "In the background"
+msgstr "Arka planda"
+
+msgid "{} is ready. Pick it to use it."
+msgstr "{} hazır. Kullanmak için sesi seç."
+
+msgid "Could not get {}: {}"
+msgstr "{} alınamadı: {}"
+
+msgid "Stop download"
+msgstr "İndirmeyi durdur"
+
+msgid "Stopping…"
+msgstr "Durduruluyor…"
+
+msgid "Stopped downloading {}."
+msgstr "{} indirmesi durduruldu."
+
+msgid "{}, once"
+msgstr "{}, bir kez"
+
+msgid "Processor"
+msgstr "İşlemci"
+
+msgid "about half a second"
+msgstr "yaklaşık yarım saniye"
+
+msgid "NVIDIA graphics card"
+msgstr "NVIDIA ekran kartı"
+
+msgid "AMD graphics card"
+msgstr "AMD ekran kartı"
+
+msgid "about 0.3 s"
+msgstr "yaklaşık 0,3 sn"
+
+msgid "Runs on"
+msgstr "Çalıştığı yer"
+
+msgid "Click a voice to use it."
+msgstr "Kullanmak için bir sese tıkla."
+
+msgid "The switches"
+msgstr "Anahtarlar"
+
+msgid "Voice changer turns your new voice on and off. Hear myself plays it in your headphones. Background adds the sound of a voice, like rain or a campfire."
+msgstr "“Ses değiştirici” yeni sesini açıp kapatır. “Kendimi duy” onu kulaklığında çalar. “Arka plan” bir sesin arka plan sesini ekler, yağmur ya da kamp ateşi gibi."
+
+msgid "Advanced"
+msgstr "Gelişmiş"
+
+msgid "Hear changes while you drag"
+msgstr "Sürüklerken değişiklikleri duy"
+
+msgid "The voice follows its sliders right away. When off, it changes when you let go."
+msgstr "Ses kaydırıcılarını hemen izler. Kapalıyken bıraktığında değişir."
+
+msgid "Mouse wheel moves sliders"
+msgstr "Fare tekerleği kaydırıcıları oynatır"
+
+msgid "Turn the wheel over a slider to change it. While the page scrolls, it keeps scrolling."
+msgstr "Değiştirmek için tekerleği bir kaydırıcının üzerinde çevir. Sayfa kayarken kaymaya devam eder."
+
+msgid "Discord may filter out your sounds"
+msgstr "Discord ses efektlerini filtreleyebilir"
+
+msgid "How to fix"
+msgstr "Nasıl düzeltilir"
+
+msgid "Sounds in Discord"
+msgstr "Discord’da ses efektleri"
+
+msgid "If your friends do not hear the soundboard"
+msgstr "Arkadaşların soundboard’u duymuyorsa"
+
+msgid "Discord removes sounds that are not speech, so your friends may not hear the soundboard. In Discord, open Settings, then Voice & Video:"
+msgstr "Discord konuşma olmayan sesleri siler, bu yüzden arkadaşların soundboard’u duymayabilir. Discord’da Ayarlar’ı, sonra Ses ve Görüntü’yü aç:"
+
+msgid "Set Noise Suppression to None."
+msgstr "Gürültü Engelleme’yi Hiçbiri yap."
+
+msgid "Turn off Echo Cancellation, Automatic Gain Control and Advanced Voice Activity."
+msgstr "Yankı Engelleme, Otomatik Kazanç Kontrolü ve Gelişmiş Ses Etkinliği’ni kapat."
+
+msgid "Use Push to Talk, or turn off Automatically determine input sensitivity and move its slider far to the left."
+msgstr "Bas Konuş’u kullan ya da Giriş hassasiyetini otomatik olarak belirle’yi kapatıp kaydırıcıyı en sola çek."
+
+msgid "Allow an unknown app to control Voicenux?"
+msgstr "Bilinmeyen bir uygulama Voicenux’u yönetebilsin mi?"
+
+msgid "Start Voicenux with the computer"
+msgstr "Voicenux’u bilgisayarla başlat"
+
+msgid "{} Plugin"
+msgstr "{} eklentisi"
+
+msgid "Only apps you allow"
+msgstr "Sadece izin verdiğin uygulamalar"
+
+msgid "Voicenux asks the first time an app wants to control it."
+msgstr "Bir uygulama Voicenux’u ilk kez yönetmek istediğinde Voicenux sorar."
+
+msgid "Allowed apps"
+msgstr "İzin verilen uygulamalar"
+
+msgid "None yet"
+msgstr "Henüz yok"
+
+msgid "Apps: {}"
+msgstr "Uygulamalar: {}"
+
+msgid "Take back"
+msgstr "Geri al"
+
+msgid "Allow {} to control Voicenux?"
+msgstr "{} Voicenux’u yönetebilsin mi?"
+
+msgid "The app could change your voice and play sounds into your microphone. You can take it back in Settings, under Other apps."
+msgstr "Uygulama sesini değiştirebilir ve mikrofonuna ses efektleri çalabilir. Bunu Ayarlar’da, Diğer uygulamalar altında geri alabilirsin."
+
+msgid "Open folder"
+msgstr "Klasörü aç"
+
+msgid "Do not allow"
+msgstr "İzin verme"
+
+msgid "Allow"
+msgstr "İzin ver"
+
+msgid "Pick from"
+msgstr "Şuradan seç"
+
+msgid "Advanced settings"
+msgstr "Gelişmiş ayarlar"
+
+msgid "For tinkerers: everything else you can set, and experiments."
+msgstr "Kurcalamayı sevenler için: ayarlayabileceğin diğer her şey ve deneyler."
+
+msgid "Search advanced settings"
+msgstr "Gelişmiş ayarlarda ara"
+
+msgid "Reset all"
+msgstr "Tümünü sıfırla"
+
+msgid "Puts every switch here back to how it came"
+msgstr "Buradaki her anahtarı ilk hâline döndürür"
+
+msgid "For tinkerers who want to set everything. Some are experiments and may change."
+msgstr "Her şeyi ayarlamak isteyen meraklılar için. Bazıları deney ve değişebilir."
+
+msgid "Changed"
+msgstr "Değişti"
+
+msgid "No settings found"
+msgstr "Ayar bulunamadı"
+
+msgid "Try another word."
+msgstr "Başka bir kelime dene."
+
+msgid "Random voice button"
+msgstr "“Rastgele ses” düğmesi"
+
+msgid "Random voice at the top of the voice page. Its arrow picks out of your favorites. Ctrl+R works without it."
+msgstr "Ses sayfasının üstünde “Rastgele ses”. Oku favorilerinden seçer. Ctrl+R onsuz da çalışır."

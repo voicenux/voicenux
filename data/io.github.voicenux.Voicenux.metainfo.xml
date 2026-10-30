@@ -6,6 +6,13 @@
   <name>Voicenux</name>
   <summary>Change your voice in real time, in any app</summary>
   <summary xml:lang="de">Verändere deine Stimme in Echtzeit, in jeder App</summary>
+  <summary xml:lang="es">Cambia tu voz en tiempo real, en cualquier app</summary>
+  <summary xml:lang="fr">Change ta voix en temps réel, dans n’importe quelle app</summary>
+  <summary xml:lang="pt_BR">Mude sua voz em tempo real, em qualquer app</summary>
+  <summary xml:lang="it">Cambia la tua voce in tempo reale, in qualsiasi app</summary>
+  <summary xml:lang="pl">Zmieniaj głos na żywo, w każdej aplikacji</summary>
+  <summary xml:lang="ru">Меняй голос в реальном времени в любом приложении</summary>
+  <summary xml:lang="tr">Sesini her uygulamada gerçek zamanlı değiştir</summary>
   <developer id="io.github.voicenux">
     <name>Felitendo</name>
   </developer>
@@ -19,6 +26,13 @@
       <li>Hear yourself, noise suppression, global shortcuts and a tray icon</li>
     </ul>
     <p xml:lang="de">Voicenux ist ein Stimmverzerrer und Soundboard für Linux. Es fügt ein „Voicenux Microphone“ hinzu, das Discord, OBS, Spiele und jede andere App nutzen können.</p>
+    <p xml:lang="es">Voicenux es un cambiador de voz y soundboard para Linux. Añade un «Micrófono Voicenux» que Discord, OBS, los juegos y cualquier otra app pueden usar.</p>
+    <p xml:lang="fr">Voicenux est un modificateur de voix et une soundboard pour Linux. Il ajoute un « Micro Voicenux » que Discord, OBS, les jeux et toutes les autres apps peuvent utiliser.</p>
+    <p xml:lang="pt_BR">O Voicenux é um modificador de voz e soundboard para Linux. Ele adiciona um “Microfone Voicenux” que o Discord, o OBS, os jogos e qualquer outro app podem usar.</p>
+    <p xml:lang="it">Voicenux è un modificatore vocale e una soundboard per Linux. Aggiunge un “Microfono Voicenux” che Discord, OBS, i giochi e ogni altra app possono usare.</p>
+    <p xml:lang="pl">Voicenux to zmieniacz głosu i soundboard dla Linuksa. Dodaje „Mikrofon Voicenux”, którego mogą używać Discord, OBS, gry i każda inna aplikacja.</p>
+    <p xml:lang="ru">Voicenux это модулятор голоса и саундборд для Linux. Он добавляет «Микрофон Voicenux», который могут использовать Discord, OBS, игры и любые другие приложения.</p>
+    <p xml:lang="tr">Voicenux, Linux için bir ses değiştirici ve soundboard. Discord, OBS, oyunlar ve diğer tüm uygulamaların kullanabileceği bir “Voicenux Mikrofonu” ekler.</p>
   </description>
   <launchable type="desktop-id">io.github.voicenux.Voicenux.desktop</launchable>
   <provides>

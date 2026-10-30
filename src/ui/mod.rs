@@ -404,9 +404,30 @@ pub fn with_key(tip: &str, key: &str) -> String {
     format!("{tip} ({}+{key})", crate::i18n::t("Ctrl"))
 }
 
-/// Lower case and without umlauts, so "mause" finds "Mäuse" too.
+/// Lower case and without accents, so "mause" finds "Mäuse" and "cafe" finds "Café".
 pub fn fold(s: &str) -> String {
-    s.to_lowercase().replace('ä', "a").replace('ö', "o").replace('ü', "u").replace('ß', "ss")
+    let mut out = String::with_capacity(s.len());
+    for c in s.chars().flat_map(char::to_lowercase) {
+        match c {
+            'ß' => out.push_str("ss"),
+            'à' | 'á' | 'â' | 'ã' | 'ä' | 'å' | 'ą' => out.push('a'),
+            'ç' | 'ć' => out.push('c'),
+            'è' | 'é' | 'ê' | 'ë' | 'ę' => out.push('e'),
+            'ì' | 'í' | 'î' | 'ï' | 'ı' => out.push('i'),
+            'ñ' | 'ń' => out.push('n'),
+            'ò' | 'ó' | 'ô' | 'õ' | 'ö' => out.push('o'),
+            'ù' | 'ú' | 'û' | 'ü' => out.push('u'),
+            'ğ' => out.push('g'),
+            'ł' => out.push('l'),
+            'ś' | 'ş' => out.push('s'),
+            'ź' | 'ż' => out.push('z'),
+            'ё' => out.push('е'),
+            // A combining accent, as in "e" and "\u{301}".
+            '\u{300}'..='\u{36f}' => {}
+            c => out.push(c),
+        }
+    }
+    out
 }
 
 /// A search field with a little "Ctrl F" key cap at its end while it is empty and not focused.

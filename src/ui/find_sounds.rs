@@ -819,10 +819,9 @@ fn show_stats(line: &gtk::Box, s: &Stats) {
     line.remove_css_class("unknown");
 }
 
-/// A count in few letters: 950, 3.2K, 12K, 1.2M. German writes a comma.
+/// A count in few letters: 950, 3.2K, 12K, 1.2M. Other languages write a comma.
 fn short_count(n: u32) -> String {
-    let text = short_count_en(n);
-    if crate::i18n::language() == "de" { text.replace('.', ",") } else { text }
+    crate::i18n::decimals(short_count_en(n))
 }
 
 fn short_count_en(n: u32) -> String {

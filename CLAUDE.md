@@ -59,15 +59,16 @@
 - Users never touch a config file. Every option has a place in the app, `src/config.rs` only
   stores it. Options for tinkerers and experiments are switches in **Advanced settings**
   (`src/ui/advanced.rs`, like the flags of a browser): one line in `FLAGS` each, not in Settings.
-- Everything a user can read comes in English and German. Write the English text in the code and
-  wrap it in `t()` (from `src/i18n.rs`), then add the German text to `po/de.po`. Names from data
-  (voices, effects, sounds) go through `t_dyn()`. `make check` fails when a German text is missing.
-  Use "du" in German.
+- Everything a user can read comes in English, German, Spanish, French, Brazilian Portuguese,
+  Italian, Polish, Russian and Turkish. Write the English text in the code and wrap it in `t()`
+  (from `src/i18n.rs`), then add the text to every `po/*.po`. Names from data (voices, effects,
+  sounds) go through `t_dyn()`. `make check` fails when a text is missing in a language. Talk to
+  the user as a friend: "du" in German, "tu" in French and so on.
 - Pictures are Fluent Emoji 3D (MIT) in `data/icons`. Add new ones to `scripts/fetch-icons.sh` and
   run `make icons`. Never draw own pictures for voices or sounds. The AI voices have Fluent
   pictures in the colors of the character, made by `scripts/character-icons.py`. All other emoji
-  are in `data/emoji`, small, for the picture picker; `data/emoji.tsv` has their English and German
-  names for the search. `make emoji` makes both again; run it after `make icons`.
+  are in `data/emoji`, small, for the picture picker; `data/emoji.tsv` has their names in every
+  language for the search. `make emoji` makes both again; run it after `make icons`.
 - The sidebar, the settings and the list of keys use Lucide icons (ISC) instead: plain lines in
   the text color, made by `ui::line_icon`. Colored tiles behind them were tried and dropped. They
   are paths in `data/lucide/icons.tsv`, drawn by `ui/glyph.rs`. Add new ones to `NAMES` in
@@ -101,7 +102,7 @@
 
 ## Tests
 
-- `make check` runs the unit tests: every effect, every voice (level and NaN), the German texts.
+- `make check` runs the unit tests: every effect, every voice (level and NaN), the texts in every language.
 - `make e2e` runs `tests/e2e/run.py` against the real PipeWire graph: a fake microphone, test
   tones, and checks of what comes out of the Voicenux Microphone. Quit Voicenux first.
 - `voicenux --headless <voice> [mic]` runs only the engine, good for poking at the graph with

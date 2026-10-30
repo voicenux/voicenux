@@ -134,14 +134,14 @@ impl Meter {
     }
 }
 
-/// "850 MB" or "3.4 GB", with a comma in German.
+/// "850 MB" or "3.4 GB", with a comma where the language writes one.
 fn size(bytes: u64) -> String {
     let text = if bytes < 1_000_000_000 {
         format!("{} MB", bytes / 1_000_000)
     } else {
         format!("{:.1} GB", bytes as f64 / 1e9)
     };
-    if crate::i18n::language() == "de" { text.replace('.', ",") } else { text }
+    crate::i18n::decimals(text)
 }
 
 /// "about 40 s left" or "about 3 min left", rounded up.
@@ -153,10 +153,9 @@ fn time_left(secs: f64) -> String {
     }
 }
 
-/// "0.2 s", with a comma in German.
+/// "0.2 s", with a comma where the language writes one.
 fn seconds(ms: u32) -> String {
-    let text = format!("{:.1} s", ms as f32 / 1000.0);
-    if crate::i18n::language() == "de" { text.replace('.', ",") } else { text }
+    crate::i18n::decimals(format!("{:.1} s", ms as f32 / 1000.0))
 }
 
 /// Asks to download what the AI voice `id` needs, then turns it on. While a download runs, it

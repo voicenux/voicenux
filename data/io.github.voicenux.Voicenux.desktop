@@ -2,8 +2,22 @@
 Name=Voicenux
 GenericName=Voice Changer
 GenericName[de]=Stimmverzerrer
+GenericName[es]=Cambiador de voz
+GenericName[fr]=Modificateur de voix
+GenericName[pt]=Modificador de voz
+GenericName[it]=Modificatore vocale
+GenericName[pl]=Zmieniacz głosu
+GenericName[ru]=Модулятор голоса
+GenericName[tr]=Ses değiştirici
 Comment=Change your voice in real time, in any app
 Comment[de]=Verändere deine Stimme in Echtzeit, in jeder App
+Comment[es]=Cambia tu voz en tiempo real, en cualquier app
+Comment[fr]=Change ta voix en temps réel, dans n’importe quelle app
+Comment[pt]=Mude sua voz em tempo real, em qualquer app
+Comment[it]=Cambia la tua voce in tempo reale, in qualsiasi app
+Comment[pl]=Zmieniaj głos na żywo, w każdej aplikacji
+Comment[ru]=Меняй голос в реальном времени в любом приложении
+Comment[tr]=Sesini her uygulamada gerçek zamanlı değiştir
 Exec=voicenux
 Icon=io.github.voicenux.Voicenux
 Terminal=false
@@ -11,6 +25,13 @@ Type=Application
 Categories=AudioVideo;Audio;Mixer;
 Keywords=voice;changer;voicemod;soundboard;microphone;pitch;robot;discord;
 Keywords[de]=Stimme;Stimmverzerrer;Voicemod;Soundboard;Mikrofon;Tonhöhe;Roboter;Discord;
+Keywords[es]=voz;cambiador;Voicemod;soundboard;micrófono;tono;robot;Discord;
+Keywords[fr]=voix;modificateur;Voicemod;soundboard;micro;hauteur;robot;Discord;
+Keywords[pt]=voz;modificador;Voicemod;soundboard;microfone;tom;robô;Discord;
+Keywords[it]=voce;modificatore;Voicemod;soundboard;microfono;tono;robot;Discord;
+Keywords[pl]=głos;zmieniacz;Voicemod;soundboard;mikrofon;wysokość;robot;Discord;
+Keywords[ru]=голос;модулятор;Voicemod;саундборд;микрофон;высота;робот;Discord;
+Keywords[tr]=ses;değiştirici;Voicemod;soundboard;mikrofon;perde;robot;Discord;
 StartupNotify=true
 StartupWMClass=io.github.voicenux.Voicenux
 SingleMainWindow=true
@@ -19,13 +40,28 @@ Actions=toggle;random;soundboard;
 [Desktop Action toggle]
 Name=Voice changer on or off
 Name[de]=Stimmverzerrer an oder aus
+Name[es]=Activar o desactivar el cambiador de voz
+Name[fr]=Activer ou désactiver le modificateur de voix
+Name[pt]=Ligar ou desligar o modificador de voz
+Name[it]=Accendi o spegni il modificatore vocale
+Name[pl]=Włącz lub wyłącz zmieniacz głosu
+Name[ru]=Вкл./выкл. модулятор голоса
+Name[tr]=Ses değiştiriciyi aç/kapat
 Exec=voicenux toggle
 
 [Desktop Action random]
 Name=Random voice
 Name[de]=Zufällige Stimme
+Name[es]=Voz aleatoria
+Name[fr]=Voix au hasard
+Name[pt]=Voz aleatória
+Name[it]=Voce casuale
+Name[pl]=Losowy głos
+Name[ru]=Случайный голос
+Name[tr]=Rastgele ses
 Exec=voicenux random
 
 [Desktop Action soundboard]
 Name=Soundboard
+Name[ru]=Саундборд
 Exec=voicenux open soundboard

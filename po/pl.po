@@ -1,0 +1,2397 @@
+# Polish translation of Voicenux.
+# Texts are English in the code, see src/i18n.rs.
+msgid ""
+msgstr ""
+"Content-Type: text/plain; charset=UTF-8\n"
+"Language: pl\n"
+
+msgid "My {}"
+msgstr "Mój {}"
+
+msgid "{} copy"
+msgstr "{} (kopia)"
+
+msgid "New voice"
+msgstr "Nowy głos"
+
+msgid "Use voice"
+msgstr "Użyj głosu"
+
+msgid "Could not play {}"
+msgstr "Nie można odtworzyć: {}"
+
+msgid "Voice: {}"
+msgstr "Głos: {}"
+
+msgid "Sound: {}"
+msgstr "Dźwięk: {}"
+
+msgid "Voice changer off"
+msgstr "Zmieniacz głosu wyłączony"
+
+msgid "Star voices to see them here"
+msgstr "Oznacz głosy gwiazdką, żeby je tu zobaczyć"
+
+msgid "Open Voicenux"
+msgstr "Otwórz Voicenux"
+
+msgid "Voice changer"
+msgstr "Zmieniacz głosu"
+
+msgid "Hear myself"
+msgstr "Odsłuch"
+
+msgid "Background"
+msgstr "Tło"
+
+msgid "Mute microphone"
+msgstr "Wycisz mikrofon"
+
+msgid "Favorite voices"
+msgstr "Ulubione głosy"
+
+msgid "Random voice"
+msgstr "Losowy głos"
+
+msgid "Random favorite"
+msgstr "Losowy ulubiony"
+
+msgid "Star two voices or more first"
+msgstr "Najpierw oznacz gwiazdką co najmniej dwa głosy"
+
+msgid "Stop all sounds"
+msgstr "Zatrzymaj wszystkie dźwięki"
+
+msgid "Quit"
+msgstr "Zakończ"
+
+msgid "Voice changer on"
+msgstr "Zmieniacz głosu włączony"
+
+msgid "Hear myself on"
+msgstr "Odsłuch włączony"
+
+msgid "Hear myself off"
+msgstr "Odsłuch wyłączony"
+
+msgid "Background on"
+msgstr "Tło włączone"
+
+msgid "Background off"
+msgstr "Tło wyłączone"
+
+msgid "Microphone muted"
+msgstr "Mikrofon wyciszony"
+
+msgid "Microphone on"
+msgstr "Mikrofon włączony"
+
+msgid "Voice changer for Linux"
+msgstr "Zmieniacz głosu dla Linuksa"
+
+msgid "Change picture"
+msgstr "Zmień obrazek"
+
+msgid "Search emojis"
+msgstr "Szukaj emoji"
+
+msgid "No pictures found"
+msgstr "Nie znaleziono obrazków"
+
+msgid "Search voices"
+msgstr "Szukaj głosów"
+
+msgid "No voices found"
+msgstr "Nie znaleziono głosów"
+
+msgid "Try another word or category."
+msgstr "Spróbuj innego słowa lub kategorii."
+
+msgid "All"
+msgstr "Wszystkie"
+
+msgid "Favorites"
+msgstr "Ulubione"
+
+msgid "My voices"
+msgstr "Moje głosy"
+
+msgid "Favorite"
+msgstr "Ulubiony"
+
+msgid "Customize"
+msgstr "Dostosuj"
+
+msgid "Voice settings"
+msgstr "Ustawienia głosu"
+
+msgid "Reset"
+msgstr "Resetuj"
+
+msgid "Made by you in Voicelab."
+msgstr "Stworzony przez ciebie w Voicelab."
+
+msgid "Add to favorites"
+msgstr "Dodaj do ulubionych"
+
+msgid "This voice has a background sound. Turn on Background below to hear it."
+msgstr "Ten głos ma dźwięk w tle. Włącz poniżej „Tło”, żeby go usłyszeć."
+
+msgid "This voice has nothing to adjust."
+msgstr "W tym głosie nie ma nic do ustawienia."
+
+msgid "Turn your voice changer on or off"
+msgstr "Włącz lub wyłącz zmieniacz głosu"
+
+msgid "Hear your changed voice in your headphones"
+msgstr "Słuchaj zmienionego głosu w słuchawkach"
+
+msgid "Play the background sounds of a voice"
+msgstr "Odtwarzaj dźwięki tła głosu"
+
+msgid "Audio engine stopped"
+msgstr "Silnik dźwięku zatrzymany"
+
+msgid "No microphone found"
+msgstr "Nie znaleziono mikrofonu"
+
+msgid "Not used by any app"
+msgstr "Nie używa go żadna aplikacja"
+
+msgid "Live in {}"
+msgstr "Na żywo: {}"
+
+msgid "Use your new voice in apps"
+msgstr "Używaj nowego głosu w aplikacjach"
+
+msgid "In Discord, OBS, games or your browser, pick “Voicenux Microphone” as the microphone."
+msgstr "W Discordzie, OBS, grach lub przeglądarce wybierz „Mikrofon Voicenux” jako mikrofon."
+
+msgid "Or turn on “Use as default microphone” in Settings. Then every app gets your changed voice."
+msgstr "Albo włącz „Użyj jako domyślnego mikrofonu” w Ustawieniach. Wtedy każda aplikacja dostaje twój zmieniony głos."
+
+msgid "Wear headphones when you use Hear myself, or your speakers feed back into the mic."
+msgstr "Przy „Odsłuchu” załóż słuchawki, bo inaczej głośniki wejdą w sprzężenie z mikrofonem."
+
+msgid "Saved a copy in Voicelab. Change it as you like."
+msgstr "Zapisano kopię w Voicelab. Zmień ją, jak chcesz."
+
+msgid "The audio engine stopped: {}. Is PipeWire running?"
+msgstr "Silnik dźwięku się zatrzymał: {}. Czy PipeWire działa?"
+
+msgid "Your voice"
+msgstr "Twój głos"
+
+msgid "Soundboard"
+msgstr "Soundboard"
+
+msgid "Add sounds"
+msgstr "Dodaj dźwięki"
+
+msgid "Stop all"
+msgstr "Zatrzymaj wszystko"
+
+msgid "No sounds yet"
+msgstr "Nie ma jeszcze dźwięków"
+
+msgid "Add audio files, or drop them here. MP3, OGG, FLAC and WAV work."
+msgstr "Dodaj pliki audio albo upuść je tutaj. Działają MP3, OGG, FLAC i WAV."
+
+msgid "Bring back the starter sounds"
+msgstr "Przywróć dźwięki startowe"
+
+msgid "Audio files"
+msgstr "Pliki audio"
+
+msgid "Could not add {}"
+msgstr "Nie można dodać: {}"
+
+msgid "Hear sounds myself"
+msgstr "Odsłuch dźwięków"
+
+msgid "Edit sound"
+msgstr "Edytuj dźwięk"
+
+msgid "Volume"
+msgstr "Głośność"
+
+msgid "Click to type a value"
+msgstr "Kliknij, by wpisać wartość"
+
+msgid "What a click on a sound does"
+msgstr "Co robi kliknięcie dźwięku"
+
+msgid "Remove"
+msgstr "Usuń"
+
+msgid "Welcome to Voicenux"
+msgstr "Witaj w Voicenux"
+
+msgid "Change your voice in real time: in Discord, games, streams and calls. Here is how to get going, it takes a minute."
+msgstr "Zmieniaj głos na żywo: w Discordzie, grach, streamach i rozmowach. Tak zaczniesz, to zajmie minutę."
+
+msgid "Your microphone"
+msgstr "Twój mikrofon"
+
+msgid "Say something. The bar should move. If not, pick another microphone."
+msgstr "Powiedz coś. Pasek powinien się ruszać. Jeśli nie, wybierz inny mikrofon."
+
+msgid "System default"
+msgstr "Domyślny systemowy"
+
+msgid "Use it in your apps"
+msgstr "Używaj go w aplikacjach"
+
+msgid "Apps hear your new voice through the “Voicenux Microphone”. Make it the default, or pick it in each app."
+msgstr "Aplikacje słyszą twój nowy głos przez „Mikrofon Voicenux”. Ustaw go jako domyślny albo wybierz w każdej aplikacji."
+
+msgid "Use as default microphone"
+msgstr "Użyj jako domyślnego mikrofonu"
+
+msgid "Try a voice"
+msgstr "Wypróbuj głos"
+
+msgid "Click any voice and turn on Hear myself to hear it. Wear headphones, or your speakers feed back into the microphone."
+msgstr "Kliknij dowolny głos i włącz „Odsłuch”, żeby go usłyszeć. Załóż słuchawki, bo inaczej głośniki wejdą w sprzężenie z mikrofonem."
+
+msgid "Back"
+msgstr "Wstecz"
+
+msgid "Next"
+msgstr "Dalej"
+
+msgid "Let’s go"
+msgstr "Zaczynamy"
+
+msgid "Voicelab"
+msgstr "Voicelab"
+
+msgid "Build your own voices"
+msgstr "Twórz własne głosy"
+
+msgid "Make a voice of your own"
+msgstr "Stwórz własny głos"
+
+msgid "Stack effects like pitch, echo or robot and tune every setting. Start from scratch, or press Customize on any voice."
+msgstr "Układaj efekty, jak wysokość, echo czy robot, i dopracuj każde ustawienie. Zacznij od zera albo naciśnij „Dostosuj” przy dowolnym głosie."
+
+msgid "Name of the voice"
+msgstr "Nazwa głosu"
+
+msgid "Short description (optional)"
+msgstr "Krótki opis (opcjonalnie)"
+
+msgid "Duplicate"
+msgstr "Duplikuj"
+
+msgid "Delete"
+msgstr "Usuń"
+
+msgid "Delete {}?"
+msgstr "Usunąć {}?"
+
+msgid "The voice is gone for good."
+msgstr "Głos zniknie na zawsze."
+
+msgid "Cancel"
+msgstr "Anuluj"
+
+msgid "Effects run from top to bottom. Turn on Hear myself to hear every change right away."
+msgstr "Efekty działają od góry do dołu. Włącz „Odsłuch”, żeby od razu słyszeć każdą zmianę."
+
+msgid "Add effect"
+msgstr "Dodaj efekt"
+
+msgid "Effect on or off"
+msgstr "Efekt włączony lub wyłączony"
+
+msgid "Move up"
+msgstr "Przesuń w górę"
+
+msgid "Move down"
+msgstr "Przesuń w dół"
+
+msgid "Remove effect"
+msgstr "Usuń efekt"
+
+msgid "System default ({})"
+msgstr "Domyślny systemowy ({})"
+
+msgid "{} (not connected)"
+msgstr "{} (niepodłączony)"
+
+msgid "Settings"
+msgstr "Ustawienia"
+
+msgid "Microphone"
+msgstr "Mikrofon"
+
+msgid "The real microphone you talk into."
+msgstr "Prawdziwy mikrofon, do którego mówisz."
+
+msgid "Microphone volume"
+msgstr "Głośność mikrofonu"
+
+msgid "Raise it if your voice is too quiet."
+msgstr "Zwiększ, jeśli twój głos jest za cichy."
+
+msgid "Noise suppression"
+msgstr "Tłumienie szumów"
+
+msgid "Removes fans, keyboards and other noise around you."
+msgstr "Usuwa wentylatory, klawiatury i inne hałasy wokół ciebie."
+
+msgid "Noise gate"
+msgstr "Bramka szumów"
+
+msgid "Mutes the microphone while you are quiet."
+msgstr "Wycisza mikrofon, gdy nic nie mówisz."
+
+msgid "Gate level"
+msgstr "Próg"
+
+msgid "Sounds below this level are muted."
+msgstr "Wszystko poniżej tego poziomu jest wyciszane."
+
+msgid "Voicenux Microphone"
+msgstr "Mikrofon Voicenux"
+
+msgid "Apps hear your new voice through this microphone. Pick it in Discord, OBS or your game."
+msgstr "Przez ten mikrofon aplikacje słyszą twój nowy głos. Wybierz go w Discordzie, OBS lub w grze."
+
+msgid "The easiest way: every app that uses the default microphone gets your new voice."
+msgstr "Najprościej: każda aplikacja, która używa domyślnego mikrofonu, dostaje twój nowy głos."
+
+msgid "How loud apps hear you."
+msgstr "Jak głośno słyszą cię aplikacje."
+
+msgid "Used by"
+msgstr "Używa go"
+
+msgid "No app right now"
+msgstr "Teraz żadna aplikacja"
+
+msgid "Where you hear your own changed voice and the soundboard."
+msgstr "Tu słyszysz swój zmieniony głos i soundboard."
+
+msgid "Headphones"
+msgstr "Słuchawki"
+
+msgid "Only for you, apps do not hear this."
+msgstr "Tylko dla ciebie, aplikacje tego nie słyszą."
+
+msgid "Volume of the switch sounds"
+msgstr "Głośność dźwięków przełączania"
+
+msgid "Test"
+msgstr "Testuj"
+
+msgid "Plays a switch sound at this volume"
+msgstr "Odtwarza dźwięk przełączania z tą głośnością"
+
+msgid "Speech recognition"
+msgstr "Rozpoznawanie mowy"
+
+msgid "Hears what you say, to find sounds in Find sounds and for apps like the Stream Deck plugin. It runs on your computer, nothing you say goes online."
+msgstr "Rozumie, co mówisz, żeby znaleźć dźwięki w „Znajdź dźwięki” i dla aplikacji jak wtyczka Stream Deck. Działa na twoim komputerze, nic, co mówisz, nie trafia do sieci."
+
+msgid "Whisper by OpenAI"
+msgstr "Whisper od OpenAI"
+
+msgid "Downloading, {} done"
+msgstr "Pobieranie, gotowe {}"
+
+msgid "Downloaded, it takes {} on disk."
+msgstr "Pobrano, zajmuje {} na dysku."
+
+msgid "Not downloaded yet. It comes the first time you use it, {}."
+msgstr "Jeszcze nie pobrano. Pobierze się przy pierwszym użyciu, {}."
+
+msgid "Remove the speech recognition?"
+msgstr "Usunąć rozpoznawanie mowy?"
+
+msgid "It downloads again the first time you use it."
+msgstr "Pobierze się ponownie przy następnym użyciu."
+
+msgid "Say what to search"
+msgstr "Powiedz, czego szukasz"
+
+msgid "Stop and search"
+msgstr "Zatrzymaj i szukaj"
+
+msgid "Nothing heard. Try again."
+msgstr "Nic nie słychać. Spróbuj jeszcze raz."
+
+msgid "Speech recognition did not work. Are you online?"
+msgstr "Rozpoznawanie mowy nie zadziałało. Masz internet?"
+
+msgid "Switch sounds"
+msgstr "Dźwięki przełączania"
+
+msgid "A short sound when you turn something on or off, like the voice changer. Only you hear it."
+msgstr "Krótki dźwięk, gdy coś włączasz lub wyłączasz, na przykład zmieniacz głosu. Słyszysz go tylko ty."
+
+msgid "Shortcuts"
+msgstr "Skróty"
+
+msgid "Work everywhere, even in games. Your desktop asks once to confirm the keys."
+msgstr "Działają wszędzie, nawet w grach. Twój pulpit raz poprosi o potwierdzenie klawiszy."
+
+msgid "Set up shortcuts"
+msgstr "Ustaw skróty"
+
+msgid "Your desktop has no global shortcuts"
+msgstr "Twój pulpit nie obsługuje globalnych skrótów"
+
+msgid "Add a shortcut in your desktop's keyboard settings that runs a command like “voicenux toggle” or “voicenux voice robot”."
+msgstr "Dodaj skrót w ustawieniach klawiatury pulpitu, który uruchamia polecenie jak „voicenux toggle” lub „voicenux voice robot”."
+
+msgid "Change shortcuts"
+msgstr "Zmień skróty"
+
+msgid "Not set"
+msgstr "Nie ustawiono"
+
+msgid "Performance"
+msgstr "Wydajność"
+
+msgid "Low latency"
+msgstr "Niskie opóźnienie"
+
+msgid "Less delay between talking and hearing yourself. Pitch effects sound a little rougher."
+msgstr "Mniejsze opóźnienie między mówieniem a słyszeniem siebie. Efekty wysokości brzmią trochę szorstko."
+
+msgid "App"
+msgstr "Aplikacja"
+
+msgid "Start with the computer"
+msgstr "Uruchamiaj z komputerem"
+
+msgid "Always ready"
+msgstr "Zawsze gotowy"
+
+msgid "Voicenux can start in the background when you log in. Then your voice works in every app right away."
+msgstr "Voicenux może startować w tle po zalogowaniu. Wtedy twój głos od razu działa w każdej aplikacji."
+
+msgid "Starts in the background, without a window."
+msgstr "Startuje w tle, bez okna."
+
+msgid "Keep running when closed"
+msgstr "Działaj po zamknięciu"
+
+msgid "Voicenux stays in the tray, so your voice keeps working after you close the window."
+msgstr "Voicenux zostaje w zasobniku systemowym, więc głos działa dalej po zamknięciu okna."
+
+msgid "Appearance"
+msgstr "Wygląd"
+
+msgid "Follow system"
+msgstr "Jak w systemie"
+
+msgid "Light"
+msgstr "Jasny"
+
+msgid "Dark"
+msgstr "Ciemny"
+
+msgid "Show the welcome again"
+msgstr "Pokaż powitanie jeszcze raz"
+
+msgid "About Voicenux"
+msgstr "O Voicenux"
+
+msgid "Change your voice in real time, in any app. Made for Linux and PipeWire."
+msgstr "Zmieniaj głos na żywo, w każdej aplikacji. Stworzony dla Linuksa i PipeWire."
+
+msgid "Pictures"
+msgstr "Obrazki"
+
+msgid "Thanks to"
+msgstr "Podziękowania dla"
+
+msgid "Add shortcut"
+msgstr "Dodaj skrót"
+
+msgid "Shortcut for {}"
+msgstr "Skrót dla: {}"
+
+msgid "Press the keys you want, for example Ctrl+Alt+1."
+msgstr "Naciśnij wybrane klawisze, na przykład Ctrl+Alt+1."
+
+msgid "Waiting for keys…"
+msgstr "Czekam na klawisze…"
+
+msgid "Save"
+msgstr "Zapisz"
+
+msgid "Baby"
+msgstr "Bobas"
+
+msgid "Tiny, high and a little wobbly."
+msgstr "Malutki, wysoki i trochę chwiejny."
+
+msgid "Kid"
+msgstr "Dziecko"
+
+msgid "Sounds like a ten year old."
+msgstr "Brzmi jak dziesięciolatek."
+
+msgid "Girl"
+msgstr "Dziewczyna"
+
+msgid "Higher and brighter, without sounding like a cartoon."
+msgstr "Wyżej i jaśniej, ale nie jak z kreskówki."
+
+msgid "Deep Voice"
+msgstr "Niski głos"
+
+msgid "Lower and bigger."
+msgstr "Niżej i potężniej."
+
+msgid "Elderly"
+msgstr "Staruszek"
+
+msgid "A shaky, rough old voice."
+msgstr "Drżący, szorstki, stary głos."
+
+msgid "Granny"
+msgstr "Babcia"
+
+msgid "Warm, high and trembling."
+msgstr "Ciepły, wysoki i drżący."
+
+msgid "Titan"
+msgstr "Tytan"
+
+msgid "A voice as big as a mountain."
+msgstr "Głos wielki jak góra."
+
+msgid "Troll"
+msgstr "Troll"
+
+msgid "Slow, low and grumpy, from under the bridge."
+msgstr "Powolny, niski i zrzędliwy, prosto spod mostu."
+
+msgid "Santa"
+msgstr "Mikołaj"
+
+msgid "Ho ho ho, next to a warm fire."
+msgstr "Ho ho ho, przy ciepłym kominku."
+
+msgid "Pirate"
+msgstr "Pirat"
+
+msgid "Rough voice, salty sea."
+msgstr "Szorstki głos, słone morze."
+
+msgid "Wizard"
+msgstr "Czarodziej"
+
+msgid "Speaks from a tall stone tower."
+msgstr "Mówi z wysokiej kamiennej wieży."
+
+msgid "Fairy"
+msgstr "Wróżka"
+
+msgid "Small, sparkly and in the woods."
+msgstr "Mała, błyszcząca i w lesie."
+
+msgid "Genie"
+msgstr "Dżin"
+
+msgid "Your wish is my command."
+msgstr "Twoje życzenie jest dla mnie rozkazem."
+
+msgid "Hero"
+msgstr "Bohater"
+
+msgid "Deep, firm and ready to save the day."
+msgstr "Niski, stanowczy i gotowy ratować świat."
+
+msgid "Announcer"
+msgstr "Spiker"
+
+msgid "Ladies and gentlemen, in a full stadium."
+msgstr "Panie i panowie, na pełnym stadionie."
+
+msgid "Movie Trailer"
+msgstr "Zwiastun filmu"
+
+msgid "In a world where everyone talks like this."
+msgstr "W świecie, w którym wszyscy tak mówią."
+
+msgid "Noir Detective"
+msgstr "Detektyw noir"
+
+msgid "An old radio play on a rainy night."
+msgstr "Stare słuchowisko w deszczową noc."
+
+msgid "Demon"
+msgstr "Demon"
+
+msgid "Many voices at once, straight from below."
+msgstr "Wiele głosów naraz, prosto z dołu."
+
+msgid "Monster"
+msgstr "Potwór"
+
+msgid "Big, growly and hungry."
+msgstr "Wielki, warczący i głodny."
+
+msgid "Zombie"
+msgstr "Zombie"
+
+msgid "Brains..."
+msgstr "Mózgi..."
+
+msgid "Ghost"
+msgstr "Duch"
+
+msgid "A breathy voice that echoes through empty halls."
+msgstr "Chrapliwy szept, który niesie się przez puste sale."
+
+msgid "Vampire"
+msgstr "Wampir"
+
+msgid "Smooth and dark, in a castle with a heartbeat."
+msgstr "Gładki i mroczny, w zamku z biciem serca."
+
+msgid "Witch"
+msgstr "Wiedźma"
+
+msgid "Cackling over a bubbling pot."
+msgstr "Rechocze nad bulgoczącym kotłem."
+
+msgid "Dragon"
+msgstr "Smok"
+
+msgid "Huge, hot and grumbling."
+msgstr "Ogromny, gorący i burczący."
+
+msgid "Goblin"
+msgstr "Goblin"
+
+msgid "Small, mean and very excited."
+msgstr "Mały, złośliwy i bardzo podekscytowany."
+
+msgid "Possessed"
+msgstr "Opętany"
+
+msgid "Something else talks with you."
+msgstr "Coś jeszcze mówi razem z tobą."
+
+msgid "Dark Lord"
+msgstr "Mroczny Lord"
+
+msgid "Deep voice behind a mask."
+msgstr "Niski głos zza maski."
+
+msgid "Creepy Clown"
+msgstr "Straszny klaun"
+
+msgid "Wants to play. Forever."
+msgstr "Chce się bawić. Na zawsze."
+
+msgid "Robot"
+msgstr "Robot"
+
+msgid "Beep boop. Flat and metallic."
+msgstr "Bip bup. Płaski i metaliczny."
+
+msgid "Alien"
+msgstr "Kosmita"
+
+msgid "We come in peace. Probably."
+msgstr "Przybywamy w pokoju. Chyba."
+
+msgid "Cyborg"
+msgstr "Cyborg"
+
+msgid "Half human, half machine."
+msgstr "Pół człowiek, pół maszyna."
+
+msgid "Invader"
+msgstr "Najeźdźca"
+
+msgid "Straight out of an arcade cabinet."
+msgstr "Prosto z automatu do gier."
+
+msgid "Astronaut"
+msgstr "Astronauta"
+
+msgid "Houston, we have a problem. With beeps."
+msgstr "Houston, mamy problem. Z piknięciami."
+
+msgid "Glitch"
+msgstr "Glitch"
+
+msgid "A bad connection from the future."
+msgstr "Słabe połączenie z przyszłości."
+
+msgid "Hologram"
+msgstr "Hologram"
+
+msgid "A flickering message from far away."
+msgstr "Migoczący przekaz z daleka."
+
+msgid "Echo"
+msgstr "Echo"
+
+msgid "Shout from a mountain top."
+msgstr "Krzyk ze szczytu góry."
+
+msgid "Cave"
+msgstr "Jaskinia"
+
+msgid "Deep inside, where the water drips."
+msgstr "Głęboko w środku, gdzie kapie woda."
+
+msgid "Cathedral"
+msgstr "Katedra"
+
+msgid "A huge stone hall."
+msgstr "Ogromna kamienna sala."
+
+msgid "Shower"
+msgstr "Prysznic"
+
+msgid "Everyone sings better in here."
+msgstr "Tu każdy śpiewa lepiej."
+
+msgid "Stadium"
+msgstr "Stadion"
+
+msgid "Thousands of fans and a big echo."
+msgstr "Tysiące fanów i wielkie echo."
+
+msgid "Underwater"
+msgstr "Pod wodą"
+
+msgid "Blub. Muffled, wobbly and full of bubbles."
+msgstr "Bul bul. Stłumiony, falujący i pełen bąbelków."
+
+msgid "Deep Space"
+msgstr "Kosmos"
+
+msgid "Floating far away from everything."
+msgstr "W nieważkości, daleko od wszystkiego."
+
+msgid "Storm"
+msgstr "Burza"
+
+msgid "Out in the rain, with thunder."
+msgstr "Na deszczu, z grzmotami."
+
+msgid "Campfire"
+msgstr "Ognisko"
+
+msgid "Stories by the fire."
+msgstr "Opowieści przy ognisku."
+
+msgid "Forest"
+msgstr "Las"
+
+msgid "Birds, leaves and fresh air."
+msgstr "Ptaki, liście i świeże powietrze."
+
+msgid "Radio"
+msgstr "Radio"
+
+msgid "On air, through a small speaker."
+msgstr "Na antenie, przez mały głośnik."
+
+msgid "Telephone"
+msgstr "Telefon"
+
+msgid "Hello? Can you hear me?"
+msgstr "Halo? Słyszysz mnie?"
+
+msgid "Walkie-Talkie"
+msgstr "Krótkofalówka"
+
+msgid "Over. Squelch included."
+msgstr "Odbiór. Szumy w zestawie."
+
+msgid "Megaphone"
+msgstr "Megafon"
+
+msgid "Attention please!"
+msgstr "Uwaga, uwaga!"
+
+msgid "Pilot"
+msgstr "Pilot"
+
+msgid "This is your captain speaking."
+msgstr "Mówi kapitan."
+
+msgid "1920s Film"
+msgstr "Film z lat 20."
+
+msgid "Crackly, thin and a little wobbly."
+msgstr "Trzeszczący, cienki i trochę chwiejny."
+
+msgid "Potato Mic"
+msgstr "Mikrofon ziemniak"
+
+msgid "The worst microphone in voice chat."
+msgstr "Najgorszy mikrofon na czacie głosowym."
+
+msgid "8-Bit"
+msgstr "8-bit"
+
+msgid "Retro console sound."
+msgstr "Dźwięk retro konsoli."
+
+msgid "Fan"
+msgstr "Wentylator"
+
+msgid "Talking into a spinning fan."
+msgstr "Mówienie do włączonego wentylatora."
+
+msgid "Auto-Tune"
+msgstr "Auto-Tune"
+
+msgid "Every note perfectly in tune. Sing!"
+msgstr "Każda nuta idealnie czysto. Śpiewaj!"
+
+msgid "Angel Choir"
+msgstr "Chór anielski"
+
+msgid "Heavenly harmonies in a big hall."
+msgstr "Niebiańskie harmonie w wielkiej sali."
+
+msgid "Magic Chords"
+msgstr "Magiczne akordy"
+
+msgid "Your voice plays changing chords."
+msgstr "Twój głos gra zmieniające się akordy."
+
+msgid "Talk Box"
+msgstr "Talk box"
+
+msgid "A synth that follows your voice."
+msgstr "Syntezator, który podąża za twoim głosem."
+
+msgid "Duet"
+msgstr "Duet"
+
+msgid "Someone sings along, a third higher."
+msgstr "Ktoś śpiewa z tobą, tercję wyżej."
+
+msgid "Chipmunk"
+msgstr "Wiewiórka"
+
+msgid "Squeaky and fast talking."
+msgstr "Piskliwy i szybki."
+
+msgid "Mouse"
+msgstr "Mysz"
+
+msgid "Even tinier than a chipmunk."
+msgstr "Jeszcze mniejsza niż wiewiórka."
+
+msgid "Helium"
+msgstr "Hel"
+
+msgid "One breath from a balloon."
+msgstr "Jeden wdech z balonika."
+
+msgid "Drunk"
+msgstr "Pijany"
+
+msgid "Had a few too many."
+msgstr "O kilka kieliszków za dużo."
+
+msgid "Dizzy"
+msgstr "Oszołomiony"
+
+msgid "Everything is spinning."
+msgstr "Wszystko się kręci."
+
+msgid "Whisper"
+msgstr "Szept"
+
+msgid "Psst. Only breath, no voice."
+msgstr "Psst. Sam oddech, bez głosu."
+
+msgid "Kitty"
+msgstr "Kotek"
+
+msgid "Meow."
+msgstr "Miau."
+
+msgid "Frog"
+msgstr "Żaba"
+
+msgid "Croaky and bumpy."
+msgstr "Rechocząca i nierówna."
+
+msgid "Duck"
+msgstr "Kaczka"
+
+msgid "Quack quack."
+msgstr "Kwa kwa."
+
+msgid "Characters"
+msgstr "Postacie"
+
+msgid "Horror"
+msgstr "Horror"
+
+msgid "Sci-fi"
+msgstr "Sci-fi"
+
+msgid "Places"
+msgstr "Miejsca"
+
+msgid "Devices"
+msgstr "Urządzenia"
+
+msgid "Music"
+msgstr "Muzyka"
+
+msgid "Funny"
+msgstr "Zabawne"
+
+msgid "Pitch"
+msgstr "Wysokość"
+
+msgid "Higher or lower voice. Formant changes the size of the throat."
+msgstr "Wyższy lub niższy głos. Formant zmienia rozmiar gardła."
+
+msgid "Formant"
+msgstr "Formant"
+
+msgid "Mix"
+msgstr "Miks"
+
+msgid "Harmony"
+msgstr "Harmonia"
+
+msgid "Extra voices on top of yours: choirs, demons and duets."
+msgstr "Dodatkowe głosy nad twoim: chóry, demony i duety."
+
+msgid "First voice"
+msgstr "Pierwszy głos"
+
+msgid "Second voice"
+msgstr "Drugi głos"
+
+msgid "Third voice"
+msgstr "Trzeci głos"
+
+msgid "Extra voices"
+msgstr "Dodatkowe głosy"
+
+msgid "Formant follows"
+msgstr "Formant podąża"
+
+msgid "Detune"
+msgstr "Rozstrojenie"
+
+msgid "Turns your voice into a flat, buzzing machine voice."
+msgstr "Zmienia twój głos w płaski, brzęczący głos maszyny."
+
+msgid "Robot pitch"
+msgstr "Wysokość robota"
+
+msgid "Takes the tone out of your voice so only breath is left."
+msgstr "Usuwa ton z głosu, zostaje tylko oddech."
+
+msgid "Pulls every note to the nearest note of a scale."
+msgstr "Ściąga każdą nutę do najbliższej nuty skali."
+
+msgid "Key"
+msgstr "Tonacja"
+
+msgid "C"
+msgstr "C"
+
+msgid "C#"
+msgstr "Cis"
+
+msgid "D"
+msgstr "D"
+
+msgid "D#"
+msgstr "Dis"
+
+msgid "E"
+msgstr "E"
+
+msgid "F"
+msgstr "F"
+
+msgid "F#"
+msgstr "Fis"
+
+msgid "G"
+msgstr "G"
+
+msgid "G#"
+msgstr "Gis"
+
+msgid "A"
+msgstr "A"
+
+msgid "A#"
+msgstr "B"
+
+msgid "B"
+msgstr "H"
+
+msgid "Scale"
+msgstr "Skala"
+
+msgid "Chromatic"
+msgstr "Chromatyczna"
+
+msgid "Major"
+msgstr "Dur"
+
+msgid "Minor"
+msgstr "Moll"
+
+msgid "Pentatonic"
+msgstr "Pentatonika"
+
+msgid "Blues"
+msgstr "Bluesowa"
+
+msgid "Hardness"
+msgstr "Twardość"
+
+msgid "Transpose"
+msgstr "Transpozycja"
+
+msgid "Vocoder"
+msgstr "Vocoder"
+
+msgid "Your voice plays a synthesizer."
+msgstr "Twój głos gra na syntezatorze."
+
+msgid "Synth plays"
+msgstr "Syntezator gra"
+
+msgid "Chord"
+msgstr "Akord"
+
+msgid "Single note"
+msgstr "Pojedyncza nuta"
+
+msgid "Follow voice"
+msgstr "Podąża za głosem"
+
+msgid "Noise"
+msgstr "Szum"
+
+msgid "Note"
+msgstr "Nuta"
+
+msgid "Power"
+msgstr "Power"
+
+msgid "Major 7"
+msgstr "Dur 7"
+
+msgid "Minor 7"
+msgstr "Moll 7"
+
+msgid "Sus 4"
+msgstr "Sus 4"
+
+msgid "Chord changes"
+msgstr "Zmiany akordów"
+
+msgid "Off"
+msgstr "Wyłączone"
+
+msgid "Pop"
+msgstr "Pop"
+
+msgid "Sad"
+msgstr "Smutne"
+
+msgid "Epic"
+msgstr "Epickie"
+
+msgid "Chord length"
+msgstr "Długość akordu"
+
+msgid "Clarity"
+msgstr "Wyrazistość"
+
+msgid "Repeats what you say."
+msgstr "Powtarza to, co mówisz."
+
+msgid "Echo time"
+msgstr "Czas echa"
+
+msgid "Repeats"
+msgstr "Powtórzenia"
+
+msgid "Echo volume"
+msgstr "Głośność echa"
+
+msgid "Brightness"
+msgstr "Jasność"
+
+msgid "Reverb"
+msgstr "Pogłos"
+
+msgid "Puts you in a room, a hall or a cave."
+msgstr "Przenosi cię do pokoju, sali lub jaskini."
+
+msgid "Room size"
+msgstr "Rozmiar pomieszczenia"
+
+msgid "Damping"
+msgstr "Tłumienie"
+
+msgid "Pre-delay"
+msgstr "Wstępne opóźnienie"
+
+msgid "Chorus"
+msgstr "Chorus"
+
+msgid "Makes one voice sound like a few."
+msgstr "Sprawia, że jeden głos brzmi jak kilka."
+
+msgid "Speed"
+msgstr "Szybkość"
+
+msgid "Depth"
+msgstr "Głębokość"
+
+msgid "Delay"
+msgstr "Opóźnienie"
+
+msgid "Flanger"
+msgstr "Flanger"
+
+msgid "A sweeping jet sound."
+msgstr "Przelatujący dźwięk odrzutowca."
+
+msgid "Feedback"
+msgstr "Sprzężenie zwrotne"
+
+msgid "Phaser"
+msgstr "Phaser"
+
+msgid "A swirling, spacey sweep."
+msgstr "Wirujący, kosmiczny przelot."
+
+msgid "Vibrato"
+msgstr "Vibrato"
+
+msgid "Makes the pitch wobble or shake."
+msgstr "Sprawia, że wysokość faluje lub drży."
+
+msgid "Wobble speed"
+msgstr "Szybkość falowania"
+
+msgid "Wobble"
+msgstr "Falowanie"
+
+msgid "Shakiness"
+msgstr "Drżenie"
+
+msgid "Tremolo"
+msgstr "Tremolo"
+
+msgid "Makes the volume pulse, like talking into a fan."
+msgstr "Sprawia, że głośność pulsuje, jak przy mówieniu do wentylatora."
+
+msgid "Pulse speed"
+msgstr "Szybkość pulsu"
+
+msgid "Pulse"
+msgstr "Puls"
+
+msgid "Hard pulses"
+msgstr "Twarde pulsy"
+
+msgid "Ring modulator"
+msgstr "Modulator pierścieniowy"
+
+msgid "A metal, alien sound."
+msgstr "Metaliczny, obcy dźwięk."
+
+msgid "Ring tone"
+msgstr "Częstotliwość pierścienia"
+
+msgid "Ring wobble"
+msgstr "Falowanie pierścienia"
+
+msgid "Metal"
+msgstr "Metal"
+
+msgid "Distortion"
+msgstr "Przester"
+
+msgid "Crunch, grit and growl."
+msgstr "Chrzęst, zgrzyt i warczenie."
+
+msgid "Grit"
+msgstr "Zgrzyt"
+
+msgid "Type"
+msgstr "Rodzaj"
+
+msgid "Soft"
+msgstr "Miękki"
+
+msgid "Hard"
+msgstr "Twardy"
+
+msgid "Fuzz"
+msgstr "Fuzz"
+
+msgid "Fold"
+msgstr "Zawijanie"
+
+msgid "Bit crusher"
+msgstr "Bitcrusher"
+
+msgid "Old video game and cheap digital sound."
+msgstr "Stare gry wideo i tani cyfrowy dźwięk."
+
+msgid "Bits"
+msgstr "Bity"
+
+msgid "Sample rate"
+msgstr "Częstotliwość próbkowania"
+
+msgid "Filter"
+msgstr "Filtr"
+
+msgid "Cuts or boosts some frequencies."
+msgstr "Tłumi lub wzmacnia niektóre częstotliwości."
+
+msgid "Low pass"
+msgstr "Dolnoprzepustowy"
+
+msgid "High pass"
+msgstr "Górnoprzepustowy"
+
+msgid "Band pass"
+msgstr "Pasmowoprzepustowy"
+
+msgid "Peak"
+msgstr "Szczytowy"
+
+msgid "Low shelf"
+msgstr "Półka niskich"
+
+msgid "High shelf"
+msgstr "Półka wysokich"
+
+msgid "Notch"
+msgstr "Wycinający"
+
+msgid "Frequency"
+msgstr "Częstotliwość"
+
+msgid "Resonance"
+msgstr "Rezonans"
+
+msgid "Boost"
+msgstr "Wzmocnienie"
+
+msgid "Band limit"
+msgstr "Ograniczenie pasma"
+
+msgid "Only the middle of your voice gets through, like on a phone."
+msgstr "Przechodzi tylko środek pasma głosu, jak w telefonie."
+
+msgid "Low cut"
+msgstr "Cięcie basu"
+
+msgid "High cut"
+msgstr "Cięcie wysokich"
+
+msgid "Mid boost"
+msgstr "Podbicie środka"
+
+msgid "Compressor"
+msgstr "Kompresor"
+
+msgid "Evens out loud and quiet parts."
+msgstr "Wyrównuje głośne i ciche fragmenty."
+
+msgid "Threshold"
+msgstr "Próg"
+
+msgid "Ratio"
+msgstr "Współczynnik"
+
+msgid "Attack"
+msgstr "Atak"
+
+msgid "Release"
+msgstr "Zwolnienie"
+
+msgid "Gain"
+msgstr "Wzmocnienie"
+
+msgid "Silences everything below a level."
+msgstr "Wycisza wszystko poniżej danego poziomu."
+
+msgid "Louder or quieter."
+msgstr "Głośniej lub ciszej."
+
+msgid "Static, hiss, crackle or hum on your voice."
+msgstr "Szumy, syczenie, trzaski lub buczenie na twoim głosie."
+
+msgid "White"
+msgstr "Biały"
+
+msgid "Pink"
+msgstr "Różowy"
+
+msgid "Brown"
+msgstr "Brązowy"
+
+msgid "Hiss"
+msgstr "Syczenie"
+
+msgid "Crackle"
+msgstr "Trzaski"
+
+msgid "Hum"
+msgstr "Buczenie"
+
+msgid "Only while talking"
+msgstr "Tylko przy mówieniu"
+
+msgid "A sound behind your voice. Plays while Background is on."
+msgstr "Dźwięk za twoim głosem. Gra, gdy „Tło” jest włączone."
+
+msgid "Sound"
+msgstr "Dźwięk"
+
+msgid "Bubbles"
+msgstr "Bąbelki"
+
+msgid "Wind"
+msgstr "Wiatr"
+
+msgid "Rain"
+msgstr "Deszcz"
+
+msgid "Ocean"
+msgstr "Ocean"
+
+msgid "Space"
+msgstr "Kosmos"
+
+msgid "Radio static"
+msgstr "Szum radiowy"
+
+msgid "Cave drips"
+msgstr "Krople w jaskini"
+
+msgid "Heartbeat"
+msgstr "Bicie serca"
+
+msgid "Computer"
+msgstr "Komputer"
+
+msgid "Crowd"
+msgstr "Tłum"
+
+msgid "Birds"
+msgstr "Ptaki"
+
+msgid "Engine"
+msgstr "Silnik"
+
+msgid "Cauldron"
+msgstr "Kocioł"
+
+msgid "Radio beeps"
+msgstr "Piski radiowe"
+
+msgid "A beep or squelch when you start or stop talking."
+msgstr "Pisk lub szum, gdy zaczynasz lub kończysz mówić."
+
+msgid "Space (Quindar)"
+msgstr "Kosmos (Quindar)"
+
+msgid "Roger beep"
+msgstr "Roger beep"
+
+msgid "Squelch"
+msgstr "Blokada szumów"
+
+msgid "Walkie-talkie"
+msgstr "Krótkofalówka"
+
+msgid "When you start"
+msgstr "Na początku"
+
+msgid "When you stop"
+msgstr "Na końcu"
+
+msgid "Repeats bits of what you say, like a bad connection."
+msgstr "Powtarza kawałki tego, co mówisz, jak przy słabym połączeniu."
+
+msgid "Glitches"
+msgstr "Zakłócenia"
+
+msgid "Length"
+msgstr "Długość"
+
+msgid "Voice"
+msgstr "Głos"
+
+msgid "Motion"
+msgstr "Ruch"
+
+msgid "Tone"
+msgstr "Barwa"
+
+msgid "Sounds"
+msgstr "Dźwięki"
+
+msgid "Air Horn"
+msgstr "Trąbka"
+
+msgid "Sad Trombone"
+msgstr "Smutny puzon"
+
+msgid "Rimshot"
+msgstr "Rimshot"
+
+msgid "Drum Roll"
+msgstr "Werbel"
+
+msgid "Applause"
+msgstr "Brawa"
+
+msgid "Ta-da!"
+msgstr "Ta-dam!"
+
+msgid "Correct"
+msgstr "Dobrze"
+
+msgid "Wrong"
+msgstr "Źle"
+
+msgid "Crickets"
+msgstr "Świerszcze"
+
+msgid "Boing"
+msgstr "Boing"
+
+msgid "Laser"
+msgstr "Laser"
+
+msgid "Explosion"
+msgstr "Wybuch"
+
+msgid "Coin"
+msgstr "Moneta"
+
+msgid "Whoosh"
+msgstr "Świst"
+
+msgid "Play from the start"
+msgstr "Odtwórz od początku"
+
+msgid "Play and stop"
+msgstr "Odtwórz i zatrzymaj"
+
+msgid "Play on top"
+msgstr "Odtwarzaj naraz"
+
+msgid "Voices"
+msgstr "Głosy"
+
+msgid "Voice changer on or off"
+msgstr "Włącz lub wyłącz zmieniacz głosu"
+
+msgid "Hear myself on or off"
+msgstr "Włącz lub wyłącz „Odsłuch”"
+
+msgid "Background sounds on or off"
+msgstr "Włącz lub wyłącz dźwięki tła"
+
+msgid "Next voice"
+msgstr "Następny głos"
+
+msgid "Previous voice"
+msgstr "Poprzedni głos"
+
+msgid "Needs a tray icon area. On GNOME, install the AppIndicator extension."
+msgstr "Wymaga zasobnika systemowego. W GNOME zainstaluj rozszerzenie AppIndicator."
+
+msgid "Use EasyEffects"
+msgstr "Użyj EasyEffects"
+
+msgid "Your EasyEffects microphone effects, like noise reduction, run before the voice, when EasyEffects works on the same microphone."
+msgstr "Efekty mikrofonu z EasyEffects, jak redukcja szumów, działają przed głosem, gdy EasyEffects obsługuje ten sam mikrofon."
+
+msgid "Find sounds"
+msgstr "Znajdź dźwięki"
+
+msgid "Listen"
+msgstr "Odsłuchaj"
+
+msgid "Add to soundboard"
+msgstr "Dodaj do soundboardu"
+
+msgid "Added"
+msgstr "Dodano"
+
+msgid "Could not reach the sound search. Are you online?"
+msgstr "Wyszukiwarka dźwięków jest niedostępna. Masz internet?"
+
+msgid "Too many searches. Wait a minute and try again."
+msgstr "Za dużo wyszukiwań. Poczekaj minutę i spróbuj ponownie."
+
+msgid "Search sounds"
+msgstr "Szukaj dźwięków"
+
+msgid "Popular on MyInstants"
+msgstr "Popularne na MyInstants"
+
+msgid "{} sounds"
+msgstr "Dźwięki: {}"
+
+msgid "Sort"
+msgstr "Sortuj"
+
+msgid "Suggested"
+msgstr "Polecane"
+
+msgid "Most views"
+msgstr "Najwięcej wyświetleń"
+
+msgid "Most likes"
+msgstr "Najwięcej polubień"
+
+msgid "Newest"
+msgstr "Najnowsze"
+
+msgid "A to Z"
+msgstr "Od A do Z"
+
+msgid "{} views on MyInstants"
+msgstr "Wyświetlenia na MyInstants: {}"
+
+msgid "Sounds from MyInstants"
+msgstr "Dźwięki z MyInstants"
+
+msgid "Volume of the sounds here"
+msgstr "Głośność dźwięków tutaj"
+
+msgid "No sounds found. Try other words."
+msgstr "Nie znaleziono dźwięków. Spróbuj innych słów."
+
+msgid "Searching MyInstants…"
+msgstr "Szukam na MyInstants…"
+
+msgid "{} is on your soundboard now"
+msgstr "{} jest teraz na twoim soundboardzie"
+
+msgid "That did not work. Try again."
+msgstr "Nie udało się. Spróbuj ponownie."
+
+msgid "Trim sound"
+msgstr "Przytnij dźwięk"
+
+msgid "Start"
+msgstr "Początek"
+
+msgid "End"
+msgstr "Koniec"
+
+msgid "Pause"
+msgstr "Pauza"
+
+msgid "Use all of it"
+msgstr "Użyj całego"
+
+msgid "Listening plays in your headphones only."
+msgstr "Odsłuch gra tylko w twoich słuchawkach."
+
+msgid "Waveform"
+msgstr "Przebieg"
+
+msgid "Spacebar"
+msgstr "Spacja"
+
+msgid "Move the playhead"
+msgstr "Przesuń głowicę"
+
+msgid "Set start and end"
+msgstr "Ustaw początek i koniec"
+
+msgid "Ctrl"
+msgstr "Ctrl"
+
+msgid "Del"
+msgstr "Del"
+
+msgid "Home"
+msgstr "Home"
+
+msgid "Menu"
+msgstr "Menu"
+
+msgid "Find sounds on MyInstants"
+msgstr "Znajdź dźwięki na MyInstants"
+
+msgid "Stop all sounds (Esc)"
+msgstr "Zatrzymaj wszystkie dźwięki (Esc)"
+
+msgid "No sounds found"
+msgstr "Nie znaleziono dźwięków"
+
+msgid "Nothing on your soundboard is called “{}”."
+msgstr "Nic na twoim soundboardzie nie nazywa się „{}”."
+
+msgid "Search MyInstants for “{}”"
+msgstr "Szukaj „{}” na MyInstants"
+
+msgid "More"
+msgstr "Więcej"
+
+msgid "Sort by name"
+msgstr "Sortuj według nazwy"
+
+msgid "Your own order"
+msgstr "Własna kolejność"
+
+msgid "Remove from favorites"
+msgstr "Usuń z ulubionych"
+
+msgid "Change shortcut"
+msgstr "Zmień skrót"
+
+msgid "Listen or pause (Space)"
+msgstr "Odsłuchaj lub wstrzymaj (Spacja)"
+
+msgid "Close without saving (Esc)"
+msgstr "Zamknij bez zapisywania (Esc)"
+
+msgid "Undo"
+msgstr "Cofnij"
+
+msgid "Search MyInstants"
+msgstr "Szukaj na MyInstants"
+
+msgid "Everywhere"
+msgstr "Wszędzie"
+
+msgid "Search"
+msgstr "Szukaj"
+
+msgid "Go to a page"
+msgstr "Przejdź do strony"
+
+msgid "Background on or off"
+msgstr "Włącz lub wyłącz tło"
+
+msgid "Mute the microphone"
+msgstr "Wycisz mikrofon"
+
+msgid "This list"
+msgstr "Ta lista"
+
+msgid "Close the window"
+msgstr "Zamknij okno"
+
+msgid "Move between voices"
+msgstr "Przechodź między głosami"
+
+msgid "Use the voice"
+msgstr "Użyj głosu"
+
+msgid "More for a voice, or right-click it"
+msgstr "Więcej dla głosu albo kliknij go prawym przyciskiem"
+
+msgid "Type anywhere to search"
+msgstr "Zacznij pisać, żeby szukać"
+
+msgid "Play the sound"
+msgstr "Odtwórz dźwięk"
+
+msgid "Remove the sound"
+msgstr "Usuń dźwięk"
+
+msgid "Move the sound"
+msgstr "Przesuń dźwięk"
+
+msgid "Listen or pause"
+msgstr "Odsłuchaj lub wstrzymaj"
+
+msgid "Move the playhead, Shift for 1 s, Ctrl for 0.01 s"
+msgstr "Przesuń głowicę, z Shift o 1 s, z Ctrl o 0,01 s"
+
+msgid "Jump to the start or end"
+msgstr "Skocz na początek lub koniec"
+
+msgid "Set start and end at the playhead"
+msgstr "Ustaw początek i koniec w miejscu głowicy"
+
+msgid "Undo, Ctrl+Shift+Z redoes"
+msgstr "Cofnij, Ctrl+Shift+Z ponawia"
+
+msgid "Keyboard shortcuts"
+msgstr "Skróty klawiszowe"
+
+msgid "Keys in the app"
+msgstr "Klawisze w aplikacji"
+
+msgid "Ctrl+F searches, Ctrl+T turns the voice changer on or off, and more."
+msgstr "Ctrl+F szuka, Ctrl+T włącza lub wyłącza zmieniacz głosu i nie tylko."
+
+msgid "System"
+msgstr "System"
+
+msgid "Removed {}"
+msgstr "Usunięto: {}"
+
+msgid "Add audio files"
+msgstr "Dodaj pliki audio"
+
+msgid "Save the cut"
+msgstr "Zapisz przycięcie"
+
+msgid "Trimmed"
+msgstr "Przycięto"
+
+msgid "Zoom in"
+msgstr "Powiększ"
+
+msgid "Zoom out"
+msgstr "Pomniejsz"
+
+msgid "Zoom in or out, also Ctrl with the wheel"
+msgstr "Powiększ lub pomniejsz, też Ctrl z kółkiem"
+
+msgid "Show all of the sound"
+msgstr "Pokaż cały dźwięk"
+
+msgid "Show the voice"
+msgstr "Pokaż głos"
+
+msgid "Made by {}"
+msgstr "Autor: {}"
+
+msgid "Website"
+msgstr "Strona"
+
+msgid "Report a bug"
+msgstr "Zgłoś błąd"
+
+msgid "Buy me a coffee"
+msgstr "Postaw mi kawę"
+
+msgid "Free software under the {} license."
+msgstr "Wolne oprogramowanie na licencji {}."
+
+msgid "Search effects"
+msgstr "Szukaj efektów"
+
+msgid "No effects found"
+msgstr "Nie znaleziono efektów"
+
+msgid "Other apps"
+msgstr "Inne aplikacje"
+
+msgid "Stream Deck plugins, for example for OpenDeck, and scripts can use your voices and sounds."
+msgstr "Wtyczki Stream Deck, na przykład dla OpenDeck, i skrypty mogą używać twoich głosów i dźwięków."
+
+msgid "Let other apps control Voicenux"
+msgstr "Pozwól innym aplikacjom sterować Voicenux"
+
+msgid "Only apps on this computer. Web pages can not use it."
+msgstr "Tylko aplikacje na tym komputerze. Strony internetowe nie mogą z tego korzystać."
+
+msgid "Copy"
+msgstr "Kopiuj"
+
+msgid "Copied"
+msgstr "Skopiowano"
+
+msgid "For plugin makers"
+msgstr "Dla twórców wtyczek"
+
+msgid "All actions and events, on GitHub."
+msgstr "Wszystkie akcje i zdarzenia, na GitHubie."
+
+msgid "Could not start"
+msgstr "Nie udało się uruchomić"
+
+msgid "Port {} is taken, maybe by another Voicenux. {}"
+msgstr "Port {} jest zajęty, może przez inny Voicenux. {}"
+
+msgid "Address"
+msgstr "Adres"
+
+msgid "No app connected"
+msgstr "Brak połączonych aplikacji"
+
+msgid "Apps connected: {}"
+msgstr "Połączone aplikacje: {}"
+
+msgid "{} people like this on MyInstants"
+msgstr "Polubienia na MyInstants: {}"
+
+msgid "Simple tray icon"
+msgstr "Prosta ikona w zasobniku"
+
+msgid "A plain icon in the color of your panel, instead of the blue logo."
+msgstr "Prosta ikona w kolorze twojego panelu zamiast niebieskiego logo."
+
+msgid "{} is still downloading. Try again in a moment."
+msgstr "{} wciąż się pobiera. Spróbuj za chwilę."
+
+msgid "Vine Boom"
+msgstr "Vine Boom"
+
+msgid "Bruh"
+msgstr "Bruh"
+
+msgid "Emotional Damage"
+msgstr "Emotional Damage"
+
+msgid "Sad Violin"
+msgstr "Smutne skrzypce"
+
+msgid "Metal Pipe"
+msgstr "Metalowa rura"
+
+msgid "Windows Error"
+msgstr "Błąd Windowsa"
+
+msgid "Oh No No No"
+msgstr "Oh No No No"
+
+msgid "Rizz"
+msgstr "Rizz"
+
+msgid "Anime Wow"
+msgstr "Anime Wow"
+
+msgid "Among Us"
+msgstr "Among Us"
+
+msgid "Dun Dun Dun"
+msgstr "Dun Dun Dun"
+
+msgid "Discord Ping"
+msgstr "Ping Discorda"
+
+msgid "Fart"
+msgstr "Pierd"
+
+msgid "{} is not downloaded yet. Are you online?"
+msgstr "{} nie jest jeszcze pobrany. Masz internet?"
+
+msgid "AI voices need an NVIDIA or AMD graphics card, or Run on the processor in Settings."
+msgstr "Głosy AI wymagają karty graficznej NVIDIA lub AMD albo „Uruchom na procesorze” w Ustawieniach."
+
+msgid "Run on the processor"
+msgstr "Uruchom na procesorze"
+
+msgid "For computers without a graphics card from NVIDIA, or from AMD since the RX 6000. Takes much of the processor and adds about half a second of delay."
+msgstr "Dla komputerów bez karty graficznej NVIDIA lub AMD od RX 6000. Mocno obciąża procesor i dodaje około pół sekundy opóźnienia."
+
+msgid "The AI runs on your processor. It adds about {} of delay."
+msgstr "AI działa na twoim procesorze. Dodaje około {} opóźnienia."
+
+msgid "AI voices"
+msgstr "Głosy AI"
+
+msgid "Character voices made by AI, like SpongeBob or Darth Vader."
+msgstr "Głosy postaci zrobione przez AI, jak SpongeBob czy Darth Vader."
+
+msgid "AI engine"
+msgstr "Silnik AI"
+
+msgid "Not installed. It comes with the first AI voice you pick."
+msgstr "Nie zainstalowano. Pojawi się z pierwszym wybranym głosem AI."
+
+msgid "This computer has no graphics card the AI voices can use. Turn on Run on the processor above."
+msgstr "Ten komputer nie ma karty graficznej dla głosów AI. Włącz wyżej „Uruchom na procesorze”."
+
+msgid "Installed"
+msgstr "Zainstalowano"
+
+msgid "Installed, it takes {} on disk."
+msgstr "Zainstalowano, zajmuje {} na dysku."
+
+msgid "Remove the AI engine?"
+msgstr "Usunąć silnik AI?"
+
+msgid "All AI voices go with it. They download again when you pick one."
+msgstr "Wszystkie głosy AI znikną razem z nim. Pobiorą się ponownie, gdy wybierzesz któryś."
+
+msgid "Not downloaded yet. Pick the voice to get it."
+msgstr "Jeszcze nie pobrano. Wybierz głos, żeby go pobrać."
+
+msgid "Getting the installer…"
+msgstr "Pobieram instalator…"
+
+msgid "Getting Python…"
+msgstr "Pobieram Pythona…"
+
+msgid "Getting PyTorch. This is the big part…"
+msgstr "Pobieram PyTorch. To największa część…"
+
+msgid "Getting the voice converter…"
+msgstr "Pobieram konwerter głosu…"
+
+msgid "Getting the speech models…"
+msgstr "Pobieram modele mowy…"
+
+msgid "Starting the AI…"
+msgstr "Uruchamiam AI…"
+
+msgid "Loading {}…"
+msgstr "Wczytuję {}…"
+
+msgid "The AI runs on your graphics card. It adds about {} of delay."
+msgstr "AI działa na twojej karcie graficznej. Dodaje około {} opóźnienia."
+
+msgid "The AI did not work: {}"
+msgstr "AI nie zadziałała: {}"
+
+msgid "Download {}?"
+msgstr "Pobrać {}?"
+
+msgid "Download"
+msgstr "Pobierz"
+
+msgid "Getting {}…"
+msgstr "Pobieram {}…"
+
+msgid "That did not work: {}"
+msgstr "Nie udało się: {}"
+
+msgid "Check your connection and the free space, then try again."
+msgstr "Sprawdź połączenie i wolne miejsce, potem spróbuj ponownie."
+
+msgid "Try again"
+msgstr "Spróbuj ponownie"
+
+msgid "SpongeBob"
+msgstr "SpongeBob"
+
+msgid "The cheerful fry cook from under the sea."
+msgstr "Wesoły kucharz burgerów z dna oceanu."
+
+msgid "Patrick"
+msgstr "Patryk"
+
+msgid "His best friend, a slow pink star."
+msgstr "Jego najlepszy przyjaciel, powolna różowa rozgwiazda."
+
+msgid "Squidward"
+msgstr "Skalmar"
+
+msgid "Grumpy neighbor with a clarinet."
+msgstr "Zrzędliwy sąsiad z klarnetem."
+
+msgid "Plankton"
+msgstr "Plankton"
+
+msgid "Tiny, green and full of evil plans."
+msgstr "Malutki, zielony i pełen złych planów."
+
+msgid "Darth Vader"
+msgstr "Darth Vader"
+
+msgid "Deep breaths behind the mask."
+msgstr "Głęboki oddech zza maski."
+
+msgid "Yoda"
+msgstr "Yoda"
+
+msgid "Old and wise, the little green master is."
+msgstr "Stary i mądry mały zielony mistrz jest."
+
+msgid "Optimus Prime"
+msgstr "Optimus Prime"
+
+msgid "Leader of the robots in disguise."
+msgstr "Przywódca robotów w przebraniu."
+
+msgid "GLaDOS"
+msgstr "GLaDOS"
+
+msgid "The calm AI that runs the tests."
+msgstr "Spokojna SI, która prowadzi testy."
+
+msgid "Rick Sanchez"
+msgstr "Rick Sanchez"
+
+msgid "Genius scientist with a portal gun."
+msgstr "Genialny naukowiec z pistoletem portalowym."
+
+msgid "Homer Simpson"
+msgstr "Homer Simpson"
+
+msgid "Loves doughnuts and his couch."
+msgstr "Kocha pączki i swoją kanapę."
+
+msgid "AI"
+msgstr "AI"
+
+msgid "AI voice"
+msgstr "Głos AI"
+
+msgid "Turns your voice into a character with an AI model. Needs an NVIDIA or AMD graphics card."
+msgstr "Zmienia twój głos w postać za pomocą modelu AI. Wymaga karty graficznej NVIDIA lub AMD."
+
+msgid "Character"
+msgstr "Postać"
+
+msgid "Stop selecting (Esc)"
+msgstr "Zakończ zaznaczanie (Esc)"
+
+msgid "Move to folder"
+msgstr "Przenieś do folderu"
+
+msgid "Select all"
+msgstr "Zaznacz wszystko"
+
+msgid "{} selected"
+msgstr "Zaznaczono: {}"
+
+msgid "Nothing in this folder yet"
+msgstr "W tym folderze jeszcze nic nie ma"
+
+msgid "Drag sounds onto the folder, or pick some with Ctrl+click and move them here."
+msgstr "Przeciągnij dźwięki na folder albo wybierz kilka przez Ctrl+klik i przenieś je tutaj."
+
+msgid "No folder"
+msgstr "Bez folderu"
+
+msgid "New folder"
+msgstr "Nowy folder"
+
+msgid "Create"
+msgstr "Utwórz"
+
+msgid "Rename"
+msgstr "Zmień nazwę"
+
+msgid "Rename folder"
+msgstr "Zmień nazwę folderu"
+
+msgid "There is a folder called “{}” already"
+msgstr "Folder „{}” już istnieje"
+
+msgid "Delete folder"
+msgstr "Usuń folder"
+
+msgid "Folder name"
+msgstr "Nazwa folderu"
+
+msgid "Removed {} sounds"
+msgstr "Usunięto dźwięki: {}"
+
+msgid "Deselect all"
+msgstr "Odznacz wszystko"
+
+msgid "All sounds"
+msgstr "Wszystkie dźwięki"
+
+msgid "Back to all sounds (Backspace)"
+msgstr "Wróć do wszystkich dźwięków (Backspace)"
+
+msgid "1 sound"
+msgstr "1 dźwięk"
+
+msgid "Open"
+msgstr "Otwórz"
+
+msgid "Empty"
+msgstr "Pusty"
+
+msgid "All voices"
+msgstr "Wszystkie głosy"
+
+msgid "Back to all voices (Backspace)"
+msgstr "Wróć do wszystkich głosów (Backspace)"
+
+msgid "Deletes your own voices among them. The built-in ones stay."
+msgstr "Usuwa twoje własne głosy spośród nich. Wbudowane zostają."
+
+msgid "Drag voices onto the folder, or pick some with Ctrl+click and move them here."
+msgstr "Przeciągnij głosy na folder albo wybierz kilka przez Ctrl+klik i przenieś je tutaj."
+
+msgid "1 voice"
+msgstr "1 głos"
+
+msgid "{} voices"
+msgstr "Głosy: {}"
+
+msgid "Delete {} voices?"
+msgstr "Usunąć głosy ({})?"
+
+msgid "They are gone for good."
+msgstr "Znikną na zawsze."
+
+msgid "You changed this voice"
+msgstr "Ten głos ma twoje zmiany"
+
+msgid "Changed by you"
+msgstr "Twoje zmiany"
+
+msgid "Back to how the voice comes"
+msgstr "Przywróć oryginalny głos"
+
+msgid "Back to {}"
+msgstr "Wróć do: {}"
+
+msgid "From the start"
+msgstr "Od początku"
+
+msgid "Play/Stop"
+msgstr "Start/Stop"
+
+msgid "On top"
+msgstr "Naraz"
+
+msgid "{} of {}"
+msgstr "{} z {}"
+
+msgid "Got it"
+msgstr "Rozumiem"
+
+msgid "Show the tips again"
+msgstr "Pokaż wskazówki ponownie"
+
+msgid "They show when you open a page"
+msgstr "Pojawiają się, gdy otwierasz stronę"
+
+msgid "The tips show again on each page"
+msgstr "Wskazówki znów pojawią się na każdej stronie"
+
+msgid "Search MyInstants for any sound and add it with one click."
+msgstr "Szukaj dowolnego dźwięku na MyInstants i dodaj go jednym kliknięciem."
+
+msgid "Right-click an empty spot"
+msgstr "Kliknij prawym w puste miejsce"
+
+msgid "There you make folders, add your own audio files, sort the sounds or pick all. Right-click a sound to edit it."
+msgstr "Tam tworzysz foldery, dodajesz własne pliki audio, sortujesz dźwięki lub zaznaczasz wszystkie. Kliknij dźwięk prawym, żeby go edytować."
+
+msgid "Drag to sort"
+msgstr "Przeciągnij, żeby sortować"
+
+msgid "Drag a sound to another place, or onto a folder to put it in. Ctrl+click picks several."
+msgstr "Przeciągnij dźwięk w inne miejsce albo na folder, żeby go tam włożyć. Ctrl+klik wybiera kilka."
+
+msgid "Volume and play mode"
+msgstr "Głośność i tryb odtwarzania"
+
+msgid "Sounds play into the Voicenux Microphone, so others hear them too. Here you set how loud they are, if you hear them yourself, and what a click does."
+msgstr "Dźwięki grają do Mikrofonu Voicenux, więc inni też je słyszą. Tu ustawiasz, jak głośno grają, czy też je słyszysz i co robi kliknięcie."
+
+msgid "Pick a voice"
+msgstr "Wybierz głos"
+
+msgid "There you make folders and sort the voices. Drag voices to move them, Ctrl+click picks several."
+msgstr "Tam tworzysz foldery i sortujesz głosy. Przeciągaj głosy, żeby je przenieść, Ctrl+klik wybiera kilka."
+
+msgid "Make it yours"
+msgstr "Dopasuj go do siebie"
+
+msgid "Change the main settings here, or click Customize for all of them. What you change gets a blue frame."
+msgstr "Tu zmieniasz najważniejsze ustawienia, a przez „Dostosuj” wszystkie. To, co zmienisz, dostaje niebieską ramkę."
+
+msgid "Skip"
+msgstr "Pomiń"
+
+msgid "For everyone"
+msgstr "Dla wszystkich"
+
+msgid "How loud the sounds play for everyone: for others in the Voicenux Microphone, and for you when Hear them myself is on."
+msgstr "Jak głośno dźwięki grają dla wszystkich: dla innych w Mikrofonie Voicenux, a dla ciebie, gdy „Słyszeć je też” jest włączone."
+
+msgid "Hear them myself"
+msgstr "Słyszeć je też"
+
+msgid "Volume of this sound"
+msgstr "Głośność tego dźwięku"
+
+msgid "Only this sound. It comes on top of the volume for everyone under the sounds."
+msgstr "Tylko ten dźwięk. Dochodzi do głośności „Dla wszystkich” pod dźwiękami."
+
+msgid "about {} s left"
+msgstr "zostało około {} s"
+
+msgid "about {} min left"
+msgstr "zostało około {} min"
+
+msgid "In the background"
+msgstr "W tle"
+
+msgid "{} is ready. Pick it to use it."
+msgstr "{} jest gotowy. Wybierz ten głos, żeby go użyć."
+
+msgid "Could not get {}: {}"
+msgstr "Nie udało się pobrać {}: {}"
+
+msgid "Stop download"
+msgstr "Przerwij pobieranie"
+
+msgid "Stopping…"
+msgstr "Przerywam…"
+
+msgid "Stopped downloading {}."
+msgstr "Przerwano pobieranie: {}."
+
+msgid "{}, once"
+msgstr "{}, jednorazowo"
+
+msgid "Processor"
+msgstr "Procesor"
+
+msgid "about half a second"
+msgstr "około pół sekundy"
+
+msgid "NVIDIA graphics card"
+msgstr "Karta graficzna NVIDIA"
+
+msgid "AMD graphics card"
+msgstr "Karta graficzna AMD"
+
+msgid "about 0.3 s"
+msgstr "około 0,3 s"
+
+msgid "Runs on"
+msgstr "Działa na"
+
+msgid "Click a voice to use it."
+msgstr "Kliknij głos, żeby go użyć."
+
+msgid "The switches"
+msgstr "Przełączniki"
+
+msgid "Voice changer turns your new voice on and off. Hear myself plays it in your headphones. Background adds the sound of a voice, like rain or a campfire."
+msgstr "„Zmieniacz głosu” włącza i wyłącza twój nowy głos. „Odsłuch” gra go w słuchawkach. „Tło” dodaje dźwięk głosu, jak deszcz czy ognisko."
+
+msgid "Advanced"
+msgstr "Zaawansowane"
+
+msgid "Hear changes while you drag"
+msgstr "Słysz zmiany podczas przeciągania"
+
+msgid "The voice follows its sliders right away. When off, it changes when you let go."
+msgstr "Głos od razu podąża za suwakami. Gdy wyłączone, zmienia się po puszczeniu."
+
+msgid "Mouse wheel moves sliders"
+msgstr "Kółko myszy przesuwa suwaki"
+
+msgid "Turn the wheel over a slider to change it. While the page scrolls, it keeps scrolling."
+msgstr "Kręć kółkiem nad suwakiem, żeby go zmienić. Gdy strona się przewija, przewija się dalej."
+
+msgid "Discord may filter out your sounds"
+msgstr "Discord może odfiltrować twoje dźwięki"
+
+msgid "How to fix"
+msgstr "Jak to naprawić"
+
+msgid "Sounds in Discord"
+msgstr "Dźwięki w Discordzie"
+
+msgid "If your friends do not hear the soundboard"
+msgstr "Jeśli znajomi nie słyszą soundboardu"
+
+msgid "Discord removes sounds that are not speech, so your friends may not hear the soundboard. In Discord, open Settings, then Voice & Video:"
+msgstr "Discord usuwa dźwięki, które nie są mową, więc znajomi mogą nie słyszeć soundboardu. W Discordzie otwórz Ustawienia, a potem Głos i wideo:"
+
+msgid "Set Noise Suppression to None."
+msgstr "Ustaw Tłumienie szumów na Brak."
+
+msgid "Turn off Echo Cancellation, Automatic Gain Control and Advanced Voice Activity."
+msgstr "Wyłącz Usuwanie echa, Automatyczną regulację wzmocnienia i Zaawansowaną aktywność głosową."
+
+msgid "Use Push to Talk, or turn off Automatically determine input sensitivity and move its slider far to the left."
+msgstr "Użyj Naciśnij, aby mówić, albo wyłącz Automatycznie ustalaj czułość wejścia i przesuń suwak daleko w lewo."
+
+msgid "Allow an unknown app to control Voicenux?"
+msgstr "Pozwolić nieznanej aplikacji sterować Voicenux?"
+
+msgid "Start Voicenux with the computer"
+msgstr "Uruchamiaj Voicenux z komputerem"
+
+msgid "{} Plugin"
+msgstr "Wtyczka {}"
+
+msgid "Only apps you allow"
+msgstr "Tylko aplikacje, na które pozwolisz"
+
+msgid "Voicenux asks the first time an app wants to control it."
+msgstr "Voicenux pyta, gdy aplikacja po raz pierwszy chce nim sterować."
+
+msgid "Allowed apps"
+msgstr "Dozwolone aplikacje"
+
+msgid "None yet"
+msgstr "Jeszcze żadnej"
+
+msgid "Apps: {}"
+msgstr "Aplikacje: {}"
+
+msgid "Take back"
+msgstr "Cofnij"
+
+msgid "Allow {} to control Voicenux?"
+msgstr "Pozwolić aplikacji {} sterować Voicenux?"
+
+msgid "The app could change your voice and play sounds into your microphone. You can take it back in Settings, under Other apps."
+msgstr "Aplikacja mogłaby zmieniać twój głos i puszczać dźwięki do mikrofonu. Możesz to cofnąć w Ustawieniach, w Inne aplikacje."
+
+msgid "Open folder"
+msgstr "Otwórz folder"
+
+msgid "Do not allow"
+msgstr "Nie pozwalaj"
+
+msgid "Allow"
+msgstr "Pozwól"
+
+msgid "Pick from"
+msgstr "Wybierz z"
+
+msgid "Advanced settings"
+msgstr "Ustawienia zaawansowane"
+
+msgid "For tinkerers: everything else you can set, and experiments."
+msgstr "Dla majsterkowiczów: wszystko inne, co możesz ustawić, i eksperymenty."
+
+msgid "Search advanced settings"
+msgstr "Szukaj w ustawieniach zaawansowanych"
+
+msgid "Reset all"
+msgstr "Resetuj wszystko"
+
+msgid "Puts every switch here back to how it came"
+msgstr "Przywraca każdy przełącznik tutaj do ustawień początkowych"
+
+msgid "For tinkerers who want to set everything. Some are experiments and may change."
+msgstr "Dla majsterkowiczów, którzy chcą ustawić wszystko. Niektóre to eksperymenty i mogą się zmienić."
+
+msgid "Changed"
+msgstr "Zmienione"
+
+msgid "No settings found"
+msgstr "Nie znaleziono ustawień"
+
+msgid "Try another word."
+msgstr "Spróbuj innego słowa."
+
+msgid "Random voice button"
+msgstr "Przycisk „Losowy głos”"
+
+msgid "Random voice at the top of the voice page. Its arrow picks out of your favorites. Ctrl+R works without it."
+msgstr "„Losowy głos” na górze strony głosów. Jego strzałka wybiera z ulubionych. Ctrl+R działa też bez niego."

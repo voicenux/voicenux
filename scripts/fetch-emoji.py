@@ -3,8 +3,8 @@
 
 The pictures that voices and sounds use come from fetch-icons.sh in full size. All others go to
 data/emoji at 160 px with 256 colors, which looks the same and keeps the app small. data/emoji.tsv
-lists every picture in emoji order, with English names from Fluent and German names from Unicode
-CLDR, for the search. Everything is committed, so this only runs to update. Needs Pillow.
+lists every picture in emoji order, with English names from Fluent and the names in the other
+languages of the app from Unicode CLDR, for the search. Everything is committed, so this only runs to update. Needs Pillow.
 """
 
 import concurrent.futures
@@ -20,10 +20,8 @@ from PIL import Image
 FLUENT = "https://raw.githubusercontent.com/microsoft/fluentui-emoji/main/"
 TREE = "https://api.github.com/repos/microsoft/fluentui-emoji/git/trees/main?recursive=1"
 CLDR = "https://raw.githubusercontent.com/unicode-org/cldr-json/main/cldr-json/"
-CLDR_DE = [
-    ("annotations", CLDR + "cldr-annotations-full/annotations/de/annotations.json"),
-    ("annotationsDerived", CLDR + "cldr-annotations-derived-full/annotationsDerived/de/annotations.json"),
-]
+# The languages of src/i18n.rs, in its order. CLDR's "pt" is Brazilian Portuguese.
+LANGUAGES = ["de", "es", "fr", "pt", "it", "pl", "ru", "tr"]
 ORDER = "https://unicode.org/Public/emoji/latest/emoji-test.txt"
 SIZE = 160
 
@@ -57,10 +55,15 @@ for e in json.loads(get(TREE))["tree"]:
 with concurrent.futures.ThreadPoolExecutor(16) as pool:
     metas = dict(zip(pngs, pool.map(lambda d: json.loads(fluent(f"assets/{d}/metadata.json")), pngs)))
 
-german = {}
-for key, url in CLDR_DE:
-    for glyph, a in json.loads(get(url))[key]["annotations"].items():
-        german[glyph.replace("\ufe0f", "")] = a
+names = {}
+for lang in LANGUAGES:
+    names[lang] = {}
+    for key, url in [
+        ("annotations", f"{CLDR}cldr-annotations-full/annotations/{lang}/annotations.json"),
+        ("annotationsDerived", f"{CLDR}cldr-annotations-derived-full/annotationsDerived/{lang}/annotations.json"),
+    ]:
+        for glyph, a in json.loads(get(url))[key]["annotations"].items():
+            names[lang][glyph.replace("\ufe0f", "")] = a
 
 
 def slug(name):
@@ -107,17 +110,23 @@ icons = {f[:-4] for f in os.listdir(os.path.join(root, "data", "icons"))}
 with concurrent.futures.ThreadPoolExecutor(16) as pool:
     list(pool.map(shrink, [d for d in folders if picked[d] not in icons]))
 
+def unique(words):
+    seen = []
+    for w in " ".join(words).lower().split():
+        if w not in seen:
+            seen.append(w)
+    return " ".join(seen)
+
+
 with open(os.path.join(root, "data", "emoji.tsv"), "w") as f:
-    f.write("# id, English name, German name, search words. Made by scripts/fetch-emoji.py.\n")
+    f.write(f"# id, then name and search words in en {' '.join(LANGUAGES)}. Made by scripts/fetch-emoji.py.\n")
     for d in folders:
         m = metas[d]
-        de = german.get(m["glyph"].replace("\ufe0f", ""), {})
         en_name = m["cldr"][:1].upper() + m["cldr"][1:]
-        de_name = (de.get("tts") or [en_name])[0]
-        words = [picked[d].replace("-", " "), m["cldr"], m["tts"], *m["keywords"], de_name, *de.get("default", [])]
-        seen = []
-        for w in " ".join(words).lower().split():
-            if w not in seen:
-                seen.append(w)
-        f.write(f"{picked[d]}\t{en_name}\t{de_name}\t{' '.join(seen)}\n")
+        cols = [picked[d], en_name, unique([picked[d].replace("-", " "), m["cldr"], m["tts"], *m["keywords"]])]
+        for lang in LANGUAGES:
+            a = names[lang].get(m["glyph"].replace("\ufe0f", ""), {})
+            name = (a.get("tts") or [en_name])[0]
+            cols += [name, unique([name, *a.get("default", [])])]
+        f.write("\t".join(cols) + "\n")
 print(len(folders), "pictures")

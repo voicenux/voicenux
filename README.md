@@ -203,7 +203,7 @@ browser. Some are experiments and may change.
 
 ## Credits
 
-- [Fluent Emoji](https://github.com/microsoft/fluentui-emoji) by Microsoft (MIT), with German names from [Unicode CLDR](https://cldr.unicode.org), and [Lucide](https://lucide.dev) (ISC) for the pictures and icons.
+- [Fluent Emoji](https://github.com/microsoft/fluentui-emoji) by Microsoft (MIT), with names in the other languages from [Unicode CLDR](https://cldr.unicode.org), and [Lucide](https://lucide.dev) (ISC) for the pictures and icons.
 - Background sounds: CC0 recordings from [Freesound](https://freesound.org), see [SOURCES.md](data/ambience/SOURCES.md).
 - RNNoise by Xiph.Org through [nnnoiseless](https://github.com/jneem/nnnoiseless), Freeverb by Jezar at Dreampoint, [Symphonia](https://github.com/pdeljanov/Symphonia).
 - AI voices: [infer-rvc-python](https://github.com/R3gm/infer_rvc_python) (MIT) and models shared on Hugging Face.

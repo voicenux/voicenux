@@ -696,10 +696,9 @@ pub fn build(st: &St, window: &adw::ApplicationWindow) -> SettingsPage {
     SettingsPage { widget: nav, advanced_search: advanced.search }
 }
 
-/// "5.8 GB", with a comma in German.
+/// "5.8 GB", with a comma where the language writes one.
 fn gigabytes(bytes: u64) -> String {
-    let text = format!("{:.1} GB", bytes as f64 / 1e9);
-    if crate::i18n::language() == "de" { text.replace('.', ",") } else { text }
+    crate::i18n::decimals(format!("{:.1} GB", bytes as f64 / 1e9))
 }
 
 /// The speech recognition: whether it is there, how far its download is, and buttons to download or

@@ -4,7 +4,17 @@
 use std::collections::HashMap;
 use std::sync::OnceLock;
 
-const CATALOGS: &[(&str, &str)] = &[("de", include_str!("../po/de.po"))];
+/// Every language besides English, by its code. Brazilian Portuguese goes by "pt".
+pub const CATALOGS: &[(&str, &str)] = &[
+    ("de", include_str!("../po/de.po")),
+    ("es", include_str!("../po/es.po")),
+    ("fr", include_str!("../po/fr.po")),
+    ("pt", include_str!("../po/pt_BR.po")),
+    ("it", include_str!("../po/it.po")),
+    ("pl", include_str!("../po/pl.po")),
+    ("ru", include_str!("../po/ru.po")),
+    ("tr", include_str!("../po/tr.po")),
+];
 
 fn catalog() -> &'static HashMap<&'static str, &'static str> {
     static CAT: OnceLock<HashMap<&'static str, &'static str>> = OnceLock::new();
@@ -33,6 +43,11 @@ pub fn language() -> String {
         }
     }
     "en".into()
+}
+
+/// `text` with decimal commas, like "5,8 GB": every language here but English writes them.
+pub fn decimals(text: String) -> String {
+    if language() == "en" { text } else { text.replace('.', ",") }
 }
 
 /// Translates `s`. Falls back to the English text.
@@ -179,7 +194,10 @@ mod tests {
 
     #[test]
     fn names_come_in_every_language() {
-        assert_eq!(every_language("Santa"), ["Santa", "Weihnachtsmann"]);
+        assert_eq!(
+            every_language("Santa"),
+            ["Santa", "Weihnachtsmann", "Papá Noel", "Père Noël", "Papai Noel", "Babbo Natale", "Mikołaj", "Дед Мороз", "Noel Baba"]
+        );
         assert_eq!(every_language("not a text"), ["not a text"]);
     }
 
@@ -197,14 +215,12 @@ mod tests {
         assert_eq!(fill("Live in {} and {}", &["Discord", "OBS"]), "Live in Discord and OBS");
     }
 
-    /// Every text the app shows must have a German translation.
-    #[test]
-    fn german_is_complete() {
-        let de = parse(include_str!("../po/de.po"));
-        let mut missing = Vec::new();
+    /// Every text the app shows.
+    fn texts() -> Vec<String> {
+        let mut texts: Vec<String> = Vec::new();
         let mut check = |s: &str| {
-            if !s.is_empty() && !de.contains_key(s) && !missing.contains(&s.to_string()) {
-                missing.push(s.to_string());
+            if !s.is_empty() && !texts.iter().any(|t| t == s) {
+                texts.push(s.to_string());
             }
         };
         for s in crate::i18n::source_strings() {
@@ -249,6 +265,32 @@ mod tests {
             check(f.title);
             check(f.about);
         }
-        assert!(missing.is_empty(), "missing German texts:\n{}", missing.join("\n"));
+        texts
+    }
+
+    /// Every text the app shows must be in every language.
+    #[test]
+    fn every_language_is_complete() {
+        let texts = texts();
+        let mut missing = Vec::new();
+        for (code, catalog) in CATALOGS {
+            let cat = parse(catalog);
+            missing.extend(texts.iter().filter(|s| !cat.contains_key(s.as_str())).map(|s| format!("{code}: {s}")));
+        }
+        assert!(missing.is_empty(), "missing texts:\n{}", missing.join("\n"));
+    }
+
+    /// `fill` puts values in by their order, so a translation needs as many `{}` as the English text.
+    #[test]
+    fn translations_keep_their_placeholders() {
+        let mut wrong = Vec::new();
+        for (code, catalog) in CATALOGS {
+            for (en, text) in parse(catalog) {
+                if en.matches("{}").count() != text.matches("{}").count() {
+                    wrong.push(format!("{code}: {en}"));
+                }
+            }
+        }
+        assert!(wrong.is_empty(), "placeholders differ:\n{}", wrong.join("\n"));
     }
 }
