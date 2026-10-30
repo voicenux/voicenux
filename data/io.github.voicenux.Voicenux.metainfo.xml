@@ -74,6 +74,11 @@
   </supports>
   <content_rating type="oars-1.1"/>
   <releases>
+    <release version="0.4.0" date="2026-10-30">
+      <description>
+        <p>Voicenux in seven more languages, search sounds by voice, speech recognition for apps like the Stream Deck plugin, and switch sounds.</p>
+      </description>
+    </release>
     <release version="0.3.0" date="2026-10-27">
       <description>
         <p>Voicenux asks before another app may control it, a note when Discord may filter out your sounds, the mouse wheel on sliders, a random favorite and advanced settings.</p>

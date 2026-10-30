@@ -2,6 +2,25 @@
 
 What each release brings, newest first. The [GitHub releases](https://github.com/voicenux/voicenux/releases) add every commit that went into it.
 
+## v0.4.0
+
+_2026-10-30_
+
+Welcome to Voicenux `v0.4.0`! Voicenux now speaks seven more languages, and it understands what you say: search sounds by voice, or let a Stream Deck key find a sound for you.
+
+<p align="center">
+  <img width="720" alt="Find sounds next to the soundboard, with a microphone button next to the search field. It lists applause sounds from MyInstants with their likes and views" src="https://raw.githubusercontent.com/voicenux/voicenux/v0.4.0/res/soundboard.png">
+</p>
+
+### Highlights
+
+- Voicenux in Spanish, French, Brazilian Portuguese, Italian, Polish, Russian and Turkish
+- Say what you look for: the microphone button in **Find sounds** fills in the search
+- Apps can find sounds and voices by what you say, like the new **Say a Sound** key of the Stream Deck plugin
+- The speech recognition runs on your computer, nothing you say goes online. It downloads the first time you use it, and **Settings** can remove it
+- A short sound when you turn the voice changer, **Hear myself**, the background or mute on or off. Only you hear it, and **Settings** has its volume
+- Your EasyEffects microphone effects run before the voice without asking. Turn it off in **Advanced settings**
+
 ## v0.3.0
 
 _2026-10-27_
