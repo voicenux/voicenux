@@ -964,8 +964,9 @@ fn sort_item(st: &St) -> popup::Item {
     }
 }
 
+/// Adds sounds. A voice file dropped here goes to Voicelab.
 fn import(st: &St, paths: &[std::path::PathBuf]) {
-    st.import_sounds(paths.to_vec());
+    st.import_files(paths.to_vec());
 }
 
 /// Objects with a text, and the name of their text property.

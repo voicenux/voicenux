@@ -64,6 +64,8 @@ pub enum Change {
         ids: Vec<String>,
         title: String,
     },
+    /// Voices came in from files, see [`State::import_voices`].
+    VoicesImported(Vec<String>),
     /// Voices of your own were deleted, the same way as [`Change::SoundRemoved`].
     VoicesRemoved {
         ids: Vec<String>,
@@ -599,6 +601,55 @@ impl State {
         let taken: Vec<&str> =
             voices.iter().map(|v| v.id.as_str()).chain(trash.iter().map(|g| g.voice.id.as_str())).collect();
         voice::new_id(name, &taken)
+    }
+
+    /// Adds voices from files that others made, each with a new id.
+    pub fn import_voices(self: &Rc<Self>, paths: &[std::path::PathBuf]) {
+        let mut added = Vec::new();
+        let mut failed = Vec::new();
+        for path in paths {
+            // A voice is a few lines: a big file is something else.
+            let read = match std::fs::metadata(path) {
+                Ok(m) if m.len() > 1_000_000 => Err(anyhow::anyhow!("too big")),
+                _ => std::fs::read_to_string(path).map_err(anyhow::Error::from),
+            };
+            match read.and_then(|text| voice::from_file(&text)) {
+                Ok(mut v) => {
+                    v.id = self.free_voice_id(&v.name);
+                    added.push(v.id.clone());
+                    self.save_custom(v);
+                }
+                Err(e) => {
+                    log::warn!("could not import {}: {e}", path.display());
+                    failed.push(path.file_name().unwrap_or_default().to_string_lossy().to_string());
+                }
+            }
+        }
+        if !failed.is_empty() {
+            let text = crate::i18n::fill(crate::i18n::t("Could not add {}"), &[&failed.join(", ")]);
+            self.notify(Change::Notice(text));
+        }
+        if !added.is_empty() {
+            self.notify(Change::VoicesImported(added));
+        }
+    }
+
+    /// Writes a voice to a file, to give to others.
+    pub fn export_voice(&self, id: &str, path: &std::path::Path) -> anyhow::Result<()> {
+        let v = self.voice(id).ok_or_else(|| anyhow::anyhow!("no voice {id}"))?;
+        std::fs::write(path, voice::to_file(&v)?)?;
+        Ok(())
+    }
+
+    /// Adds files from a drop: voices to Voicelab, the rest to the soundboard.
+    pub fn import_files(self: &Rc<Self>, paths: Vec<std::path::PathBuf>) {
+        let (voices, sounds): (Vec<_>, Vec<_>) = paths.into_iter().partition(|p| voice::is_voice_file(p));
+        if !voices.is_empty() {
+            self.import_voices(&voices);
+        }
+        if !sounds.is_empty() {
+            self.import_sounds(sounds);
+        }
     }
 
     /// A copy of any voice as a new custom voice.

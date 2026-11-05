@@ -194,6 +194,70 @@ pub fn delete_custom(dir: &Path, id: &str) {
     let _ = std::fs::remove_file(dir.join(format!("{id}.toml")));
 }
 
+/// The end of the files of voices that people give each other.
+pub const FILE_EXT: &str = "voicenux";
+
+/// At most this many effects in a voice from a file, so it can not overload the sound.
+const FILE_BLOCKS: usize = 32;
+
+/// A voice in a file, to give to others: no id, they get a new one.
+#[derive(Serialize, Deserialize)]
+struct SharedVoice {
+    name: String,
+    #[serde(default)]
+    icon: String,
+    #[serde(default, skip_serializing_if = "String::is_empty")]
+    description: String,
+    #[serde(default)]
+    blocks: Vec<BlockDef>,
+}
+
+pub fn is_voice_file(path: &Path) -> bool {
+    path.extension().is_some_and(|x| x.eq_ignore_ascii_case(FILE_EXT))
+}
+
+/// The text of a file to give a voice to others.
+pub fn to_file(v: &Voice) -> anyhow::Result<String> {
+    let shared = SharedVoice {
+        name: v.name.clone(),
+        icon: v.icon.clone(),
+        description: v.description.clone(),
+        blocks: v.blocks.clone(),
+    };
+    Ok(format!("# A voice for Voicenux. Drop this file on Voicenux to add it.\n\n{}", toml::to_string_pretty(&shared)?))
+}
+
+/// A voice from a file someone gave you. Only effects this Voicenux knows, every setting in its
+/// range, so a broken or made up file can not blast anyone's ears. The id is left empty.
+pub fn from_file(text: &str) -> anyhow::Result<Voice> {
+    let shared: SharedVoice = toml::from_str(text)?;
+    let name: String = shared.name.trim().chars().take(60).collect();
+    anyhow::ensure!(!name.is_empty(), "the voice has no name");
+    let blocks = shared
+        .blocks
+        .iter()
+        .filter_map(|b| {
+            let spec = blocks::find(&b.kind)?;
+            let mut clean = BlockDef::new(&b.kind);
+            clean.enabled = b.enabled;
+            for (p, v) in spec.params.iter().zip(b.values()) {
+                clean.set(p.key, if v.is_finite() { v } else { p.default });
+            }
+            Some(clean)
+        })
+        .take(FILE_BLOCKS)
+        .collect();
+    Ok(Voice {
+        id: String::new(),
+        name,
+        icon: shared.icon.chars().filter(|c| c.is_ascii_alphanumeric() || *c == '-' || *c == '_').take(64).collect(),
+        category: custom(),
+        description: shared.description.trim().chars().take(200).collect(),
+        blocks,
+        builtin: false,
+    })
+}
+
 /// An id for a new custom voice that no other voice has.
 pub fn new_id(name: &str, taken: &[&str]) -> String {
     let base: String = name
@@ -441,5 +505,40 @@ mod tests {
     fn ids_do_not_clash() {
         assert_eq!(new_id("Cool Voice!", &[]), "my-cool-voice");
         assert_eq!(new_id("Cool Voice", &["my-cool-voice"]), "my-cool-voice-2");
+    }
+
+    #[test]
+    fn a_shared_voice_comes_back_the_same() {
+        let baby = builtin().into_iter().find(|v| v.id == "baby").unwrap();
+        let back = from_file(&to_file(&baby).unwrap()).unwrap();
+        assert_eq!(back.name, baby.name);
+        assert_eq!(back.icon, baby.icon);
+        assert_eq!(back.category, "custom");
+        assert!(!back.builtin);
+        assert_eq!(back.block_values(), baby.block_values());
+    }
+
+    #[test]
+    fn a_made_up_voice_file_stays_safe() {
+        let text = r#"
+            name = "  Loud  "
+            icon = "../../etc/passwd"
+            [[blocks]]
+            effect = "pitch"
+            semitones = 900
+            formant = nan
+            [[blocks]]
+            effect = "from-the-future"
+        "#;
+        let v = from_file(text).unwrap();
+        assert_eq!(v.name, "Loud");
+        assert_eq!(v.icon, "etcpasswd");
+        assert_eq!(v.blocks.len(), 1, "unknown effects go");
+        let spec = blocks::find("pitch").unwrap();
+        let values = v.blocks[0].values();
+        assert!(values.iter().all(|x| x.is_finite()));
+        assert_eq!(values[spec.param_index("semitones").unwrap()], spec.params[0].max);
+        assert!(from_file("name = \"\"").is_err(), "a voice needs a name");
+        assert!(from_file("not toml at all").is_err());
     }
 }

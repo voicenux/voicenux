@@ -2386,3 +2386,27 @@ msgstr "„Zufällige Stimme“ oben bei den Stimmen. Sein Pfeil wählt aus dein
 
 msgid "Removed {} voices"
 msgstr "{} Stimmen entfernt"
+
+msgid "Import a voice"
+msgstr "Stimme importieren"
+
+msgid "Export"
+msgstr "Exportieren"
+
+msgid "Save the voice as a file to give to friends"
+msgstr "Speichere die Stimme als Datei, um sie Freunden zu geben"
+
+msgid "Voicenux voices"
+msgstr "Voicenux-Stimmen"
+
+msgid "Saved {}"
+msgstr "{} gespeichert"
+
+msgid "Could not save {}"
+msgstr "{} ließ sich nicht speichern"
+
+msgid "Added {}"
+msgstr "{} hinzugefügt"
+
+msgid "Added {} voices"
+msgstr "{} Stimmen hinzugefügt"

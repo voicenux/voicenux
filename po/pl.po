@@ -2386,3 +2386,27 @@ msgstr "„Losowy głos” na górze strony głosów. Jego strzałka wybiera z u
 
 msgid "Removed {} voices"
 msgstr "Usunięto głosy: {}"
+
+msgid "Import a voice"
+msgstr "Importuj głos"
+
+msgid "Export"
+msgstr "Eksportuj"
+
+msgid "Save the voice as a file to give to friends"
+msgstr "Zapisz głos jako plik, aby dać go znajomym"
+
+msgid "Voicenux voices"
+msgstr "Głosy Voicenux"
+
+msgid "Saved {}"
+msgstr "Zapisano: {}"
+
+msgid "Could not save {}"
+msgstr "Nie można zapisać: {}"
+
+msgid "Added {}"
+msgstr "Dodano: {}"
+
+msgid "Added {} voices"
+msgstr "Dodano głosy: {}"

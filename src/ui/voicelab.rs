@@ -4,11 +4,12 @@ use std::cell::RefCell;
 use std::rc::Rc;
 
 use adw::prelude::*;
+use gtk::gio;
 
 use super::voices::param_row;
 use super::{clear, icon, icon_picker, label, popup, smooth_scroll};
 use crate::dsp::blocks::{self, BLOCKS, Group};
-use crate::i18n::{t, t_dyn};
+use crate::i18n::{fill, t, t_dyn};
 use crate::state::{Change, St};
 use crate::voice::{BlockDef, Voice};
 
@@ -46,11 +47,26 @@ pub fn build(st: &St) -> Lab {
     header.set_title_widget(Some(&adw::WindowTitle::new(t("Voicelab"), t("Build your own voices"))));
     let list_header = adw::HeaderBar::new();
     list_header.set_show_end_title_buttons(false);
-    list_header.set_title_widget(Some(&gtk::Box::new(gtk::Orientation::Horizontal, 0)));
-    let new = gtk::Button::new();
-    new.set_child(Some(&adw::ButtonContent::builder().icon_name("list-add-symbolic").label(t("New voice")).build()));
+
+    // The arrow has the other way to a new voice: a file someone gave you.
+    let new = adw::SplitButton::builder()
+        .child(&adw::ButtonContent::builder().icon_name("list-add-symbolic").label(t("New voice")).build())
+        .dropdown_tooltip(t("More"))
+        .build();
     new.add_css_class("suggested-action");
-    list_header.pack_start(&new);
+    new.set_popover(Some(&popup::list(vec![popup::Item::new("document-open-symbolic", t("Import a voice"), {
+        let (st, new) = (st.clone(), new.downgrade());
+        move || {
+            if let Some(new) = new.upgrade() {
+                import_dialog(&st, &new);
+            }
+        }
+    })])));
+    // The button sits in the middle slot, stretched to the left: at the start, it would keep as
+    // much room free on the right for a centered title, which widens the list.
+    let slot = gtk::Box::builder().hexpand(true).build();
+    slot.append(&new);
+    list_header.set_title_widget(Some(&slot));
 
     let list = gtk::ListBox::new();
     list.add_css_class("navigation-sidebar");
@@ -89,8 +105,17 @@ pub fn build(st: &St) -> Lab {
         .build();
     let start = gtk::Button::with_label(t("New voice"));
     start.add_css_class("vn-gradient-button");
-    start.set_halign(gtk::Align::Center);
-    empty.set_child(Some(&start));
+    let import = gtk::Button::with_label(t("Import a voice"));
+    import.add_css_class("pill");
+    import.connect_clicked({
+        let st = st.clone();
+        move |b| import_dialog(&st, b)
+    });
+    let start_row = gtk::Box::new(gtk::Orientation::Horizontal, 10);
+    start_row.set_halign(gtk::Align::Center);
+    start_row.append(&start);
+    start_row.append(&import);
+    empty.set_child(Some(&start_row));
 
     let right = gtk::Stack::new();
     right.set_transition_type(gtk::StackTransitionType::Crossfade);
@@ -176,8 +201,17 @@ pub fn build(st: &St) -> Lab {
                     let (st, id, weak) = (st.clone(), v.id.clone(), r.downgrade());
                     move |x, y| {
                         let Some(r) = weak.upgrade() else { return };
-                        let (st1, st2, st3, id1, id2, id3) =
-                            (st.clone(), st.clone(), st.clone(), id.clone(), id.clone(), id.clone());
+                        let (st1, st2, st3, st4, id1, id2, id3, id4) = (
+                            st.clone(),
+                            st.clone(),
+                            st.clone(),
+                            st.clone(),
+                            id.clone(),
+                            id.clone(),
+                            id.clone(),
+                            id.clone(),
+                        );
+                        let parent = r.downgrade();
                         popup::show_list(
                             &r,
                             x,
@@ -185,6 +219,11 @@ pub fn build(st: &St) -> Lab {
                             vec![
                                 popup::Item::new("object-select-symbolic", t("Use voice"), move || st1.set_voice(&id1)),
                                 popup::Item::new("edit-copy-symbolic", t("Duplicate"), move || duplicate(&st2, &id2)),
+                                popup::Item::new("document-save-as-symbolic", t("Export"), move || {
+                                    if let Some(p) = parent.upgrade() {
+                                        export_dialog(&st4, &id4, &p);
+                                    }
+                                }),
                                 popup::Item::new("user-trash-symbolic", t("Delete"), move || {
                                     st3.delete_customs(std::slice::from_ref(&id3))
                                 })
@@ -382,6 +421,13 @@ fn fill_editor(st: &St, editor: &gtk::Box, id: &str) {
         let id = id.to_string();
         move |_| duplicate(&st, &id)
     });
+    let export = gtk::Button::with_label(t("Export"));
+    export.set_tooltip_text(Some(t("Save the voice as a file to give to friends")));
+    export.connect_clicked({
+        let st = st.clone();
+        let id = id.to_string();
+        move |b| export_dialog(&st, &id, b)
+    });
     let delete = gtk::Button::with_label(t("Delete"));
     delete.add_css_class("destructive-action");
     delete.connect_clicked({
@@ -390,6 +436,7 @@ fn fill_editor(st: &St, editor: &gtk::Box, id: &str) {
         move |_| st.delete_customs(std::slice::from_ref(&id))
     });
     actions.append(&duplicate_button);
+    actions.append(&export);
     actions.append(&delete);
     top.append(&actions);
     editor.append(&top);
@@ -419,6 +466,59 @@ fn fill_editor(st: &St, editor: &gtk::Box, id: &str) {
     add.set_margin_top(8);
     add.set_popover(Some(&effect_picker(st, editor, &v.id)));
     editor.append(&add);
+}
+
+/// Only voice files in the file dialogs.
+fn voice_filter() -> gio::ListStore {
+    let filter = gtk::FileFilter::new();
+    filter.set_name(Some(t("Voicenux voices")));
+    filter.add_suffix(crate::voice::FILE_EXT);
+    let filters = gio::ListStore::new::<gtk::FileFilter>();
+    filters.append(&filter);
+    filters
+}
+
+/// Picks voice files that others made and adds them.
+pub fn import_dialog(st: &St, parent: &impl IsA<gtk::Widget>) {
+    let dialog = gtk::FileDialog::builder().title(t("Import a voice")).filters(&voice_filter()).modal(true).build();
+    let st = st.clone();
+    let window = parent.as_ref().root().and_downcast::<gtk::Window>();
+    dialog.open_multiple(window.as_ref(), None::<&gio::Cancellable>, move |res| {
+        if let Ok(files) = res {
+            let paths: Vec<_> = files.iter::<gio::File>().flatten().filter_map(|f| f.path()).collect();
+            st.import_voices(&paths);
+        }
+    });
+}
+
+/// Saves a voice as a file, to give to others.
+fn export_dialog(st: &St, id: &str, parent: &impl IsA<gtk::Widget>) {
+    let Some(v) = st.voice(id) else { return };
+    // Slashes would make a folder of the name.
+    let stem = v.name.replace(['/', '\\'], "-");
+    let dialog = gtk::FileDialog::builder()
+        .title(t("Export"))
+        .initial_name(format!("{stem}.{}", crate::voice::FILE_EXT))
+        .filters(&voice_filter())
+        .modal(true)
+        .build();
+    let (st, id) = (st.clone(), id.to_string());
+    let window = parent.as_ref().root().and_downcast::<gtk::Window>();
+    dialog.save(window.as_ref(), None::<&gio::Cancellable>, move |res| {
+        let Some(mut path) = res.ok().and_then(|f| f.path()) else { return };
+        if !crate::voice::is_voice_file(&path) {
+            path.as_mut_os_string().push(format!(".{}", crate::voice::FILE_EXT));
+        }
+        let file = path.file_name().unwrap_or_default().to_string_lossy().to_string();
+        let text = match st.export_voice(&id, &path) {
+            Ok(()) => fill(t("Saved {}"), &[&file]),
+            Err(e) => {
+                log::warn!("could not export {}: {e}", path.display());
+                fill(t("Could not save {}"), &[&file])
+            }
+        };
+        st.notify(Change::Notice(text));
+    });
 }
 
 /// Makes a copy of a voice and opens it.

@@ -2386,3 +2386,27 @@ msgstr "“Voce casuale” in cima alla pagina delle voci. La sua freccia scegli
 
 msgid "Removed {} voices"
 msgstr "{} voci rimosse"
+
+msgid "Import a voice"
+msgstr "Importa una voce"
+
+msgid "Export"
+msgstr "Esporta"
+
+msgid "Save the voice as a file to give to friends"
+msgstr "Salva la voce come file da dare ai tuoi amici"
+
+msgid "Voicenux voices"
+msgstr "Voci di Voicenux"
+
+msgid "Saved {}"
+msgstr "{} salvato"
+
+msgid "Could not save {}"
+msgstr "Impossibile salvare {}"
+
+msgid "Added {}"
+msgstr "{} aggiunto"
+
+msgid "Added {} voices"
+msgstr "{} voci aggiunte"

@@ -207,6 +207,7 @@ pub fn start(st: &St) {
                     | Change::Sounds
                     | Change::SoundRemoved { .. }
                     | Change::VoicesRemoved { .. }
+                    | Change::VoicesImported(_)
             ) {
                 send(0, "state", state(&st));
             }

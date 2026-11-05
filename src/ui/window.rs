@@ -6,7 +6,7 @@ use adw::prelude::*;
 use gtk::{gdk, glib};
 
 use super::{bottombar, label, logo, settings, soundboard, voicelab, voices};
-use crate::i18n::{t, t_dyn};
+use crate::i18n::{fill, t, t_dyn};
 use crate::state::{Change, St};
 
 #[derive(Clone)]
@@ -359,6 +359,35 @@ pub fn build(app: &adw::Application, st: &St) -> Window {
     // Typing anywhere searches voices.
     voices_page.search.set_key_capture_widget(Some(&voices_page.widget));
 
+    // Files dropped on any page go where they belong: voices to Voicelab, sounds to the
+    // soundboard. The soundboard has its own drop, with its own look.
+    let drop = gtk::DropTarget::new(gdk::FileList::static_type(), gdk::DragAction::COPY);
+    drop.connect_drop({
+        let win = win.clone();
+        move |_, value, _, _| {
+            win.stack.remove_css_class("vn-drop");
+            let Ok(list) = value.get::<gdk::FileList>() else { return false };
+            let paths: Vec<_> = list.files().iter().filter_map(|f| f.path()).collect();
+            if paths.iter().any(|p| !crate::voice::is_voice_file(p)) {
+                win.show_page("soundboard");
+            }
+            win.st.import_files(paths);
+            true
+        }
+    });
+    drop.connect_enter({
+        let stack = win.stack.clone();
+        move |_, _, _| {
+            stack.add_css_class("vn-drop");
+            gdk::DragAction::COPY
+        }
+    });
+    drop.connect_leave({
+        let stack = win.stack.clone();
+        move |_| stack.remove_css_class("vn-drop")
+    });
+    win.stack.add_controller(drop);
+
     window.add_tick_callback({
         let st = st.clone();
         move |_, clock| {
@@ -392,6 +421,16 @@ pub fn build(app: &adw::Application, st: &St) -> Window {
             Change::SoundRemoved { ids, title } => {
                 let (st1, st2) = (win.st.clone(), win.st.clone());
                 win.undo_toast(title, ids, move |id| st1.undo_remove(id), move |id| st2.forget_removed(id));
+            }
+            // New voices from files open in Voicelab, where you see what they are.
+            Change::VoicesImported(ids) => {
+                let Some(last) = ids.last() else { return };
+                win.show_page("voicelab");
+                win.lab.open(last);
+                win.toast(&match ids.as_slice() {
+                    [id] => fill(t("Added {}"), &[&win.st.voice(id).map(|v| v.name).unwrap_or_default()]),
+                    _ => fill(t("Added {} voices"), &[&ids.len().to_string()]),
+                });
             }
             Change::VoicesRemoved { ids, title } => {
                 let (st1, st2) = (win.st.clone(), win.st.clone());

@@ -2386,3 +2386,27 @@ msgstr "Ses sayfasının üstünde “Rastgele ses”. Oku favorilerinden seçer
 
 msgid "Removed {} voices"
 msgstr "{} ses kaldırıldı"
+
+msgid "Import a voice"
+msgstr "Ses içe aktar"
+
+msgid "Export"
+msgstr "Dışa aktar"
+
+msgid "Save the voice as a file to give to friends"
+msgstr "Sesi arkadaşlarına vermek için dosya olarak kaydet"
+
+msgid "Voicenux voices"
+msgstr "Voicenux sesleri"
+
+msgid "Saved {}"
+msgstr "{} kaydedildi"
+
+msgid "Could not save {}"
+msgstr "{} kaydedilemedi"
+
+msgid "Added {}"
+msgstr "{} eklendi"
+
+msgid "Added {} voices"
+msgstr "{} ses eklendi"

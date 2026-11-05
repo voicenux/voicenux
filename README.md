@@ -132,7 +132,8 @@ out sounds that are not speech: Voicenux shows you what to change there.
 </p>
 
 Build your own voice from 26 effects, like pitch, robot, auto-tune, echo, reverb and AI voices.
-**Customize** on a voice starts from that one.
+**Customize** on a voice starts from that one. **Export** saves it as a file for your friends: they
+drop it on Voicenux to add it.
 
 </details>
 

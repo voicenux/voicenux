@@ -763,6 +763,14 @@ pub fn build(st: &St, open_lab: OpenLab) -> VoicesPage {
                 st1.set_voice(&v.id);
                 open_lab(&v.id);
             }));
+            items.push(popup::Item::new("document-open-symbolic", t("Import a voice"), {
+                let (st, scroll) = (st.clone(), scroll.downgrade());
+                move || {
+                    if let Some(scroll) = scroll.upgrade() {
+                        super::voicelab::import_dialog(&st, &scroll);
+                    }
+                }
+            }));
             items.push(popup::Item::new("media-playlist-shuffle-symbolic", t("Random voice"), move || {
                 st2.random_voice(false);
             }));

@@ -2386,3 +2386,27 @@ msgstr "«Случайный голос» вверху страницы голо
 
 msgid "Removed {} voices"
 msgstr "Удалено голосов: {}"
+
+msgid "Import a voice"
+msgstr "Импортировать голос"
+
+msgid "Export"
+msgstr "Экспортировать"
+
+msgid "Save the voice as a file to give to friends"
+msgstr "Сохрани голос в файл, чтобы поделиться им с друзьями"
+
+msgid "Voicenux voices"
+msgstr "Голоса Voicenux"
+
+msgid "Saved {}"
+msgstr "Сохранено: {}"
+
+msgid "Could not save {}"
+msgstr "Не удалось сохранить {}"
+
+msgid "Added {}"
+msgstr "Добавлено: {}"
+
+msgid "Added {} voices"
+msgstr "Добавлено голосов: {}"

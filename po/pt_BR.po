@@ -2386,3 +2386,27 @@ msgstr "“Voz aleatória” no topo da página de vozes. A seta dele escolhe en
 
 msgid "Removed {} voices"
 msgstr "{} vozes removidas"
+
+msgid "Import a voice"
+msgstr "Importar uma voz"
+
+msgid "Export"
+msgstr "Exportar"
+
+msgid "Save the voice as a file to give to friends"
+msgstr "Salve a voz como arquivo para dar aos seus amigos"
+
+msgid "Voicenux voices"
+msgstr "Vozes do Voicenux"
+
+msgid "Saved {}"
+msgstr "{} salvo"
+
+msgid "Could not save {}"
+msgstr "Não foi possível salvar {}"
+
+msgid "Added {}"
+msgstr "{} adicionado"
+
+msgid "Added {} voices"
+msgstr "{} vozes adicionadas"
