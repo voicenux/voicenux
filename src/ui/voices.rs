@@ -1146,7 +1146,6 @@ struct Detail {
     name: gtk::Label,
     about: gtk::Label,
     fav: gtk::Button,
-    fav_state: gtk::Stack,
     params: gtk::Box,
     key_slot: gtk::Box,
     /// Says that you changed the voice, with the way back.
@@ -1173,40 +1172,49 @@ impl Detail {
         let name = label("", &["vn-detail-name"]);
         name.set_wrap(true);
         name.set_justify(gtk::Justification::Center);
+        // The star sits next to the name, like on the cards. The same width on the other side
+        // keeps the name in the middle.
+        let fav = gtk::Button::from_icon_name("non-starred-symbolic");
+        fav.add_css_class("flat");
+        fav.add_css_class("circular");
+        fav.add_css_class("vn-fav");
+        fav.set_valign(gtk::Align::Center);
+        let balance = gtk::Box::new(gtk::Orientation::Horizontal, 0);
+        let same = gtk::SizeGroup::new(gtk::SizeGroupMode::Horizontal);
+        same.add_widget(&fav);
+        same.add_widget(&balance);
+        let name_row = gtk::Box::new(gtk::Orientation::Horizontal, 4);
+        name_row.set_halign(gtk::Align::Center);
+        name_row.append(&balance);
+        name_row.append(&name);
+        name_row.append(&fav);
         let about = label("", &["dim-label"]);
         about.set_wrap(true);
         about.set_justify(gtk::Justification::Center);
         about.set_max_width_chars(30);
         inner.append(&cat);
-        inner.append(&name);
+        inner.append(&name_row);
         inner.append(&about);
 
-        let buttons = gtk::Box::new(gtk::Orientation::Horizontal, 8);
-        buttons.set_halign(gtk::Align::Center);
-        buttons.set_margin_top(10);
-        // Both labels in a stack: the button keeps the width of the longer one, nothing jumps.
-        let fav_state = gtk::Stack::new();
-        fav_state.set_transition_type(gtk::StackTransitionType::Crossfade);
-        for (name, icon, text) in
-            [("off", "non-starred-symbolic", t("Add to favorites")), ("on", "starred-symbolic", t("Favorite"))]
-        {
-            fav_state.add_named(&adw::ButtonContent::builder().icon_name(icon).label(text).build(), Some(name));
-        }
-        let fav = gtk::Button::builder().child(&fav_state).build();
-        fav.add_css_class("pill");
-        fav.add_css_class("image-text-button");
-        fav.add_css_class("vn-fav");
+        // In one row when they fit, else the second one goes under the first. Either way they fill
+        // the width, in line with the settings below.
+        let buttons = adw::WrapBox::builder()
+            .child_spacing(8)
+            .line_spacing(8)
+            .justify(adw::JustifyMode::Fill)
+            .justify_last_line(true)
+            .margin_top(10)
+            .build();
         let lab = gtk::Button::new();
         lab.add_css_class("pill");
         lab.set_child(Some(
             &adw::ButtonContent::builder().icon_name("applications-science-symbolic").label(t("Customize")).build(),
         ));
-        buttons.append(&fav);
+        // Homogeneous, so its button fills it like the other one.
+        let key_slot = gtk::Box::builder().homogeneous(true).build();
         buttons.append(&lab);
+        buttons.append(&key_slot);
         inner.append(&buttons);
-        let key_slot = gtk::Box::new(gtk::Orientation::Horizontal, 0);
-        key_slot.set_halign(gtk::Align::Center);
-        inner.append(&key_slot);
 
         let head = gtk::Box::new(gtk::Orientation::Horizontal, 6);
         head.set_margin_top(18);
@@ -1267,7 +1275,6 @@ impl Detail {
             name,
             about,
             fav: fav.clone(),
-            fav_state,
             params,
             key_slot,
             tweaked,
@@ -1350,7 +1357,10 @@ impl Detail {
     fn toggles(&self) {
         let id = self.shown.borrow().clone();
         let fav = self.st.is_favorite(&id);
-        self.fav_state.set_visible_child_name(if fav { "on" } else { "off" });
+        self.fav.set_icon_name(if fav { "starred-symbolic" } else { "non-starred-symbolic" });
+        let tip = if fav { t("Remove from favorites") } else { t("Add to favorites") };
+        self.fav.set_tooltip_text(Some(tip));
+        self.fav.update_property(&[gtk::accessible::Property::Label(tip)]);
         if fav {
             self.fav.add_css_class("on");
         } else {
