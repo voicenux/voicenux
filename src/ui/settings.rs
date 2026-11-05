@@ -430,7 +430,9 @@ pub fn build(st: &St, window: &adw::ApplicationWindow) -> SettingsPage {
     ));
     let cues = adw::SwitchRow::builder()
         .title(t("Switch sounds"))
-        .subtitle(t("A short sound when you turn something on or off, like the voice changer. Only you hear it."))
+        .subtitle(t(
+            "A short sound when you turn something on or off, or a shortcut changes your voice. Only you hear it.",
+        ))
         .active(c.switch_sounds)
         .build();
     let cue_volume = scale_row(

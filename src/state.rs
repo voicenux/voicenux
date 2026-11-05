@@ -808,12 +808,24 @@ impl State {
 
     /// The sound of a switch turning on or off, at its volume in Settings. Only you hear it.
     pub fn play_cue(&self, on: bool) {
-        let Some([on_cue, off_cue]) = soundboard::cues() else { return };
+        let Some([on_cue, off_cue, _]) = soundboard::cues() else { return };
+        self.play_feedback(if on { on_cue } else { off_cue });
+    }
+
+    /// Two short sounds going up, when a shortcut, the tray or an app changed the voice: so you
+    /// know it worked, even in a game. Unless the switch sounds are off in Settings.
+    pub fn voice_cue(&self) {
+        let Some([_, _, voice]) = soundboard::cues() else { return };
+        if self.config.borrow().switch_sounds {
+            self.play_feedback(voice);
+        }
+    }
+
+    fn play_feedback(&self, data: &Arc<SoundData>) {
         let c = self.config.borrow();
         // Previews play at the soundboard volume: make up for it.
         let volume = c.switch_volume * CUE_GAIN / c.sound_volume.max(0.1);
-        let data = if on { on_cue } else { off_cue }.clone();
-        self.engine.rt(RtCmd::Play { id: CUE, data, volume, restart: true, preview: true });
+        self.engine.rt(RtCmd::Play { id: CUE, data: data.clone(), volume, restart: true, preview: true });
     }
 
     /// An app listens to your microphone, like to find a sound by what you say. Others do not

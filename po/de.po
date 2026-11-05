@@ -422,8 +422,8 @@ msgstr "Die Spracherkennung hat nicht geklappt. Bist du online?"
 msgid "Switch sounds"
 msgstr "Schaltgeräusche"
 
-msgid "A short sound when you turn something on or off, like the voice changer. Only you hear it."
-msgstr "Ein kurzer Ton, wenn du etwas an- oder ausschaltest, etwa den Stimmverzerrer. Nur du hörst ihn."
+msgid "A short sound when you turn something on or off, or a shortcut changes your voice. Only you hear it."
+msgstr "Ein kurzer Ton, wenn du etwas an- oder ausschaltest oder ein Tastenkürzel deine Stimme wechselt. Nur du hörst ihn."
 
 msgid "Shortcuts"
 msgstr "Tastenkürzel"

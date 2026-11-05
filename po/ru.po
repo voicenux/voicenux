@@ -422,8 +422,8 @@ msgstr "Распознавание речи не сработало. Есть и
 msgid "Switch sounds"
 msgstr "Звуки переключения"
 
-msgid "A short sound when you turn something on or off, like the voice changer. Only you hear it."
-msgstr "Короткий звук, когда ты что-то включаешь или выключаешь, например модулятор голоса. Его слышишь только ты."
+msgid "A short sound when you turn something on or off, or a shortcut changes your voice. Only you hear it."
+msgstr "Короткий звук, когда ты что-то включаешь или выключаешь или сочетание клавиш меняет твой голос. Его слышишь только ты."
 
 msgid "Shortcuts"
 msgstr "Горячие клавиши"

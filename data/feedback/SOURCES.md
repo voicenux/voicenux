@@ -7,3 +7,4 @@ domain). Made deeper, softer and shorter for Voicenux by `scripts/feedback.sh`.
 |---|---|
 | on.ogg | drop_003.ogg, a sixth lower |
 | off.ogg | drop_003.ogg, more than an octave lower |
+| voice.ogg | on.ogg, then on.ogg a fourth higher 70 ms later |

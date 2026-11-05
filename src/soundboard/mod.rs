@@ -362,13 +362,17 @@ pub fn delete_file(sound: &Sound) {
 
 impl Library {}
 
-/// The sounds of the switches, on and off: Kenney's Interface Sounds (CC0), see
+/// The sounds of the switches, on and off, and of a new voice: Kenney's Interface Sounds (CC0), see
 /// `data/feedback/SOURCES.md`. None if they do not decode, which a test rules out.
-pub fn cues() -> Option<&'static [Arc<SoundData>; 2]> {
-    static CUES: std::sync::OnceLock<Option<[Arc<SoundData>; 2]>> = std::sync::OnceLock::new();
+pub fn cues() -> Option<&'static [Arc<SoundData>; 3]> {
+    static CUES: std::sync::OnceLock<Option<[Arc<SoundData>; 3]>> = std::sync::OnceLock::new();
     CUES.get_or_init(|| {
         let cue = |bytes: &[u8]| decode_bytes(bytes.to_vec(), "ogg").ok().map(Arc::new);
-        Some([cue(include_bytes!("../../data/feedback/on.ogg"))?, cue(include_bytes!("../../data/feedback/off.ogg"))?])
+        Some([
+            cue(include_bytes!("../../data/feedback/on.ogg"))?,
+            cue(include_bytes!("../../data/feedback/off.ogg"))?,
+            cue(include_bytes!("../../data/feedback/voice.ogg"))?,
+        ])
     })
     .as_ref()
 }
@@ -647,8 +651,7 @@ mod tests {
 
     #[test]
     fn the_sounds_of_the_switches_are_short() {
-        let [on, off] = cues().expect("they decode");
-        for cue in [on, off] {
+        for cue in cues().expect("they decode") {
             assert!((0.05..0.15).contains(&cue.seconds()), "{}", cue.seconds());
             let peak = cue.frames.iter().fold(0f32, |p, [l, r]| p.max(l.abs()).max(r.abs()));
             assert!((0.3..0.7).contains(&peak), "audible, but soft: {peak}");

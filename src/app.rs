@@ -129,6 +129,7 @@ impl Ctx {
     }
 
     fn voice_note(self: &Rc<Self>) {
+        self.st.voice_cue();
         let name = t_dyn(&self.st.current().name);
         if self.window_visible() {
             self.st.notify(Change::Notice(fill(t("Voice: {}"), &[&name])));

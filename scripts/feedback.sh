@@ -5,7 +5,8 @@
 # folder. Needs ffmpeg with libvorbis.
 #
 # Both are one soft "tock", played slower so it is deeper: a little higher for on, lower for off.
-# The highs go, and it ends after 90 ms, so it does not get in the way.
+# The highs go, and it ends after 90 ms, so it does not get in the way. A new voice is the on
+# sound and a fourth higher right after it, "tock-tock".
 set -eu
 [ $# -eq 1 ] || { echo "usage: $0 <Audio folder of Interface Sounds>" >&2; exit 1; }
 out="$(dirname "$0")/../data/feedback"
@@ -16,3 +17,6 @@ for pair in "on 28800" "off 21600"; do
 		-af "aformat=channel_layouts=mono,asetrate=$2,aresample=48000,lowpass=f=1800,afade=t=in:d=0.002,afade=t=out:st=0.05:d=0.04,atrim=0:0.09,volume=-7.9dB" \
 		-c:a libvorbis -q:a 4 "$out/$1.ogg"
 done
+ffmpeg -nostdin -v error -y -i "$out/on.ogg" \
+	-filter_complex "[0:a]asplit[a][b];[b]asetrate=64000,aresample=48000,adelay=70[c];[a][c]amix=inputs=2:normalize=0:duration=longest" \
+	-c:a libvorbis -q:a 4 "$out/voice.ogg"

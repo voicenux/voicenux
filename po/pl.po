@@ -422,8 +422,8 @@ msgstr "Rozpoznawanie mowy nie zadziałało. Masz internet?"
 msgid "Switch sounds"
 msgstr "Dźwięki przełączania"
 
-msgid "A short sound when you turn something on or off, like the voice changer. Only you hear it."
-msgstr "Krótki dźwięk, gdy coś włączasz lub wyłączasz, na przykład zmieniacz głosu. Słyszysz go tylko ty."
+msgid "A short sound when you turn something on or off, or a shortcut changes your voice. Only you hear it."
+msgstr "Krótki dźwięk, gdy coś włączasz lub wyłączasz albo skrót zmienia twój głos. Słyszysz go tylko ty."
 
 msgid "Shortcuts"
 msgstr "Skróty"

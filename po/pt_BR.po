@@ -422,8 +422,8 @@ msgstr "O reconhecimento de fala não funcionou. Você está online?"
 msgid "Switch sounds"
 msgstr "Sons de interruptor"
 
-msgid "A short sound when you turn something on or off, like the voice changer. Only you hear it."
-msgstr "Um som curto quando você liga ou desliga algo, como o modificador de voz. Só você ouve."
+msgid "A short sound when you turn something on or off, or a shortcut changes your voice. Only you hear it."
+msgstr "Um som curto quando você liga ou desliga algo, ou quando um atalho troca sua voz. Só você ouve."
 
 msgid "Shortcuts"
 msgstr "Atalhos"
