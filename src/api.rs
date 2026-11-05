@@ -200,7 +200,14 @@ pub fn start(st: &St) {
                 Change::Sounds => send(2, "sounds", sounds(&st)),
                 _ => {}
             }
-            if !matches!(c, Change::Notice(_) | Change::Api | Change::Sounds | Change::SoundRemoved { .. }) {
+            if !matches!(
+                c,
+                Change::Notice(_)
+                    | Change::Api
+                    | Change::Sounds
+                    | Change::SoundRemoved { .. }
+                    | Change::VoicesRemoved { .. }
+            ) {
                 send(0, "state", state(&st));
             }
         }

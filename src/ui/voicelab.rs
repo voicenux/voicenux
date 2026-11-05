@@ -8,7 +8,7 @@ use adw::prelude::*;
 use super::voices::param_row;
 use super::{clear, icon, icon_picker, label, popup, smooth_scroll};
 use crate::dsp::blocks::{self, BLOCKS, Group};
-use crate::i18n::{fill, t, t_dyn};
+use crate::i18n::{t, t_dyn};
 use crate::state::{Change, St};
 use crate::voice::{BlockDef, Voice};
 
@@ -173,12 +173,11 @@ pub fn build(st: &St) -> Lab {
                 r.set_child(Some(&row));
                 r.set_widget_name(&v.id);
                 popup::context(&r, {
-                    let (st, id, name, weak) = (st.clone(), v.id.clone(), v.name.clone(), r.downgrade());
+                    let (st, id, weak) = (st.clone(), v.id.clone(), r.downgrade());
                     move |x, y| {
                         let Some(r) = weak.upgrade() else { return };
-                        let (st1, st2, st3, id1, id2, id3, name) =
-                            (st.clone(), st.clone(), st.clone(), id.clone(), id.clone(), id.clone(), name.clone());
-                        let parent = r.downgrade();
+                        let (st1, st2, st3, id1, id2, id3) =
+                            (st.clone(), st.clone(), st.clone(), id.clone(), id.clone(), id.clone());
                         popup::show_list(
                             &r,
                             x,
@@ -187,9 +186,7 @@ pub fn build(st: &St) -> Lab {
                                 popup::Item::new("object-select-symbolic", t("Use voice"), move || st1.set_voice(&id1)),
                                 popup::Item::new("edit-copy-symbolic", t("Duplicate"), move || duplicate(&st2, &id2)),
                                 popup::Item::new("user-trash-symbolic", t("Delete"), move || {
-                                    if let Some(p) = parent.upgrade() {
-                                        ask_delete(&st3, &id3, &name, &p);
-                                    }
+                                    st3.delete_customs(std::slice::from_ref(&id3))
                                 })
                                 .danger(),
                             ],
@@ -390,8 +387,7 @@ fn fill_editor(st: &St, editor: &gtk::Box, id: &str) {
     delete.connect_clicked({
         let st = st.clone();
         let id = id.to_string();
-        let vname = v.name.clone();
-        move |b| ask_delete(&st, &id, &vname, b)
+        move |_| st.delete_customs(std::slice::from_ref(&id))
     });
     actions.append(&duplicate_button);
     actions.append(&delete);
@@ -423,23 +419,6 @@ fn fill_editor(st: &St, editor: &gtk::Box, id: &str) {
     add.set_margin_top(8);
     add.set_popover(Some(&effect_picker(st, editor, &v.id)));
     editor.append(&add);
-}
-
-/// Asks before a voice of your own is deleted.
-fn ask_delete(st: &St, id: &str, name: &str, parent: &impl IsA<gtk::Widget>) {
-    let dialog = adw::AlertDialog::new(Some(&fill(t("Delete {}?"), &[name])), Some(t("The voice is gone for good.")));
-    dialog.add_response("cancel", t("Cancel"));
-    dialog.add_response("delete", t("Delete"));
-    dialog.set_response_appearance("delete", adw::ResponseAppearance::Destructive);
-    dialog.set_default_response(Some("cancel"));
-    let st = st.clone();
-    let id = id.to_string();
-    dialog.connect_response(None, move |_, r| {
-        if r == "delete" {
-            st.delete_custom(&id);
-        }
-    });
-    dialog.present(Some(parent));
 }
 
 /// Makes a copy of a voice and opens it.

@@ -655,19 +655,13 @@ pub fn build(st: &St, open_lab: OpenLab) -> VoicesPage {
         }
     });
     let delete_picks: Rc<dyn Fn()> = Rc::new({
-        let (st, shelf, picks, sync_picks, widget) =
-            (st.clone(), shelf.clone(), picks.clone(), sync_picks.clone(), widget.downgrade());
+        let (st, shelf, picks, sync_picks) = (st.clone(), shelf.clone(), picks.clone(), sync_picks.clone());
         move || {
             let own: Vec<String> =
                 picks.in_order(&shelf).into_iter().filter(|id| st.voice(id).is_some_and(|v| !v.builtin)).collect();
-            let Some(parent) = widget.upgrade() else { return };
-            ask_delete_voices(&st, &own, &parent, {
-                let (picks, sync_picks) = (picks.clone(), sync_picks.clone());
-                move || {
-                    picks.clear();
-                    sync_picks();
-                }
-            });
+            st.delete_customs(&own);
+            picks.clear();
+            sync_picks();
         }
     });
     done.connect_clicked({
@@ -969,31 +963,6 @@ fn use_voice(st: &St, id: &str) {
     let missing =
         st.voice(id).and_then(|v| crate::ai::model_of(&v.block_values())).is_some_and(|m| !crate::ai::ready(m));
     if on && !missing { st.set_voice_on(false) } else { st.set_voice(id) }
-}
-
-/// Asks before your own voices go for good, then deletes them. `done` runs after.
-fn ask_delete_voices(st: &St, ids: &[String], parent: &impl IsA<gtk::Widget>, done: impl Fn() + 'static) {
-    let heading = match ids {
-        [] => return,
-        [id] => fill(t("Delete {}?"), &[&st.voice(id).map(|v| t_dyn(&v.name)).unwrap_or_default()]),
-        _ => fill(t("Delete {} voices?"), &[&ids.len().to_string()]),
-    };
-    let body = if ids.len() == 1 { t("The voice is gone for good.") } else { t("They are gone for good.") };
-    let dialog = adw::AlertDialog::new(Some(&heading), Some(body));
-    dialog.add_response("cancel", t("Cancel"));
-    dialog.add_response("delete", t("Delete"));
-    dialog.set_response_appearance("delete", adw::ResponseAppearance::Destructive);
-    dialog.set_default_response(Some("cancel"));
-    let (st, ids) = (st.clone(), ids.to_vec());
-    dialog.connect_response(None, move |_, r| {
-        if r == "delete" {
-            for id in &ids {
-                st.delete_custom(id);
-            }
-            done();
-        }
-    });
-    dialog.present(Some(parent));
 }
 
 fn refresh_card(c: &Card, v: &Voice) {

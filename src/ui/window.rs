@@ -61,6 +61,29 @@ impl Window {
         self.toast.add_toast(toast);
     }
 
+    /// A note with Undo for things that went. `forget` runs for each once the note is gone.
+    fn undo_toast(&self, title: &str, ids: &[String], undo: impl Fn(&str) + 'static, forget: impl Fn(&str) + 'static) {
+        let toast = adw::Toast::builder().title(title).button_label(t("Undo")).timeout(6).build();
+        // Back in the other order, so each one finds its old place again.
+        toast.connect_button_clicked({
+            let ids = ids.to_vec();
+            move |_| {
+                for id in ids.iter().rev() {
+                    undo(id);
+                }
+            }
+        });
+        toast.connect_dismissed({
+            let ids = ids.to_vec();
+            move |_| {
+                for id in &ids {
+                    forget(id);
+                }
+            }
+        });
+        self.toast.add_toast(toast);
+    }
+
     /// Keys that work on every page. Menus and dialogs keep their own keys.
     fn key(&self, event: Option<gdk::Event>, key: gdk::Key, mods: gdk::ModifierType) -> glib::Propagation {
         if self.window.visible_dialog().is_some() || event.and_then(|e| e.surface()) != self.window.surface() {
@@ -128,9 +151,14 @@ impl Window {
                 self.lab.new_voice();
             }
             gdk::Key::question | gdk::Key::slash => super::help::show(&self.window),
-            // Brings back the sound removed last, while its note is up.
+            // Brings back the sound or voice removed last, while its note is up.
             gdk::Key::z if page == "soundboard" => {
                 if !st.undo_last_remove() {
+                    return glib::Propagation::Proceed;
+                }
+            }
+            gdk::Key::z if page == "voices" || page == "voicelab" => {
+                if !st.undo_last_voice_delete() {
                     return glib::Propagation::Proceed;
                 }
             }
@@ -362,25 +390,12 @@ pub fn build(app: &adw::Application, st: &St) -> Window {
                 }
             }
             Change::SoundRemoved { ids, title } => {
-                let toast = adw::Toast::builder().title(title).button_label(t("Undo")).timeout(6).build();
-                // Back in the other order, so each one finds its old place again.
-                toast.connect_button_clicked({
-                    let (st, ids) = (win.st.clone(), ids.clone());
-                    move |_| {
-                        for id in ids.iter().rev() {
-                            st.undo_remove(id);
-                        }
-                    }
-                });
-                toast.connect_dismissed({
-                    let (st, ids) = (win.st.clone(), ids.clone());
-                    move |_| {
-                        for id in &ids {
-                            st.forget_removed(id);
-                        }
-                    }
-                });
-                win.toast.add_toast(toast);
+                let (st1, st2) = (win.st.clone(), win.st.clone());
+                win.undo_toast(title, ids, move |id| st1.undo_remove(id), move |id| st2.forget_removed(id));
+            }
+            Change::VoicesRemoved { ids, title } => {
+                let (st1, st2) = (win.st.clone(), win.st.clone());
+                win.undo_toast(title, ids, move |id| st1.undo_delete_voice(id), move |id| st2.forget_voice(id));
             }
             Change::Engine(err) => match err {
                 Some(e) => {

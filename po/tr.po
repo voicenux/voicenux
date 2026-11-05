@@ -287,12 +287,6 @@ msgstr "Çoğalt"
 msgid "Delete"
 msgstr "Sil"
 
-msgid "Delete {}?"
-msgstr "{} silinsin mi?"
-
-msgid "The voice is gone for good."
-msgstr "Ses tamamen silinir."
-
 msgid "Cancel"
 msgstr "İptal"
 
@@ -2132,12 +2126,6 @@ msgstr "1 ses"
 msgid "{} voices"
 msgstr "{} ses"
 
-msgid "Delete {} voices?"
-msgstr "{} ses silinsin mi?"
-
-msgid "They are gone for good."
-msgstr "Tamamen silinirler."
-
 msgid "You changed this voice"
 msgstr "Bu sesi değiştirdin"
 
@@ -2395,3 +2383,6 @@ msgstr "“Rastgele ses” düğmesi"
 
 msgid "Random voice at the top of the voice page. Its arrow picks out of your favorites. Ctrl+R works without it."
 msgstr "Ses sayfasının üstünde “Rastgele ses”. Oku favorilerinden seçer. Ctrl+R onsuz da çalışır."
+
+msgid "Removed {} voices"
+msgstr "{} ses kaldırıldı"

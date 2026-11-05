@@ -287,12 +287,6 @@ msgstr "Duplizieren"
 msgid "Delete"
 msgstr "Löschen"
 
-msgid "Delete {}?"
-msgstr "{} löschen?"
-
-msgid "The voice is gone for good."
-msgstr "Die Stimme ist dann endgültig weg."
-
 msgid "Cancel"
 msgstr "Abbrechen"
 
@@ -2132,12 +2126,6 @@ msgstr "1 Stimme"
 msgid "{} voices"
 msgstr "{} Stimmen"
 
-msgid "Delete {} voices?"
-msgstr "{} Stimmen löschen?"
-
-msgid "They are gone for good."
-msgstr "Sie sind dann für immer weg."
-
 msgid "You changed this voice"
 msgstr "Du hast diese Stimme angepasst"
 
@@ -2395,3 +2383,6 @@ msgstr "Knopf „Zufällige Stimme“"
 
 msgid "Random voice at the top of the voice page. Its arrow picks out of your favorites. Ctrl+R works without it."
 msgstr "„Zufällige Stimme“ oben bei den Stimmen. Sein Pfeil wählt aus deinen Favoriten. Strg+R geht auch ohne ihn."
+
+msgid "Removed {} voices"
+msgstr "{} Stimmen entfernt"

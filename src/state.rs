@@ -24,6 +24,16 @@ const CUE_GAIN: f32 = 0.5;
 /// How long an app may listen to you at most. Then others hear you again.
 const LISTEN_MAX: std::time::Duration = std::time::Duration::from_secs(15);
 
+/// A voice of your own that was deleted, kept with where it was for Undo.
+struct GoneVoice {
+    voice: Voice,
+    favorite: Option<usize>,
+    folder: Option<String>,
+    order: Option<usize>,
+    /// It was the voice in use.
+    current: bool,
+}
+
 /// An app listens to your microphone, see [`State::listen`].
 struct Listening {
     ring: rtrb::Consumer<f32>,
@@ -51,6 +61,11 @@ pub enum Change {
     VoiceShelf,
     /// Sounds were removed, with the text for the note. They can come back until it is gone.
     SoundRemoved {
+        ids: Vec<String>,
+        title: String,
+    },
+    /// Voices of your own were deleted, the same way as [`Change::SoundRemoved`].
+    VoicesRemoved {
         ids: Vec<String>,
         title: String,
     },
@@ -122,6 +137,8 @@ pub struct State {
     sound_ids: RefCell<HashMap<String, u32>>,
     /// Removed sounds and where they were, kept for Undo. Their files go when the note goes.
     trash: RefCell<Vec<(usize, soundboard::Sound)>>,
+    /// Deleted voices of your own, kept for Undo while the note is up.
+    voice_trash: RefCell<Vec<GoneVoice>>,
     save_source: RefCell<Option<glib::SourceId>>,
 }
 
@@ -168,6 +185,7 @@ impl State {
             loading: RefCell::default(),
             sound_ids: RefCell::default(),
             trash: RefCell::default(),
+            voice_trash: RefCell::default(),
             save_source: RefCell::default(),
         });
         st.push_all();
@@ -494,36 +512,105 @@ impl State {
         self.notify(if added { Change::Voices } else { Change::VoiceEdited(v.id.clone()) });
     }
 
-    pub fn delete_custom(self: &Rc<Self>, id: &str) {
-        voice::delete_custom(&voice::custom_dir(), id);
-        self.voices.borrow_mut().retain(|v| v.id != id);
-        {
+    /// Deletes voices of your own, with one note for all of them. Undo brings them back.
+    pub fn delete_customs(self: &Rc<Self>, ids: &[String]) {
+        let mut gone = Vec::new();
+        for id in ids {
+            let Some(voice) = self.voice(id).filter(|v| !v.builtin) else { continue };
+            voice::delete_custom(&voice::custom_dir(), id);
+            self.voices.borrow_mut().retain(|v| v.id != *id);
             let mut c = self.config.borrow_mut();
+            let favorite = c.favorites.iter().position(|f| f == id);
+            let order = c.voice_order.iter().position(|o| o == id);
             c.favorites.retain(|f| f != id);
-            c.voice_folder.remove(id);
             c.voice_order.retain(|o| o != id);
+            let folder = c.voice_folder.remove(id);
+            gone.push(GoneVoice { voice, favorite, folder, order, current: c.voice == *id });
         }
-        if self.config.borrow().voice == id {
+        let title = match gone.as_slice() {
+            [] => return,
+            [g] => crate::i18n::fill(crate::i18n::t("Removed {}"), &[&g.voice.name]),
+            _ => crate::i18n::fill(crate::i18n::t("Removed {} voices"), &[&gone.len().to_string()]),
+        };
+        let ids: Vec<String> = gone.iter().map(|g| g.voice.id.clone()).collect();
+        let current = gone.iter().any(|g| g.current);
+        self.voice_trash.borrow_mut().extend(gone);
+        if current {
             self.config.borrow_mut().voice = "baby".into();
             self.send_voice();
             self.notify(Change::Voice);
         }
         self.save_later();
         self.notify(Change::Voices);
+        self.notify(Change::VoicesRemoved { ids, title });
+    }
+
+    /// Brings back a deleted voice of your own, where it was.
+    pub fn undo_delete_voice(self: &Rc<Self>, id: &str) {
+        let Some(i) = self.voice_trash.borrow().iter().position(|g| g.voice.id == id) else { return };
+        let g = self.voice_trash.borrow_mut().remove(i);
+        {
+            let mut c = self.config.borrow_mut();
+            if let Some(i) = g.favorite {
+                let i = i.min(c.favorites.len());
+                c.favorites.insert(i, g.voice.id.clone());
+            }
+            if let Some(i) = g.order {
+                let i = i.min(c.voice_order.len());
+                c.voice_order.insert(i, g.voice.id.clone());
+            }
+            if let Some(folder) = g.folder {
+                c.voice_folder.insert(g.voice.id.clone(), folder);
+            }
+        }
+        self.save_custom(g.voice.clone());
+        // Back in use only when no other voice was picked since.
+        if g.current && self.config.borrow().voice == "baby" {
+            self.config.borrow_mut().voice = g.voice.id.clone();
+            self.send_voice();
+            self.notify(Change::Voice);
+        }
+        self.save_later();
+        self.notify(Change::Favorites);
+        self.notify(Change::VoiceShelf);
+    }
+
+    /// Brings back the voice deleted last. False when there is none.
+    pub fn undo_last_voice_delete(self: &Rc<Self>) -> bool {
+        let last = self.voice_trash.borrow().last().map(|g| g.voice.id.clone());
+        match last {
+            Some(id) => {
+                self.undo_delete_voice(&id);
+                true
+            }
+            None => false,
+        }
+    }
+
+    /// The Undo for a deleted voice is gone.
+    pub fn forget_voice(&self, id: &str) {
+        self.voice_trash.borrow_mut().retain(|g| g.voice.id != id);
+    }
+
+    /// An id for a new voice. Not one of a deleted voice either, while Undo can bring it back.
+    fn free_voice_id(&self, name: &str) -> String {
+        let voices = self.voices.borrow();
+        let trash = self.voice_trash.borrow();
+        let taken: Vec<&str> =
+            voices.iter().map(|v| v.id.as_str()).chain(trash.iter().map(|g| g.voice.id.as_str())).collect();
+        voice::new_id(name, &taken)
     }
 
     /// A copy of any voice as a new custom voice.
     pub fn duplicate(self: &Rc<Self>, id: &str) -> Option<Voice> {
         let src = self.voice(id)?;
-        let taken: Vec<String> = self.voices.borrow().iter().map(|v| v.id.clone()).collect();
-        let taken: Vec<&str> = taken.iter().map(String::as_str).collect();
         let name = if src.builtin {
             crate::i18n::fill(crate::i18n::t("My {}"), &[&crate::i18n::t_dyn(&src.name)])
         } else {
             crate::i18n::fill(crate::i18n::t("{} copy"), &[&src.name])
         };
         let v = Voice {
-            id: voice::new_id(&name, &taken),
+            id: self.free_voice_id(&name),
             name,
             icon: src.icon.clone(),
             category: "custom".into(),
@@ -536,11 +623,9 @@ impl State {
     }
 
     pub fn new_custom(self: &Rc<Self>) -> Voice {
-        let taken: Vec<String> = self.voices.borrow().iter().map(|v| v.id.clone()).collect();
-        let taken: Vec<&str> = taken.iter().map(String::as_str).collect();
         let name = crate::i18n::t("New voice").to_string();
         let v = Voice {
-            id: voice::new_id(&name, &taken),
+            id: self.free_voice_id(&name),
             name,
             icon: "sparkles".into(),
             category: "custom".into(),
