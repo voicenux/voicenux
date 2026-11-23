@@ -165,9 +165,9 @@ Global shortcuts are in Settings, and every voice and sound can get its own. `vo
 lists the commands, like `voicenux voice robot` or `voicenux sound airhorn`.
 
 For a Stream Deck, the official [Voicenux plugin](https://github.com/voicenux/voicenux-plugin) for
-OpenDeck puts your voices and sounds on its keys. Turn on **Other apps** in Settings for it. Other
-plugins and scripts can control Voicenux the same way, see [API.md](API.md). Voicenux asks before a
-new app may control it.
+OpenDeck puts your voices and sounds on its keys. Other plugins and scripts can control Voicenux the
+same way, see [API.md](API.md). Voicenux asks before a new app may control it. You can turn this off
+in **Settings → Other apps**.
 
 <p align="center">
   <img width="720" src="res/ask.png" alt="Allow Voicenux Plugin to control Voicenux?: a dialog with the path of the plugin, Open folder, and Do not allow or Allow">

@@ -147,7 +147,7 @@ impl Default for Config {
             page: "voices".into(),
             sound_sort: "suggested".into(),
             find_volume: 0.5,
-            api: false,
+            api: true,
             api_ask: true,
             api_apps: Vec::new(),
             live_sliders: true,
@@ -223,6 +223,8 @@ mod tests {
         let c: Config = toml::from_str("voice = \"robot\"\nunknown = 1\n").unwrap();
         assert_eq!(c.voice, "robot");
         assert!(c.voice_on);
+        // On, but an app still needs your OK.
+        assert!(c.api && c.api_ask);
     }
 
     #[test]

@@ -50,8 +50,8 @@
   Such a voice keeps its `ai::Source` (repo, commit, file) in its `model`, gets a number after
   `MODELS` while Voicenux runs, and asks how high it is (`height`), since its pitch is unknown.
   The helper's `unpack` takes the model out of a zip and loads it `weights_only`.
-- `src/api.rs` lets other apps control Voicenux (WebSocket and HTTP on 127.0.0.1:41967, off by
-  default). Keep `API.md` in step with it. Raise `VERSION` there only for changes that break clients.
+- `src/api.rs` lets other apps control Voicenux (WebSocket and HTTP on 127.0.0.1:41967, on by
+  default, but each app needs your OK first). Keep `API.md` in step with it. Raise `VERSION` there only for changes that break clients.
 - `src/speech.rs` turns what you say into text, for apps (API `listen`, `transcribe`) and for the
   microphone in Find sounds, which only fills in the search: Whisper base in plain Rust with candle,
   on the processor. Voicenux downloads the model the first time (290 MB, pinned to a commit) into

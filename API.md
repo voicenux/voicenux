@@ -1,6 +1,6 @@
 # Voicenux API
 
-Other apps on your computer can control Voicenux: a plugin for [OpenDeck](https://github.com/nekename/OpenDeck) or a Stream Deck, a script, a bot. Turn it on in **Settings → Other apps**.
+Other apps on your computer can control Voicenux: a plugin for [OpenDeck](https://github.com/nekename/OpenDeck) or a Stream Deck, a script, a bot. It is on unless the user turns it off in **Settings → Other apps**.
 
 It listens on `127.0.0.1:41967` only, so nothing outside your computer reaches it. Requests from web pages are refused: a request with an `Origin` header must come from `localhost`, `127.0.0.1`, `file://` or `tauri://`. Programs send no `Origin`, so they are fine.
 
