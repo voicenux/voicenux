@@ -1054,6 +1054,14 @@ fn card(st: &St, v: &Voice, open_lab: &OpenLab) -> Card {
     overlay.add_overlay(&corner);
     let marks: Vec<gtk::Widget> = vec![keys.clone().upcast(), corner.clone().upcast()];
 
+    // Your own voices, made in Voicelab or found online, say so first.
+    if !v.builtin {
+        let own = line_icon("user", 12);
+        own.add_css_class("vn-own-mark");
+        own.set_valign(gtk::Align::Center);
+        own.set_tooltip_text(Some(t("Your own voice")));
+        corner.append(&own);
+    }
     let mut tip = t_dyn(&v.description);
     // AI voices: marked, gray without a graphics card, with a download mark until they are there.
     if let Some(model) = crate::ai::model_of(&v.block_values()) {

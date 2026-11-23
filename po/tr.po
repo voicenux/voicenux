@@ -2132,6 +2132,9 @@ msgstr "{} ses"
 msgid "You changed this voice"
 msgstr "Bu sesi değiştirdin"
 
+msgid "Your own voice"
+msgstr "Kendi sesin"
+
 msgid "Changed by you"
 msgstr "Senin değiştirdiğin"
 

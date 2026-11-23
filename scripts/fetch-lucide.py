@@ -20,7 +20,7 @@ PACKAGE = f"https://registry.npmjs.org/lucide-static/-/lucide-static-{VERSION}.t
 NAMES = """
     bug coffee flask-conical globe headphones keyboard mic mic-vocal plug scissors settings
     eye heart sparkles volume-2 zap sliders-horizontal rotate-ccw sun moon monitor
-    package cpu timer waves
+    package cpu timer waves user
 """.split()
 NUM = r"[-+]?(?:\d+\.?\d*|\.\d+)(?:[eE][-+]?\d+)?"
 

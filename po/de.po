@@ -2132,6 +2132,9 @@ msgstr "{} Stimmen"
 msgid "You changed this voice"
 msgstr "Du hast diese Stimme angepasst"
 
+msgid "Your own voice"
+msgstr "Deine eigene Stimme"
+
 msgid "Changed by you"
 msgstr "Von dir angepasst"
 

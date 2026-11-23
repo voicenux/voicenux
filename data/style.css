@@ -1788,8 +1788,9 @@ banner.vn-hint > revealer > widget {
   opacity: 0.45;
 }
 
-/* A voice you changed says so on its card, next to the AI mark. */
-.vn-tweak-mark {
+/* A voice you changed says so on its card, next to the AI mark. So does a voice of your own. */
+.vn-tweak-mark,
+.vn-own-mark {
   min-width: 18px;
   min-height: 18px;
   border-radius: 99px;
