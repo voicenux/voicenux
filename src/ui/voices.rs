@@ -1321,7 +1321,11 @@ impl Detail {
         });
         lab.connect_clicked({
             let shown = d.shown.clone();
-            move |_| open_lab(&shown.borrow())
+            // Opening Voicelab switches the voice, which shows it here again: do not hold the borrow.
+            move |_| {
+                let id = shown.borrow().clone();
+                open_lab(&id);
+            }
         });
         reset.connect_clicked({
             let st = st.clone();
