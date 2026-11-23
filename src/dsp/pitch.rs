@@ -236,14 +236,14 @@ impl PitchShifter {
         }
         self.ifft.process_with_scratch(&mut self.cep, &mut self.scratch);
         let l = self.lifter;
-        for q in 0..n {
+        for (q, c) in self.cep.iter_mut().enumerate().take(n) {
             let dist = q.min(n - q);
             if dist >= l {
-                self.cep[q] = Complex32::default();
+                *c = Complex32::default();
             } else if dist > l / 2 {
                 // Taper the cut so the envelope does not ring.
                 let t = (dist - l / 2) as f32 / (l - l / 2) as f32;
-                self.cep[q] *= 0.5 + 0.5 * (std::f32::consts::PI * t).cos();
+                *c *= 0.5 + 0.5 * (std::f32::consts::PI * t).cos();
             }
         }
         self.fft.process_with_scratch(&mut self.cep, &mut self.scratch);
