@@ -28,6 +28,8 @@ const TORCH: &str = "torch==2.14.1";
 const PACKAGES: &[&str] = &["infer-rvc-python==1.3.1", "setuptools<80", "soxr"];
 /// No voice file is near this big.
 const MAX_MODEL: u64 = 400 * 1024 * 1024;
+/// A voice found online can come as a zip with a long index inside.
+pub const MAX_FOUND: u64 = 2000 * 1024 * 1024;
 
 const HELPER: &str = include_str!("../../data/ai/helper.py");
 
@@ -62,6 +64,18 @@ impl std::fmt::Display for Stopped {
 }
 
 impl std::error::Error for Stopped {}
+
+/// What a download of a voice found online ends with when it holds no RVC model.
+#[derive(Debug)]
+pub struct NotAVoice;
+
+impl std::fmt::Display for NotAVoice {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        f.write_str("no RVC model in the download")
+    }
+}
+
+impl std::error::Error for NotAVoice {}
 
 /// About how much each step downloads, in MB, until it says itself: uv, Python, PyTorch, the
 /// voice converter and the speech models.
@@ -122,7 +136,7 @@ pub fn hf_home() -> PathBuf {
     dir().join("hf")
 }
 
-fn agent() -> ureq::Agent {
+pub(crate) fn agent() -> ureq::Agent {
     ureq::Agent::config_builder()
         .timeout_connect(Some(Duration::from_secs(10)))
         .timeout_recv_response(Some(Duration::from_secs(30)))
@@ -369,6 +383,9 @@ pub fn download_model(model: &Model, progress: &dyn Fn(f32)) -> anyhow::Result<(
     if stopped() {
         return Err(Stopped.into());
     }
+    if model.found {
+        return download_found(model, progress);
+    }
     // PyTorch files are zip archives, Faiss indexes start with an I.
     let share = if model.index().is_some() { 55.0 / model.mb as f32 } else { 1.0 };
     let files = [
@@ -399,6 +416,65 @@ pub fn download_model(model: &Model, progress: &dyn Fn(f32)) -> anyhow::Result<(
         }
     }
     Ok(())
+}
+
+/// Downloads a voice found on Hugging Face: its model, or a zip with it inside. The helper then
+/// takes the model out and checks it, so it needs the engine first.
+fn download_found(model: &Model, progress: &dyn Fn(f32)) -> anyhow::Result<()> {
+    let ext = if model.pth.to_lowercase().ends_with(".zip") { "zip" } else { "pth" };
+    let got = model.path().with_extension(format!("got.{ext}"));
+    let all = model.mb.max(1) as f32 * 1e6;
+    // The last bit is for taking it out.
+    let share = |before: u64, done: u64| progress((0.97 * (before + done) as f32 / all).min(0.97));
+    let result = (|| {
+        download(&model.url(model.pth), &got, MAX_FOUND, &|done, _| share(0, done))?;
+        let before = std::fs::metadata(&got).map_or(0, |m| m.len());
+        let index = model.path().with_extension("index");
+        let _ = std::fs::remove_file(&index);
+        if let Some(name) = model.index {
+            download(&model.url(name), &index, MAX_FOUND, &|done, _| share(before, done))?;
+        }
+        let out = Command::new(python())
+            .arg(write_helper()?)
+            .arg("unpack")
+            .arg(&got)
+            .arg("--pth")
+            .arg(model.path())
+            .arg("--index")
+            .arg(&index)
+            .stdin(Stdio::null())
+            .output()
+            .context("the AI helper did not start")?;
+        let log = String::from_utf8_lossy(&out.stderr);
+        for line in log.lines() {
+            log::info!("{line}");
+        }
+        if !out.status.success() {
+            let _ = std::fs::remove_file(&index);
+            // NO_VOICE of the helper.
+            if out.status.code() == Some(3) {
+                return Err(NotAVoice.into());
+            }
+            bail!("{}", log.lines().rev().find(|l| !l.trim().is_empty()).unwrap_or("it did not unpack"));
+        }
+        progress(1.0);
+        anyhow::Ok(())
+    })();
+    let _ = std::fs::remove_file(&got);
+    result
+}
+
+/// Removes the files of voices found online that no voice uses any more.
+pub fn forget_unused(used: &[&Model]) {
+    let Ok(dir) = std::fs::read_dir(dir().join("voices")) else { return };
+    for e in dir.flatten() {
+        let name = e.file_name().to_string_lossy().into_owned();
+        let id = name.split('.').next().unwrap_or_default();
+        if id.starts_with("hf_") && !used.iter().any(|m| m.found && m.id == id) {
+            log::info!("removing {name}: no voice uses it");
+            let _ = std::fs::remove_file(e.path());
+        }
+    }
 }
 
 /// Space the AI folder takes, in bytes.
@@ -471,5 +547,17 @@ mod tests {
         let vader = &crate::ai::MODELS[4];
         super::download_model(vader, &|_| {}).unwrap();
         assert!(vader.downloaded());
+        // One found on Hugging Face, a zip with the model and its index inside.
+        let found = crate::ai::Source {
+            repo: "0x3e9/Darth_Vader_RVC".into(),
+            commit: "bb27e8c48187c0d9fde39191f76a07a45f024785".into(),
+            file: "vader.zip".into(),
+            index: None,
+            mb: 120,
+            name: "Darth Vader".into(),
+        };
+        let found = crate::ai::model(crate::ai::add(&found)).unwrap();
+        super::download_model(found, &|_| {}).unwrap();
+        assert!(found.downloaded() && found.index().is_some());
     }
 }

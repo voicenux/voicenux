@@ -159,6 +159,17 @@ impl State {
         if !voices.iter().any(|v| v.id == config.voice) {
             config.voice = voices[0].id.clone();
         }
+        // The model of a voice found online goes with the last voice that used it.
+        let tweaked = config.tweaks.values().map(|blocks| Voice { blocks: blocks.clone(), ..voices[0].clone() });
+        let used: Vec<&'static crate::ai::Model> = voices
+            .iter()
+            .cloned()
+            .chain(tweaked)
+            .flat_map(|v| v.block_values())
+            .filter(|b| b.kind == "ai")
+            .filter_map(|b| crate::ai::model(*b.values.first()? as usize))
+            .collect();
+        std::thread::spawn(move || crate::ai::install::forget_unused(&used));
         let st = Rc::new(State {
             keys: Rc::default(),
             levels: Cell::default(),
@@ -589,6 +600,22 @@ impl State {
         }
     }
 
+    /// Removes a voice of your own without a note and without Undo: one that was never usable.
+    pub fn drop_voice(self: &Rc<Self>, id: &str) {
+        if !self.voice(id).is_some_and(|v| !v.builtin) {
+            return;
+        }
+        voice::delete_custom(&voice::custom_dir(), id);
+        self.voices.borrow_mut().retain(|v| v.id != id);
+        let mut c = self.config.borrow_mut();
+        c.favorites.retain(|f| f != id);
+        c.voice_order.retain(|o| o != id);
+        c.voice_folder.remove(id);
+        drop(c);
+        self.save_later();
+        self.notify(Change::Voices);
+    }
+
     /// The Undo for a deleted voice is gone.
     pub fn forget_voice(&self, id: &str) {
         self.voice_trash.borrow_mut().retain(|g| g.voice.id != id);
@@ -686,6 +713,22 @@ impl State {
         };
         self.save_custom(v.clone());
         v
+    }
+
+    /// A voice for a model found on Hugging Face, not saved yet: the download dialog saves it.
+    pub fn found_voice(&self, source: &crate::ai::Source, icon: &str) -> Voice {
+        let mut ai = BlockDef::new("ai");
+        ai.params.insert("model".into(), source.to_value());
+        let name = if source.name.is_empty() { source.repo.clone() } else { source.name.clone() };
+        Voice {
+            id: self.free_voice_id(&name),
+            name,
+            icon: icon.into(),
+            category: "custom".into(),
+            description: source.repo.clone(),
+            blocks: vec![ai],
+            builtin: false,
+        }
     }
 
     /// The voices in the order the voice page shows them: by name, in your order, or favorites

@@ -2410,3 +2410,60 @@ msgstr "{} eklendi"
 
 msgid "Added {} voices"
 msgstr "{} ses eklendi"
+
+msgid "How high is the voice?"
+msgstr "Sesin tonu nasıl?"
+
+msgid "Find AI voices"
+msgstr "Yapay zekâ sesleri bul"
+
+msgid "Find AI voices on Hugging Face"
+msgstr "Hugging Face’te yapay zekâ sesleri bul"
+
+msgid "Search Hugging Face"
+msgstr "Hugging Face’te ara"
+
+msgid "Find more AI voices"
+msgstr "Daha fazla yapay zekâ sesi bul"
+
+msgid "Type the name of a character, like Mario or Shrek."
+msgstr "Bir karakterin adını yaz, örneğin Mario veya Shrek."
+
+msgid "Searching Hugging Face…"
+msgstr "Hugging Face’te aranıyor…"
+
+msgid "Voices people made and shared on Hugging Face. Some sound great, some do not."
+msgstr "İnsanların Hugging Face’te yapıp paylaştığı sesler. Bazıları harika, bazıları değil."
+
+msgid "No AI voices found. Try other words."
+msgstr "Yapay zekâ sesi bulunamadı. Başka kelimeler dene."
+
+msgid "{} people like this on Hugging Face"
+msgstr "Hugging Face’te {} beğeni"
+
+msgid "Open on Hugging Face"
+msgstr "Hugging Face’te aç"
+
+msgid "Add this voice"
+msgstr "Bu sesi ekle"
+
+msgid "Could not reach Hugging Face. Are you online?"
+msgstr "Hugging Face’e ulaşılamadı. İnternete bağlı mısın?"
+
+msgid "Character's pitch"
+msgstr "Karakterin ses tonu"
+
+msgid "Usual"
+msgstr "Olağan"
+
+msgid "Deep"
+msgstr "Kalın"
+
+msgid "Medium"
+msgstr "Orta"
+
+msgid "High"
+msgstr "İnce"
+
+msgid "There is no voice in this download that Voicenux can play."
+msgstr "Bu indirmede Voicenux’un kullanabileceği bir ses yok."

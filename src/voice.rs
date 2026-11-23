@@ -65,6 +65,7 @@ impl BlockDef {
                     (toml::Value::String(s), Kind::Choice(list)) => {
                         list.iter().position(|c| c.eq_ignore_ascii_case(s)).map(|i| i as f32)
                     }
+                    (v, Kind::Model) => crate::ai::number_of(v).map(|i| i as f32),
                     (toml::Value::Boolean(b), _) => Some(if *b { 1.0 } else { 0.0 }),
                     (toml::Value::Integer(i), _) => Some(*i as f32),
                     (toml::Value::Float(f), _) => Some(*f as f32),
@@ -93,6 +94,7 @@ impl BlockDef {
         let v = p.clamp(v);
         let value = match p.kind {
             Kind::Choice(list) => toml::Value::String(list[v as usize].to_string()),
+            Kind::Model => crate::ai::value_of(v as usize),
             Kind::Toggle => toml::Value::Boolean(v >= 0.5),
             Kind::Int => toml::Value::Integer(v as i64),
             Kind::Float => {
@@ -353,6 +355,9 @@ mod tests {
                     let p = p.unwrap_or_else(|| panic!("{}: {} has no setting {k}", v.id, b.kind));
                     if let (toml::Value::String(s), Kind::Choice(list)) = (val, p.kind) {
                         assert!(list.iter().any(|c| c.eq_ignore_ascii_case(s)), "{}: bad choice {s}", v.id);
+                    }
+                    if matches!(p.kind, Kind::Model) {
+                        assert!(crate::ai::number_of(val).is_some_and(|i| i < crate::ai::MODELS.len()), "{}", v.id);
                     }
                 }
             }

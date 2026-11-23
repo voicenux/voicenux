@@ -193,7 +193,8 @@ impl Ctx {
                 }
             }
             // Also for screenshots: opens a dialog, "keys", "about", "discord" or "trim:SOUND", searches
-            // MyInstants with "find:WORDS", shows the tips of a page from one on, like
+            // MyInstants with "find:WORDS" or Hugging Face with "find-voices:WORDS", shows the tips
+            // of a page from one on, like
             // "tour:voices:2", or the welcome dialog at a step, like "welcome:5".
             Some("--dialog") => {
                 self.show();
@@ -206,6 +207,10 @@ impl Ctx {
                     Some(other) if other.starts_with("find:") => {
                         w.show_page("soundboard");
                         (w.find_online)(&other[5..]);
+                    }
+                    Some(other) if other.starts_with("find-voices:") => {
+                        w.show_page("voices");
+                        crate::ui::find_voices::open(st, &w.window, &other[12..]);
                     }
                     Some(other) if other.starts_with("tour:") => {
                         let mut parts = other[5..].split(':');

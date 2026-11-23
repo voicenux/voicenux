@@ -24,6 +24,9 @@ pub enum Kind {
     Int,
     Toggle,
     Choice(&'static [&'static str]),
+    /// The model of an AI voice: a number from `ai::model`. Those found online come while
+    /// Voicenux runs, so the list is not fixed.
+    Model,
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -51,6 +54,10 @@ const fn pct(key: &'static str, label: &'static str, default: f32) -> ParamSpec 
 
 const fn choice(key: &'static str, label: &'static str, list: &'static [&'static str], default: f32) -> ParamSpec {
     ParamSpec { kind: Kind::Choice(list), ..p(key, label, 0.0, (list.len() - 1) as f32, default, Unit::None) }
+}
+
+const fn model(key: &'static str, label: &'static str) -> ParamSpec {
+    ParamSpec { kind: Kind::Model, ..p(key, label, 0.0, 1e6, 0.0, Unit::None) }
 }
 
 const fn toggle(key: &'static str, label: &'static str, default: bool) -> ParamSpec {
@@ -166,8 +173,9 @@ pub static BLOCKS: &[BlockSpec] = &[
         icon: "sparkles",
         group: Group::Voice,
         params: &[
-            choice("model", "Character", crate::ai::NAMES, 0.0),
+            model("model", "Character"),
             p("key", "Pitch", -24.0, 24.0, 0.0, Unit::Semitones).main(),
+            choice("height", "Character's pitch", crate::ai::HEIGHTS, 0.0),
         ],
         build: boxed!(ai::Ai::new),
     },
@@ -504,6 +512,7 @@ pub fn note_name(midi: f32) -> String {
 pub fn format_value(spec: &ParamSpec, v: f32) -> String {
     match spec.kind {
         Kind::Choice(list) => return list.get(v as usize).copied().unwrap_or("").to_string(),
+        Kind::Model => return crate::ai::model(v as usize).map_or("", |m| m.name).to_string(),
         Kind::Toggle => return if v >= 0.5 { "On" } else { "Off" }.to_string(),
         _ => {}
     }

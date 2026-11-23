@@ -24,7 +24,7 @@ impl Ai {
         let size = (ctx.rate * 4.0) as usize;
         let (to_helper, input) = rtrb::RingBuffer::new(size);
         let (output, from_helper) = rtrb::RingBuffer::new(size);
-        let link = Arc::new(Link::new(p[0] as usize, p[1], ctx.rate as u32));
+        let link = Arc::new(Link::new(p[0] as usize, p[1], crate::ai::height_hz(p[2] as usize), ctx.rate as u32));
         bridge::attach(Stream { link: link.clone(), input, output });
         Self { io: Some((to_helper, from_helper, link)), playing: false, waited: 0 }
     }
@@ -82,6 +82,7 @@ impl Effect for Ai {
         match index {
             0 => link.model.store(value as usize, Ordering::Relaxed),
             1 => link.key.store(value.to_bits(), Ordering::Relaxed),
+            2 => link.pitch.store(crate::ai::height_hz(value as usize).to_bits(), Ordering::Relaxed),
             _ => {}
         }
     }
@@ -93,7 +94,7 @@ mod tests {
 
     #[test]
     fn a_measured_chain_lets_the_voice_pass() {
-        let mut ai = Ai::new(&[0.0, 0.0], &BuildCtx::test());
+        let mut ai = Ai::new(&[0.0, 0.0, 0.0], &BuildCtx::test());
         let mut buf = vec![0.5f32; 512];
         ai.process(&mut buf, &Ctx::default());
         assert!(buf.iter().all(|x| *x == 0.5));
@@ -103,7 +104,7 @@ mod tests {
     fn live(block: usize, cushion: usize) -> (Ai, rtrb::Producer<f32>) {
         let (to_helper, _) = rtrb::RingBuffer::new(48000);
         let (output, from_helper) = rtrb::RingBuffer::new(48000);
-        let link = Arc::new(Link::new(0, 0.0, 48000));
+        let link = Arc::new(Link::new(0, 0.0, 0.0, 48000));
         link.block.store(block, Ordering::Relaxed);
         link.cushion.store(cushion, Ordering::Relaxed);
         (Ai { io: Some((to_helper, from_helper, link)), playing: false, waited: 0 }, output)

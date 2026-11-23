@@ -149,6 +149,9 @@ model. Best on an NVIDIA graphics card, or an AMD one from the RX 6000 on, with 
 delay. Without one, turn on **Run on the processor** in Settings. The first AI voice downloads the
 AI engine once (about 8 GB, 18 GB for AMD, or 3 GB for the processor).
 
+Want more? **Find AI voices** on the voice page searches Hugging Face for RVC voices people made
+and shared. Pick one, say how high it is, and it lands among your voices.
+
 </details>
 
 <details>

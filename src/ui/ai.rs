@@ -34,6 +34,13 @@ struct Download {
     view: RefCell<Option<View>>,
     /// Stop was pressed, and the parts are being cleared away.
     stopping: Cell<bool>,
+    /// A voice found online, saved when the download started.
+    fresh: bool,
+}
+
+/// Shown when a voice found online is none.
+fn no_voice() -> &'static str {
+    t("There is no voice in this download that Voicenux can play.")
 }
 
 /// How a download ends.
@@ -41,6 +48,8 @@ enum End {
     Done,
     Stopped,
     Failed(String),
+    /// A voice found online that is no RVC voice after all.
+    NoVoice,
 }
 
 /// How an open dialog shows a download, and what it does when the download ends.
@@ -73,6 +82,7 @@ enum Step {
     Done,
     Stopped,
     Failed(String),
+    NoVoice,
 }
 
 fn step_text(n: usize) -> &'static str {
@@ -168,6 +178,20 @@ pub fn offer(st: &St, parent: &impl IsA<gtk::Widget>, id: &str) {
     }
     let id = busy.as_ref().map_or_else(|| id.to_string(), |d| d.id.clone());
     let Some(v) = st.voice(&id) else { return };
+    ask(st, parent, v, busy, false);
+}
+
+/// Asks to add a voice found online, with how high it is, and downloads it. It is saved when the
+/// download starts, so Cancel leaves nothing behind. While a download runs, it shows that one.
+pub fn offer_found(st: &St, parent: &impl IsA<gtk::Widget>, v: crate::voice::Voice) {
+    match running() {
+        Some(d) => offer(st, parent, &d.id),
+        None => ask(st, parent, v, None, true),
+    }
+}
+
+fn ask(st: &St, parent: &impl IsA<gtk::Widget>, v: crate::voice::Voice, busy: Option<Rc<Download>>, new: bool) {
+    let id = v.id.clone();
     let Some(model) = ai::model_of(&v.block_values()) else { return };
     let name = t_dyn(&v.name);
     let engine = install::installed();
@@ -210,6 +234,24 @@ pub fn offer(st: &St, parent: &impl IsA<gtk::Widget>, id: &str) {
         list.attach(&key, 1, row, 1, 1);
         list.attach(&value, 2, row, 1, 1);
     }
+    // A voice found online does not say how high it is. Your voice moves there.
+    let heights = adw::ToggleGroup::new();
+    heights.add_css_class("vn-segmented");
+    heights.set_halign(gtk::Align::Center);
+    // The usual one is yours: no choice for a voice that does not say.
+    for h in &ai::HEIGHTS[1..] {
+        heights.add(adw::Toggle::builder().label(t_dyn(h)).build());
+    }
+    let height = Rc::new(Cell::new(2usize));
+    heights.set_active(height.get() as u32 - 1);
+    heights.connect_active_notify({
+        let height = height.clone();
+        move |g| height.set(g.active() as usize + 1)
+    });
+    let ask_height = gtk::Box::new(gtk::Orientation::Vertical, 8);
+    ask_height.append(&label(t("How high is the voice?"), &["heading"]));
+    ask_height.append(&heights);
+    ask_height.set_visible(new);
     // Only when it did not work.
     let hint = label(t("Check your connection and the free space, then try again."), &["dim-label"]);
     hint.set_wrap(true);
@@ -245,6 +287,7 @@ pub fn offer(st: &St, parent: &impl IsA<gtk::Widget>, id: &str) {
         pic.upcast_ref::<gtk::Widget>(),
         title.upcast_ref(),
         list.upcast_ref(),
+        ask_height.upcast_ref(),
         hint.upcast_ref(),
         bar.upcast_ref(),
         what.upcast_ref(),
@@ -286,8 +329,10 @@ pub fn offer(st: &St, parent: &impl IsA<gtk::Widget>, id: &str) {
         let (dialog, bar, what, detail, hint) =
             (dialog.downgrade(), bar.clone(), what.clone(), detail.clone(), hint.clone());
         let (go, cancel, stop, hide) = (go.clone(), cancel.clone(), stop.clone(), hide.clone());
+        let ask_height = ask_height.clone();
         move |d: &Rc<Download>| {
             hint.set_visible(false);
+            ask_height.set_visible(false);
             for w in [
                 bar.upcast_ref::<gtk::Widget>(),
                 what.upcast_ref(),
@@ -323,6 +368,16 @@ pub fn offer(st: &St, parent: &impl IsA<gtk::Widget>, id: &str) {
                         if let Some(dialog) = dialog.upgrade() {
                             dialog.close();
                         }
+                    }
+                    End::NoVoice => {
+                        for w in
+                            [bar.upcast_ref::<gtk::Widget>(), detail.upcast_ref(), stop.upcast_ref(), hide.upcast_ref()]
+                        {
+                            w.set_visible(false);
+                        }
+                        what.set_label(no_voice());
+                        cancel.set_visible(true);
+                        cancel.grab_focus();
                     }
                     End::Failed(e) => {
                         bar.set_visible(false);
@@ -361,9 +416,17 @@ pub fn offer(st: &St, parent: &impl IsA<gtk::Widget>, id: &str) {
     });
     go.connect_clicked({
         let (st, id, icon, name) = (st.clone(), id.clone(), v.icon.clone(), name.clone());
+        let found = RefCell::new(new.then_some(v.clone()));
         move |_| {
             if running().is_some() {
                 return;
+            }
+            // Saved now, with the pitch picked. A second try keeps it.
+            if let Some(mut v) = found.take() {
+                if let Some(b) = v.blocks.iter_mut().find(|b| b.kind == "ai") {
+                    b.set("height", height.get() as f32);
+                }
+                st.save_custom(v);
             }
             let d = Rc::new(Download {
                 id: id.clone(),
@@ -374,6 +437,7 @@ pub fn offer(st: &St, parent: &impl IsA<gtk::Widget>, id: &str) {
                 detail: RefCell::default(),
                 view: RefCell::default(),
                 stopping: Cell::new(false),
+                fresh: new,
             });
             RUNNING.with(|r| r.replace(Some(d.clone())));
             watch(&d);
@@ -403,6 +467,7 @@ fn run(st: &St, d: Rc<Download>, model: &'static ai::Model, engine: bool) {
         send(match result {
             Ok(()) => Step::Done,
             Err(e) if e.is::<install::Stopped>() => Step::Stopped,
+            Err(e) if e.is::<install::NotAVoice>() => Step::NoVoice,
             Err(e) => {
                 log::warn!("AI download: {e:#}");
                 Step::Failed(e.to_string())
@@ -444,6 +509,7 @@ fn run(st: &St, d: Rc<Download>, model: &'static ai::Model, engine: bool) {
                 Ok(Step::Done) => break End::Done,
                 Ok(Step::Stopped) => break End::Stopped,
                 Ok(Step::Failed(e)) => break End::Failed(e),
+                Ok(Step::NoVoice) => break End::NoVoice,
                 Err(_) => break End::Failed(t("That did not work. Try again.").to_string()),
             }
         };
@@ -451,6 +517,10 @@ fn run(st: &St, d: Rc<Download>, model: &'static ai::Model, engine: bool) {
         refresh_pills();
         if matches!(result, End::Done) {
             st.notify(Change::Voices);
+        }
+        // It would never play: away with the voice it came with.
+        if matches!(result, End::NoVoice) && d.fresh {
+            st.drop_voice(&d.id);
         }
         // An open dialog ends as it should. Without one, a note says how it went.
         let view = d.view.take();
@@ -461,6 +531,7 @@ fn run(st: &St, d: Rc<Download>, model: &'static ai::Model, engine: bool) {
             (End::Stopped, _) => st.notify(Change::Notice(fill(t("Stopped downloading {}."), &[&d.name]))),
             // Done in the background: the voice waits to be picked.
             (End::Done, false) => st.notify(Change::Notice(fill(t("{} is ready. Pick it to use it."), &[&d.name]))),
+            (End::NoVoice, false) => st.notify(Change::Notice(fill(t("Could not get {}: {}"), &[&d.name, no_voice()]))),
             (End::Failed(e), false) => {
                 // A note has room for one line: the last one says most.
                 let e = e.lines().rev().find(|l| !l.trim().is_empty()).unwrap_or_default();

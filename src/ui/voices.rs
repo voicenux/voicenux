@@ -118,6 +118,16 @@ pub fn build(st: &St, open_lab: OpenLab) -> VoicesPage {
         },
     );
     header.pack_start(&random);
+    // More AI voices, made by people on Hugging Face.
+    let find = gtk::Button::builder()
+        .child(&adw::ButtonContent::builder().icon_name("system-search-symbolic").label(t("Find AI voices")).build())
+        .tooltip_text(t("Find AI voices on Hugging Face"))
+        .build();
+    find.connect_clicked({
+        let st = st.clone();
+        move |b| super::find_voices::open(&st, b, "")
+    });
+    header.pack_start(&find);
     // Advanced settings can hide it.
     let show_random = {
         let (st, random) = (st.clone(), random.clone());
@@ -1503,8 +1513,11 @@ pub fn param_row(
             top.append(&sw);
             row.set_margin_bottom(0);
         }
-        Kind::Choice(list) => {
-            let names: Vec<String> = list.iter().map(|c| t_dyn(c)).collect();
+        Kind::Choice(_) | Kind::Model => {
+            let names: Vec<String> = match p.kind {
+                Kind::Choice(list) => list.iter().map(|c| t_dyn(c)).collect(),
+                _ => crate::ai::models().iter().map(|m| t_dyn(m.name)).collect(),
+            };
             let names: Vec<&str> = names.iter().map(String::as_str).collect();
             let dd = gtk::DropDown::from_strings(&names);
             dd.set_selected(value as u32);

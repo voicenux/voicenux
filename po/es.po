@@ -2410,3 +2410,60 @@ msgstr "{} añadido"
 
 msgid "Added {} voices"
 msgstr "{} voces añadidas"
+
+msgid "How high is the voice?"
+msgstr "¿Qué tan aguda es la voz?"
+
+msgid "Find AI voices"
+msgstr "Encontrar voces IA"
+
+msgid "Find AI voices on Hugging Face"
+msgstr "Encontrar voces IA en Hugging Face"
+
+msgid "Search Hugging Face"
+msgstr "Buscar en Hugging Face"
+
+msgid "Find more AI voices"
+msgstr "Encuentra más voces IA"
+
+msgid "Type the name of a character, like Mario or Shrek."
+msgstr "Escribe el nombre de un personaje, como Mario o Shrek."
+
+msgid "Searching Hugging Face…"
+msgstr "Buscando en Hugging Face…"
+
+msgid "Voices people made and shared on Hugging Face. Some sound great, some do not."
+msgstr "Voces que la gente creó y compartió en Hugging Face. Algunas suenan genial, otras no."
+
+msgid "No AI voices found. Try other words."
+msgstr "No se encontraron voces IA. Prueba con otras palabras."
+
+msgid "{} people like this on Hugging Face"
+msgstr "A {} personas les gusta en Hugging Face"
+
+msgid "Open on Hugging Face"
+msgstr "Abrir en Hugging Face"
+
+msgid "Add this voice"
+msgstr "Añadir esta voz"
+
+msgid "Could not reach Hugging Face. Are you online?"
+msgstr "No se pudo conectar con Hugging Face. ¿Estás en línea?"
+
+msgid "Character's pitch"
+msgstr "Tono del personaje"
+
+msgid "Usual"
+msgstr "Normal"
+
+msgid "Deep"
+msgstr "Grave"
+
+msgid "Medium"
+msgstr "Medio"
+
+msgid "High"
+msgstr "Agudo"
+
+msgid "There is no voice in this download that Voicenux can play."
+msgstr "En esta descarga no hay ninguna voz que Voicenux pueda usar."

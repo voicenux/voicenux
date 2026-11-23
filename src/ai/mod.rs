@@ -4,14 +4,16 @@
 //! `dsp::ai`.
 //!
 //! The models come from Hugging Face, pinned to a commit. Only fictional characters: no real
-//! people as themselves.
+//! people as themselves. More can be found there (`hub`): those voices name their model
+//! themselves, see [`Source`].
 
 pub mod bridge;
+pub mod hub;
 pub mod install;
 
 use std::path::{Path, PathBuf};
-use std::sync::OnceLock;
 use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::{Mutex, OnceLock};
 
 pub struct Model {
     pub id: &'static str,
@@ -27,6 +29,8 @@ pub struct Model {
     index: Option<&'static str>,
     /// About how big the download is, in MB.
     pub mb: u32,
+    /// Found on Hugging Face, not one of [`MODELS`]: `pth` may be a zip with the model inside.
+    pub found: bool,
 }
 
 // Pitches and indexes were picked by comparing the voices with recordings of the characters.
@@ -93,20 +97,6 @@ pub static MODELS: &[Model] = &[
     .files("homer.pth", "added_IVF342_Flat_nprobe_1_homer_v2.index"),
 ];
 
-/// The names of [`MODELS`] in the same order, for the choice in Voicelab.
-pub const NAMES: &[&str] = &[
-    "SpongeBob",
-    "Patrick",
-    "Squidward",
-    "Plankton",
-    "Darth Vader",
-    "Yoda",
-    "Optimus Prime",
-    "GLaDOS",
-    "Rick Sanchez",
-    "Homer Simpson",
-];
-
 const fn m(
     id: &'static str,
     name: &'static str,
@@ -117,7 +107,162 @@ const fn m(
     mb: u32,
 ) -> Model {
     let index = if index { Some("model.index") } else { None };
-    Model { id, name, repo, commit, pitch, pth: "model.pth", index, mb }
+    Model { id, name, repo, commit, pitch, pth: "model.pth", index, mb, found: false }
+}
+
+/// The setting "Character's pitch" of the AI effect: where your typical pitch moves. The usual
+/// one is the character's own, or yours for a voice found online: its pitch is unknown.
+pub const HEIGHTS: &[&str] = &["Usual", "Deep", "Medium", "High"];
+
+/// The pitch in Hz of each of [`HEIGHTS`], 0 for the usual one.
+pub fn height_hz(i: usize) -> f32 {
+    [0.0, 110.0, 160.0, 230.0].get(i).copied().unwrap_or(0.0)
+}
+
+/// Where a voice found on Hugging Face gets its model. The voice keeps it in its AI effect, as
+/// `model = { repo = "...", commit = "...", file = "..." }`, so a voice file someone gives you
+/// brings its model along.
+#[derive(Clone, Debug, PartialEq)]
+pub struct Source {
+    pub repo: String,
+    pub commit: String,
+    /// The model in the repo: a .pth, or a .zip with one inside.
+    pub file: String,
+    /// The index next to a .pth. A zip brings its own.
+    pub index: Option<String>,
+    /// About how big the download is, in MB.
+    pub mb: u32,
+    /// What the voice was called where it was found.
+    pub name: String,
+}
+
+impl Source {
+    /// Reads one from a voice. Only what can be downloaded from Hugging Face, so a made up voice
+    /// file can not point anywhere else.
+    pub fn from_value(v: &toml::Value) -> Option<Self> {
+        let t = v.as_table()?;
+        let text = |key: &str| t.get(key).and_then(|v| v.as_str()).map(str::to_string);
+        let s = Self {
+            repo: text("repo")?,
+            commit: text("commit")?.to_lowercase(),
+            file: text("file")?,
+            index: text("index"),
+            mb: t.get("mb").and_then(|v| v.as_integer()).unwrap_or(0).clamp(0, 10_000) as u32,
+            name: text("name").unwrap_or_default().chars().take(60).collect(),
+        };
+        let repo_ok = s.repo.len() <= 96
+            && s.repo.split('/').count() == 2
+            && s.repo.split('/').all(|p| {
+                !p.is_empty()
+                    && !p.starts_with('.')
+                    && p.chars().all(|c| c.is_ascii_alphanumeric() || "-_.".contains(c))
+            });
+        let path_ok = |p: &str, ends: &[&str]| {
+            let lower = p.to_lowercase();
+            p.len() <= 300
+                && !p.starts_with('/')
+                && p.split('/').all(|part| !part.is_empty() && part != "." && part != "..")
+                && !p.chars().any(char::is_control)
+                && ends.iter().any(|e| lower.ends_with(e))
+        };
+        let ok = repo_ok
+            && s.commit.len() == 40
+            && s.commit.chars().all(|c| c.is_ascii_hexdigit())
+            && path_ok(&s.file, &[".pth", ".zip"])
+            && s.index.as_deref().is_none_or(|i| path_ok(i, &[".index"]));
+        ok.then_some(s)
+    }
+
+    pub fn to_value(&self) -> toml::Value {
+        let mut t = toml::Table::new();
+        t.insert("name".into(), self.name.clone().into());
+        t.insert("repo".into(), self.repo.clone().into());
+        t.insert("commit".into(), self.commit.clone().into());
+        t.insert("file".into(), self.file.clone().into());
+        if let Some(i) = &self.index {
+            t.insert("index".into(), i.clone().into());
+        }
+        t.insert("mb".into(), toml::Value::Integer(self.mb as i64));
+        toml::Value::Table(t)
+    }
+
+    /// The same model, whatever it is called.
+    fn same(&self, m: &Model) -> bool {
+        m.found
+            && m.repo == self.repo
+            && m.commit == self.commit
+            && m.pth == self.file
+            && m.index == self.index.as_deref()
+    }
+
+    /// A name for its files: the same for the same model, and never one of [`MODELS`].
+    fn id(&self) -> String {
+        // FNV-1a: the same on every computer and in every Rust.
+        let key = format!("{}\n{}\n{}\n{}", self.repo, self.commit, self.file, self.index.as_deref().unwrap_or(""));
+        let hash = key.bytes().fold(0xcbf2_9ce4_8422_2325u64, |h, b| (h ^ b as u64).wrapping_mul(0x100_0000_01b3));
+        format!("hf_{hash:016x}")
+    }
+}
+
+/// The models found online that voices use, after [`MODELS`] in their numbering. They only
+/// come and never go while Voicenux runs, so a number always means the same model.
+static FOUND: Mutex<Vec<&'static Model>> = Mutex::new(Vec::new());
+
+fn found() -> std::sync::MutexGuard<'static, Vec<&'static Model>> {
+    FOUND.lock().unwrap_or_else(|e| e.into_inner())
+}
+
+/// The model with number `i`: one of [`MODELS`], then the ones found online.
+pub fn model(i: usize) -> Option<&'static Model> {
+    MODELS.get(i).or_else(|| found().get(i - MODELS.len()).copied())
+}
+
+/// All models, in their numbering, for the choice in Voicelab.
+pub fn models() -> Vec<&'static Model> {
+    MODELS.iter().chain(found().iter().copied()).collect()
+}
+
+/// The number of a model as a voice names it: one of [`MODELS`] by its name, or a [`Source`].
+pub fn number_of(v: &toml::Value) -> Option<usize> {
+    match v {
+        toml::Value::String(s) => MODELS.iter().position(|m| m.name.eq_ignore_ascii_case(s) || m.id == s),
+        toml::Value::Integer(i) => usize::try_from(*i).ok().filter(|i| *i < MODELS.len()),
+        toml::Value::Float(f) => Some(*f as usize).filter(|i| *i < MODELS.len()),
+        toml::Value::Table(_) => Some(add(&Source::from_value(v)?)),
+        _ => None,
+    }
+}
+
+/// How a voice names the model with number `i`.
+pub fn value_of(i: usize) -> toml::Value {
+    match model(i) {
+        Some(m) if m.found => m.source().to_value(),
+        Some(m) => m.name.into(),
+        None => MODELS[0].name.into(),
+    }
+}
+
+/// The number of a model found online. Known ones keep theirs.
+pub fn add(source: &Source) -> usize {
+    let mut found = found();
+    if let Some(i) = found.iter().position(|m| source.same(m)) {
+        return MODELS.len() + i;
+    }
+    let name = if source.name.trim().is_empty() { source.repo.clone() } else { source.name.clone() };
+    // Lives as long as Voicenux, like the built-in ones. Only a few each run.
+    let m: &'static Model = Box::leak(Box::new(Model {
+        id: source.id().leak(),
+        name: name.leak(),
+        repo: source.repo.clone().leak(),
+        commit: source.commit.clone().leak(),
+        pitch: 0.0,
+        pth: source.file.clone().leak(),
+        index: source.index.clone().map(|i| &*i.leak()),
+        mb: source.mb.max(1),
+        found: true,
+    }));
+    found.push(m);
+    MODELS.len() + found.len() - 1
 }
 
 /// The folder of everything AI: Python, PyTorch, the base models and the voices. Several GB, so
@@ -238,9 +383,12 @@ impl Model {
         self
     }
 
-    /// The files carry the commit, so a voice that moves to another model downloads again.
+    /// The files carry the commit, so a voice that moves to another model downloads again. The
+    /// id of a found one has it already.
     fn file(&self, ext: &str) -> PathBuf {
-        dir().join("voices").join(format!("{}-{}.{ext}", self.id, &self.commit[..8]))
+        let name =
+            if self.found { format!("{}.{ext}", self.id) } else { format!("{}-{}.{ext}", self.id, &self.commit[..8]) };
+        dir().join("voices").join(name)
     }
 
     /// The model itself.
@@ -249,8 +397,11 @@ impl Model {
     }
 
     /// Speech features from the character's recordings, if the model uses them. They make it
-    /// sound more like the character.
+    /// sound more like the character. A found one has them if its download brought them.
     pub fn index(&self) -> Option<PathBuf> {
+        if self.found {
+            return Some(self.file("index")).filter(|p| p.is_file());
+        }
         self.index.map(|_| self.file("index"))
     }
 
@@ -259,13 +410,25 @@ impl Model {
     }
 
     fn url(&self, file: &str) -> String {
-        format!("https://huggingface.co/{}/resolve/{}/{file}", self.repo, self.commit)
+        hub::file_url(self.repo, self.commit, file)
+    }
+
+    /// Where a found one comes from.
+    pub fn source(&self) -> Source {
+        Source {
+            repo: self.repo.into(),
+            commit: self.commit.into(),
+            file: self.pth.into(),
+            index: self.index.map(str::to_string),
+            mb: self.mb,
+            name: self.name.into(),
+        }
     }
 }
 
 /// The model a voice uses, if it is an AI voice: its first AI block.
 pub fn model_of(blocks: &[crate::dsp::chain::BlockValues]) -> Option<&'static Model> {
-    blocks.iter().find(|b| b.kind == "ai" && b.enabled).and_then(|b| MODELS.get(b.values.first().copied()? as usize))
+    blocks.iter().find(|b| b.kind == "ai" && b.enabled).and_then(|b| model(b.values.first().copied()? as usize))
 }
 
 /// Whether a voice can play right now: the engine and its model are there.
@@ -278,14 +441,59 @@ mod tests {
     use super::*;
 
     #[test]
-    fn names_follow_the_models() {
-        assert_eq!(NAMES.len(), MODELS.len());
+    fn models_are_pinned() {
         for (i, m) in MODELS.iter().enumerate() {
-            assert_eq!(NAMES[i], m.name);
+            assert!(!m.found && !m.id.starts_with("hf_"), "{}", m.id);
             assert!(MODELS[..i].iter().all(|o| o.id != m.id), "{} twice", m.id);
             assert!(m.commit.len() == 40 && m.commit.chars().all(|c| c.is_ascii_hexdigit()), "{}", m.id);
             assert!(m.url(m.pth).starts_with("https://huggingface.co/"));
         }
+    }
+
+    fn source() -> Source {
+        Source {
+            repo: "someone/Mario_RVC".into(),
+            commit: "0123456789abcdef0123456789abcdef01234567".into(),
+            file: "Mario V2.zip".into(),
+            index: None,
+            mb: 60,
+            name: "Mario".into(),
+        }
+    }
+
+    #[test]
+    fn found_models_keep_their_number() {
+        let s = source();
+        let i = number_of(&s.to_value()).unwrap();
+        assert!(i >= MODELS.len());
+        assert_eq!(number_of(&s.to_value()), Some(i));
+        let m = model(i).unwrap();
+        assert!(m.found && m.id.starts_with("hf_"));
+        assert_eq!(m.source(), s);
+        assert_eq!(value_of(i), s.to_value());
+        // Another file is another model.
+        let other = Source { file: "Luigi.zip".into(), ..source() };
+        assert_ne!(number_of(&other.to_value()), Some(i));
+        assert_eq!(number_of(&"Darth Vader".into()), Some(4));
+        assert_eq!(value_of(4), toml::Value::from("Darth Vader"));
+    }
+
+    #[test]
+    fn found_models_come_only_from_hugging_face() {
+        let ok = |s: Source| Source::from_value(&s.to_value()).is_some();
+        assert!(ok(source()));
+        assert!(ok(Source {
+            file: "weights/Mario.pth".into(),
+            index: Some("logs/added_IVF.index".into()),
+            ..source()
+        }));
+        assert!(!ok(Source { repo: "../etc".into(), ..source() }));
+        assert!(!ok(Source { repo: "a/b/c".into(), ..source() }));
+        assert!(!ok(Source { commit: "main".into(), ..source() }));
+        assert!(!ok(Source { file: "../../x.zip".into(), ..source() }));
+        assert!(!ok(Source { file: "/x.zip".into(), ..source() }));
+        assert!(!ok(Source { file: "model.exe".into(), ..source() }));
+        assert!(!ok(Source { index: Some("a/../b.index".into()), ..source() }));
     }
 
     #[test]

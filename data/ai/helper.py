@@ -6,9 +6,9 @@ endian), then the payload. Log lines go to stderr.
 
 From Voicenux:
   L  load a model: JSON {"model": path of its .pth file, "index": path of its .index file or
-     null, "pitch": typical pitch of the character in Hz, "rate": sample rate of the engine}
-  A  audio: f32 pitch shift in semitones on top of the character's pitch, then one block of
-     mono f32 samples
+     null, "rate": sample rate of the engine}
+  A  audio: f32 pitch shift in semitones on top of the character's pitch, f32 typical pitch of
+     the character in Hz (0 keeps yours), then one block of mono f32 samples
 To Voicenux:
   R  ready: JSON {"device": "cuda"}
   M  model loaded: JSON {"model": path, "rate": sample rate of the model, "block": seconds per
@@ -18,6 +18,9 @@ To Voicenux:
   E  error: text
 
 `python helper.py prepare --models DIR` only downloads the models every voice needs.
+`python helper.py unpack FILE --pth OUT --index OUT` takes the model out of a voice found on
+Hugging Face, a .pth or a .zip with one inside, and checks that it is an RVC model. It exits with
+NO_VOICE when there is none.
 
 It works like the real-time mode of RVC: each block joins a window with the voice before it, the
 whole window goes through HuBERT and the pitch finder, and the model renders only the newest
@@ -103,13 +106,13 @@ class Converter:
         self.heard = np.zeros(0, dtype=np.float32)
         self.quiet = HOLD
 
-    def load(self, path, index, pitch, rate):
+    def load(self, path, index, rate):
         """Loads a model, warms it up and picks the block size. Returns the block and cushion."""
         from infer_rvc_python.main import load_trained_model
 
         _, self.sr, self.net, _, cpt, self.version = load_trained_model(path, self.config)
         self.pitched = cpt.get("f0", 1) == 1
-        self.pitch = pitch
+        self.pitch = 0.0
         self.load_index(index)
         # The first runs are slow while the device gets ready: never let a voice wait for them.
         self.setup(0.1, rate)
@@ -313,14 +316,14 @@ def serve(device, models):
         try:
             if kind == b"L":
                 order = json.loads(payload)
-                block, cushion, delay = conv.load(order["model"], order.get("index"), order.get("pitch"), order["rate"])
+                block, cushion, delay = conv.load(order["model"], order.get("index"), order["rate"])
                 conv.start()
                 info = {"model": order["model"], "rate": conv.sr, "block": block, "cushion": cushion, "delay": delay}
                 send(b"M", json.dumps(info).encode())
                 log("loaded", order["model"], "with index" if conv.index is not None else "without index")
             elif kind == b"A" and conv.net is not None:
-                key = struct.unpack("<f", payload[:4])[0]
-                x = np.frombuffer(payload[4:], dtype="<f4")
+                key, conv.pitch = struct.unpack("<ff", payload[:8])
+                x = np.frombuffer(payload[8:], dtype="<f4")
                 send(b"A", conv.convert(x, key).astype("<f4").tobytes())
         except Exception as e:  # noqa: BLE001 - keep serving, Voicenux shows the error
             log("error:", repr(e))
@@ -336,13 +339,99 @@ def prepare(models):
     log("prepared")
 
 
+# What `unpack` exits with when a download holds no RVC model.
+NO_VOICE = 3
+
+# The biggest model and index taken out of a download. Models are about 55 MB, indexes of long
+# recordings reach a few hundred.
+MAX_PTH = 400 << 20
+MAX_INDEX = 1500 << 20
+
+
+def rvc(path):
+    """Whether a file is an RVC model to talk with. weights_only: a file from anyone can only
+    hold numbers and names, never code that would run."""
+    import torch
+
+    try:
+        cpt = torch.load(path, map_location="cpu", weights_only=True)
+    except Exception as e:  # noqa: BLE001 - any file that does not load is no model
+        log("not a model:", repr(e))
+        return False
+    weight = cpt.get("weight") if isinstance(cpt, dict) else None
+    # The speech features go into enc_p.emb_phone: only RVC has it.
+    return isinstance(weight, dict) and "config" in cpt and any("emb_phone" in k for k in weight)
+
+
+def take(z, info, out, most):
+    """Writes one file of a zip to `out`, never more than `most` bytes."""
+    done = 0
+    with z.open(info) as src, open(out + ".part", "wb") as dst:
+        while chunk := src.read(1 << 20):
+            done += len(chunk)
+            if done > most:
+                raise ValueError("a file in the download is too big")
+            dst.write(chunk)
+    os.replace(out + ".part", out)
+
+
+def unpack(path, pth, index):
+    """Takes the model and its index out of a download from Hugging Face."""
+    import zipfile
+
+    if not path.lower().endswith(".zip"):
+        # A .pth on its own. PyTorch writes them as zips too, so only the name tells.
+        if not rvc(path):
+            log("This is not an RVC voice model.")
+            sys.exit(NO_VOICE)
+        os.replace(path, pth)
+        return
+    try:
+        z = zipfile.ZipFile(path)
+    except zipfile.BadZipFile:
+        sys.exit("The download is broken.")
+    with z:
+        files = [i for i in z.infolist() if not i.is_dir()]
+
+        def name(i):
+            return os.path.basename(i.filename).lower()
+
+        # G_ and D_ are what training leaves behind, not the model to talk with. The smallest
+        # file first: a model is smaller than such leftovers.
+        models = [i for i in files if name(i).endswith(".pth") and not name(i).startswith(("g_", "d_"))]
+        for info in sorted(models, key=lambda i: i.file_size):
+            if info.file_size > MAX_PTH:
+                continue
+            take(z, info, pth, MAX_PTH)
+            if rvc(pth):
+                break
+            os.remove(pth)
+        else:
+            log("There is no RVC voice model in this download.")
+            sys.exit(NO_VOICE)
+        # The index RVC adds to: "added_..." The "trained_..." one is only a step on the way.
+        indexes = [i for i in files if name(i).endswith(".index") and not name(i).startswith("trained")]
+        indexes = [i for i in indexes if i.file_size <= MAX_INDEX]
+        if os.path.exists(index):
+            os.remove(index)
+        if indexes:
+            best = max(indexes, key=lambda i: (name(i).startswith("added"), i.file_size))
+            take(z, best, index, MAX_INDEX)
+    log("unpacked", path, "with index" if os.path.exists(index) else "without index")
+
+
 def main():
     p = argparse.ArgumentParser()
-    p.add_argument("command", choices=["serve", "prepare"])
+    p.add_argument("command", choices=["serve", "prepare", "unpack"])
+    p.add_argument("file", nargs="?")
     p.add_argument("--device", default="cuda", choices=["cuda", "cpu"])
-    p.add_argument("--models", required=True)
+    p.add_argument("--models")
+    p.add_argument("--pth")
+    p.add_argument("--index")
     a = p.parse_args()
-    if a.command == "prepare":
+    if a.command == "unpack":
+        unpack(a.file, a.pth, a.index)
+    elif a.command == "prepare":
         prepare(a.models)
     else:
         serve(a.device, a.models)

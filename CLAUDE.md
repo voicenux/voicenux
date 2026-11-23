@@ -46,7 +46,10 @@
   mirrored window ends, make a held "aaa" jump between vowels. Models are pinned to a Hugging Face commit in
   `ai::MODELS`, with the character's typical pitch (the helper moves yours there, `key` only
   shifts from it) and whether to use the index. Only fictional characters, no real people as
-  themselves.
+  themselves. **Find AI voices** (`ai::hub`, `ui/find_voices.rs`) searches Hugging Face for more.
+  Such a voice keeps its `ai::Source` (repo, commit, file) in its `model`, gets a number after
+  `MODELS` while Voicenux runs, and asks how high it is (`height`), since its pitch is unknown.
+  The helper's `unpack` takes the model out of a zip and loads it `weights_only`.
 - `src/api.rs` lets other apps control Voicenux (WebSocket and HTTP on 127.0.0.1:41967, off by
   default). Keep `API.md` in step with it. Raise `VERSION` there only for changes that break clients.
 - `src/speech.rs` turns what you say into text, for apps (API `listen`, `transcribe`) and for the
@@ -110,8 +113,8 @@
   `pw-link -l` and `pw-record --target voicenux_mic`.
 - Never test with injected input (XTest, ydotool, remote desktop portal). Drive the app with its
   own commands instead: `voicenux open <page>`, `voicenux voice <id>`, `voicenux sound <id>`.
-- `voicenux --dialog keys|about|discord|trim:SOUND|find:WORDS|tour:PAGE:STEP|welcome:STEP` opens a dialog, the
-  MyInstants search or the tips of a page from one step on, for screenshots. Menus are popups of
+- `voicenux --dialog keys|about|discord|trim:SOUND|find:WORDS|find-voices:WORDS|tour:PAGE:STEP|welcome:STEP`
+  opens a dialog, the MyInstants or Hugging Face search or the tips of a page from one step on, for screenshots. Menus are popups of
   their own, `--snapshot` does not see them.
 - For screenshots, `voicenux --snapshot file.png` renders the window into a PNG. It needs a desktop
   that draws frames: on a locked screen, run Voicenux in `kwin_wayland --virtual` with its own

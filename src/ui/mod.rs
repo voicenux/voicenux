@@ -6,6 +6,7 @@ pub mod board;
 pub mod bottombar;
 pub mod emoji;
 pub mod find_sounds;
+pub mod find_voices;
 mod glyph;
 pub mod help;
 pub mod keys;

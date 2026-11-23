@@ -68,7 +68,8 @@ fn agent(family: IpFamily) -> ureq::Agent {
 
 type Response = ureq::http::Response<ureq::Body>;
 
-fn call(request: impl Fn(&ureq::Agent) -> Result<Response, ureq::Error>) -> Result<Response, ureq::Error> {
+/// Sends a request over IPv4 first, see [`V4`]. The voice search on Hugging Face uses it too.
+pub(crate) fn call(request: impl Fn(&ureq::Agent) -> Result<Response, ureq::Error>) -> Result<Response, ureq::Error> {
     match request(&V4) {
         Err(ureq::Error::HostNotFound) => request(&ANY),
         r => r,

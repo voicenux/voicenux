@@ -10,14 +10,16 @@ use std::sync::mpsc::{self, Receiver, RecvTimeoutError, Sender};
 use std::sync::{Arc, Mutex, OnceLock};
 use std::time::{Duration, Instant};
 
-use super::{Card, MODELS, card, install, on_cpu};
+use super::{Card, card, install, on_cpu};
 
 /// What an AI effect and the bridge share.
 pub struct Link {
-    /// Index into [`MODELS`].
+    /// The number of the model, see `ai::model`.
     pub model: AtomicUsize,
     /// Pitch shift in semitones, as the bits of an f32.
     pub key: AtomicU32,
+    /// Where your typical pitch moves, in Hz, as the bits of an f32. 0 for the model's own.
+    pub pitch: AtomicU32,
     /// False once the effect is gone.
     pub alive: AtomicBool,
     /// Samples per block the helper sends back.
@@ -29,11 +31,12 @@ pub struct Link {
 }
 
 impl Link {
-    pub fn new(model: usize, key: f32, rate: u32) -> Self {
+    pub fn new(model: usize, key: f32, pitch: f32, rate: u32) -> Self {
         Self {
             rate,
             model: AtomicUsize::new(model),
             key: AtomicU32::new(key.to_bits()),
+            pitch: AtomicU32::new(pitch.to_bits()),
             alive: AtomicBool::new(true),
             block: AtomicUsize::new(0),
             cushion: AtomicUsize::new(usize::MAX),
@@ -280,8 +283,12 @@ fn run(rx: Receiver<Event>, back: Sender<Event>) {
             }
             continue;
         };
-        let index = s.link.model.load(Ordering::Relaxed).min(MODELS.len() - 1);
-        let model = &MODELS[index];
+        let index = s.link.model.load(Ordering::Relaxed);
+        let Some(model) = super::model(index) else {
+            set_status(Status::Missing);
+            drain(&mut s.input);
+            continue;
+        };
         if !super::ready(model) {
             set_status(Status::Missing);
             drain(&mut s.input);
@@ -321,7 +328,6 @@ fn run(rx: Receiver<Event>, back: Sender<Event>) {
             let order = serde_json::json!({
                 "model": model.path(),
                 "index": model.index(),
-                "pitch": model.pitch,
                 "rate": s.link.rate,
             });
             if send(&mut h.stdin, b'L', order.to_string().as_bytes()).is_err() {
@@ -335,10 +341,13 @@ fn run(rx: Receiver<Event>, back: Sender<Event>) {
         }
         s.link.block.store(h.block, Ordering::Relaxed);
         s.link.cushion.store(h.cushion, Ordering::Relaxed);
+        let pitch = Some(f32::from_bits(s.link.pitch.load(Ordering::Relaxed))).filter(|p| *p > 0.0);
+        let pitch = pitch.unwrap_or(model.pitch);
         while s.input.slots() >= h.block {
             let Ok(chunk) = s.input.read_chunk(h.block) else { break };
             frame.clear();
             frame.extend_from_slice(&f32::from_bits(s.link.key.load(Ordering::Relaxed)).to_le_bytes());
+            frame.extend_from_slice(&pitch.to_le_bytes());
             let (a, b) = chunk.as_slices();
             for x in a.iter().chain(b) {
                 frame.extend_from_slice(&x.to_le_bytes());
