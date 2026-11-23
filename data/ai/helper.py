@@ -37,7 +37,13 @@ import struct
 import sys
 import time
 
+import types
+
 import numpy as np
+
+# RVC imports pyworld for a pitch finder this helper never uses (it uses RMVPE). The install
+# leaves it out, since it needs a compiler, so an empty one stands in.
+sys.modules.setdefault("pyworld", types.ModuleType("pyworld"))
 
 HUBERT_RATE = 16000
 # 100 frames a second, like RVC.

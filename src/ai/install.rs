@@ -26,6 +26,9 @@ const TORCH_ROCM: &str = "https://download.pytorch.org/whl/rocm7.2";
 const TORCH_CPU: &str = "https://download.pytorch.org/whl/cpu";
 const TORCH: &str = "torch==2.14.1";
 const PACKAGES: &[&str] = &["infer-rvc-python==1.3.1", "setuptools<80", "soxr"];
+/// pyworld has no wheels for Linux, and the Flatpak has no compiler to build it. The helper never
+/// uses it and puts an empty one in its place.
+const OVERRIDES: &str = "pyworld ; sys_platform == 'never'\n";
 /// No voice file is near this big.
 const MAX_MODEL: u64 = 400 * 1024 * 1024;
 /// A voice found online can come as a zip with a long index inside.
@@ -365,7 +368,18 @@ fn install_steps(progress: &dyn Fn(usize, u64, u64)) -> anyhow::Result<()> {
         mb[2],
         &step(3),
     )?;
-    run_watched(uv_cmd(&uv).args(["pip", "install", "--python"]).arg(python()).args(PACKAGES), mb[3], &step(4))?;
+    let overrides = dir().join("overrides.txt");
+    std::fs::write(&overrides, OVERRIDES)?;
+    run_watched(
+        uv_cmd(&uv)
+            .args(["pip", "install", "--python"])
+            .arg(python())
+            .args(["--only-binary", ":all:", "--overrides"])
+            .arg(&overrides)
+            .args(PACKAGES),
+        mb[3],
+        &step(4),
+    )?;
     let script = write_helper()?;
     run_watched(
         Command::new(python()).arg(script).arg("prepare").arg("--models").arg(models_dir()).env("HF_HOME", hf_home()),
