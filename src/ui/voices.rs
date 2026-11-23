@@ -707,19 +707,22 @@ pub fn build(st: &St, open_lab: OpenLab) -> VoicesPage {
         }
     });
 
-    // Ctrl+A picks all voices on the grid, Delete removes the picked ones of your own.
+    // Ctrl+A picks all voices on the grid, Delete removes the picked ones of your own, or the
+    // focused one when none are picked.
     let keys = gtk::EventControllerKey::new();
     keys.set_propagation_phase(gtk::PropagationPhase::Capture);
     keys.connect_key_pressed({
-        let (grid, picks, pick_all, delete_picks) =
-            (grid.clone(), picks.clone(), pick_all.clone(), delete_picks.clone());
+        let (st, grid, picks, pick_all, delete_picks, item_of) =
+            (st.clone(), grid.clone(), picks.clone(), pick_all.clone(), delete_picks.clone(), item_of.clone());
         move |_, key, _, mods| {
-            if grid.focus_child().filter(|c| c.has_focus()).is_none() {
+            let Some(child) = grid.focus_child().filter(|c| c.has_focus()) else {
                 return glib::Propagation::Proceed;
-            }
+            };
+            let own = item_of(&child).filter(|id| st.voice(id).is_some_and(|v| !v.builtin));
             match key {
                 gdk::Key::a if mods.contains(gdk::ModifierType::CONTROL_MASK) => pick_all(),
                 gdk::Key::Delete | gdk::Key::KP_Delete if !picks.is_empty() => delete_picks(),
+                gdk::Key::Delete | gdk::Key::KP_Delete if own.is_some() => st.delete_customs(own.as_slice()),
                 _ => return glib::Propagation::Proceed,
             }
             glib::Propagation::Stop
@@ -1131,10 +1134,11 @@ fn card_menu(st: &St, open_lab: &OpenLab, child: &gtk::FlowBoxChild, id: &str, x
     let fav = st.is_favorite(id);
     let key = format!("voice:{id}");
     let has_key = super::keys::shown(st, &key).is_some();
-    let (st1, st2, open_lab) = (st.clone(), st.clone(), open_lab.clone());
-    let (id1, id2) = (id.to_string(), id.to_string());
+    let (st1, st2, st3, open_lab) = (st.clone(), st.clone(), st.clone(), open_lab.clone());
+    let (id1, id2, id3) = (id.to_string(), id.to_string(), id.to_string());
+    let builtin = v.builtin;
     let weak = child.downgrade();
-    let items = vec![
+    let mut items = vec![
         popup::Item::new(
             if fav { "starred-symbolic" } else { "non-starred-symbolic" },
             if fav { t("Remove from favorites") } else { t("Add to favorites") },
@@ -1151,6 +1155,13 @@ fn card_menu(st: &St, open_lab: &OpenLab, child: &gtk::FlowBoxChild, id: &str, x
             },
         ),
     ];
+    // Only your own voices, like ones found on Hugging Face. Undo brings it back.
+    if !builtin {
+        items.push(
+            popup::Item::new("user-trash-symbolic", t("Delete"), move || st3.delete_customs(std::slice::from_ref(&id3)))
+                .danger(),
+        );
+    }
     popup::show_list(child, x, y, items);
 }
 

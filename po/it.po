@@ -1703,6 +1703,9 @@ msgstr "Spostati tra le voci"
 msgid "Use the voice"
 msgstr "Usa la voce"
 
+msgid "Delete a voice of your own"
+msgstr "Elimina una tua voce"
+
 msgid "More for a voice, or right-click it"
 msgstr "Altro per una voce, o clic destro su di essa"
 

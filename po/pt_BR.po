@@ -1703,6 +1703,9 @@ msgstr "Navegar entre as vozes"
 msgid "Use the voice"
 msgstr "Usar a voz"
 
+msgid "Delete a voice of your own"
+msgstr "Apagar uma voz sua"
+
 msgid "More for a voice, or right-click it"
 msgstr "Mais de uma voz, ou clique com o botão direito nela"
 

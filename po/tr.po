@@ -1703,6 +1703,9 @@ msgstr "Sesler arasında gezin"
 msgid "Use the voice"
 msgstr "Sesi kullan"
 
+msgid "Delete a voice of your own"
+msgstr "Kendi sesini sil"
+
 msgid "More for a voice, or right-click it"
 msgstr "Bir ses için daha fazlası ya da sağ tıkla"
 

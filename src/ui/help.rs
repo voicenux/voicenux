@@ -35,6 +35,7 @@ fn sections() -> Vec<Section> {
             vec![
                 ("↑ ↓ ← →", t("Move between voices")),
                 ("Enter", t("Use the voice")),
+                ("Del", t("Delete a voice of your own")),
                 ("Menu", t("More for a voice, or right-click it")),
                 ("A … Z", t("Type anywhere to search")),
             ],

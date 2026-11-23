@@ -1703,6 +1703,9 @@ msgstr "Zwischen Stimmen wechseln"
 msgid "Use the voice"
 msgstr "Stimme benutzen"
 
+msgid "Delete a voice of your own"
+msgstr "Eigene Stimme löschen"
+
 msgid "More for a voice, or right-click it"
 msgstr "Mehr zu einer Stimme, oder klick sie mit rechts an"
 
