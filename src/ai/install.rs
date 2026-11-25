@@ -158,37 +158,59 @@ fn download(url: &str, path: &Path, max: u64, progress: &dyn Fn(u64, u64)) -> an
     }
     let part = path.with_extension("part");
     std::fs::create_dir_all(path.parent().unwrap())?;
-    let mut file = std::fs::File::create(&part)?;
-    let mut reader = resp.body_mut().with_config().limit(max).reader();
-    let mut buf = vec![0u8; 256 * 1024];
-    let mut done = 0u64;
-    loop {
-        if stopped() {
-            drop(file);
-            let _ = std::fs::remove_file(&part);
-            return Err(Stopped.into());
+    let result = (|| -> anyhow::Result<()> {
+        let mut file = std::fs::File::create(&part)?;
+        let mut reader = resp.body_mut().with_config().limit(max).reader();
+        let mut buf = vec![0u8; 256 * 1024];
+        let mut done = 0u64;
+        loop {
+            if stopped() {
+                return Err(Stopped.into());
+            }
+            let n = reader.read(&mut buf)?;
+            if n == 0 {
+                break;
+            }
+            file.write_all(&buf[..n])?;
+            done += n as u64;
+            if total > 0 {
+                progress(done, total);
+            }
         }
-        let n = reader.read(&mut buf)?;
-        if n == 0 {
-            break;
-        }
-        file.write_all(&buf[..n])?;
-        done += n as u64;
-        if total > 0 {
-            progress(done, total);
+        file.sync_all()?;
+        std::fs::rename(&part, path)?;
+        Ok(())
+    })();
+    if result.is_err() {
+        let _ = std::fs::remove_file(&part);
+    }
+    result
+}
+
+fn kill_group(child: &mut CommandChild) {
+    unsafe extern "C" {
+        fn kill(pid: i32, sig: i32) -> i32;
+    }
+    let pid = child.id() as i32;
+    if pid > 0 {
+        unsafe {
+            kill(-pid, 9);
         }
     }
-    file.sync_all()?;
-    std::fs::rename(&part, path)?;
-    Ok(())
+    let _ = child.kill();
+    let _ = child.wait();
 }
+
+type CommandChild = std::process::Child;
 
 /// Runs a command that downloads, and tells `progress` the bytes done and in all. uv names each
 /// bigger download with its size as it starts, like "Downloading torch (846.7MiB)"; until then,
 /// or for other commands, `expected` stands in. What came in so far is read from the network
 /// counters of the computer, so other downloads at the same time make it look a bit further.
 fn run_watched(cmd: &mut Command, expected: u64, progress: &dyn Fn(u64, u64)) -> anyhow::Result<()> {
+    use std::os::unix::process::CommandExt;
     let mut child = cmd
+        .process_group(0)
         .stdin(Stdio::null())
         .stdout(Stdio::null())
         .stderr(Stdio::piped())
@@ -222,9 +244,7 @@ fn run_watched(cmd: &mut Command, expected: u64, progress: &dyn Fn(u64, u64)) ->
             break status;
         }
         if stopped() {
-            let _ = child.kill();
-            let _ = child.wait();
-            let _ = reader.join();
+            kill_group(&mut child);
             return Err(Stopped.into());
         }
         let total = total();
@@ -328,6 +348,7 @@ pub fn install_engine(progress: &dyn Fn(usize, u64, u64)) -> anyhow::Result<()> 
 }
 
 fn install_steps(progress: &dyn Fn(usize, u64, u64)) -> anyhow::Result<()> {
+    super::bridge::stop();
     std::fs::create_dir_all(dir())?;
     // A build for the other graphics card would leave GBs of its libraries behind.
     let ready = std::fs::read_to_string(dir().join("ready")).unwrap_or_default();
@@ -448,7 +469,12 @@ fn download_found(model: &Model, progress: &dyn Fn(f32)) -> anyhow::Result<()> {
         if let Some(name) = model.index {
             download(&model.url(name), &index, MAX_FOUND, &|done, _| share(before, done))?;
         }
-        let out = Command::new(python())
+        if stopped() {
+            return Err(Stopped.into());
+        }
+        use std::os::unix::process::CommandExt;
+        let mut child = Command::new(python())
+            .process_group(0)
             .arg(write_helper()?)
             .arg("unpack")
             .arg(&got)
@@ -457,23 +483,57 @@ fn download_found(model: &Model, progress: &dyn Fn(f32)) -> anyhow::Result<()> {
             .arg("--index")
             .arg(&index)
             .stdin(Stdio::null())
-            .output()
+            .stdout(Stdio::null())
+            .stderr(Stdio::piped())
+            .spawn()
             .context("the AI helper did not start")?;
-        let log = String::from_utf8_lossy(&out.stderr);
-        for line in log.lines() {
-            log::info!("{line}");
-        }
-        if !out.status.success() {
-            let _ = std::fs::remove_file(&index);
+        let stderr = child.stderr.take().expect("piped");
+        let lines = Arc::new(Mutex::new(Vec::<String>::new()));
+        let reader = std::thread::spawn({
+            let lines = lines.clone();
+            move || {
+                for line in BufReader::new(stderr).lines().map_while(Result::ok) {
+                    log::info!("{line}");
+                    if let Ok(mut list) = lines.lock() {
+                        list.push(line);
+                    }
+                }
+            }
+        });
+        let status = loop {
+            if let Some(status) = child.try_wait()? {
+                break status;
+            }
+            if stopped() {
+                kill_group(&mut child);
+                return Err(Stopped.into());
+            }
+            std::thread::sleep(Duration::from_millis(100));
+        };
+        let _ = reader.join();
+        if !status.success() {
             // NO_VOICE of the helper.
-            if out.status.code() == Some(3) {
+            if status.code() == Some(3) {
                 return Err(NotAVoice.into());
             }
-            bail!("{}", log.lines().rev().find(|l| !l.trim().is_empty()).unwrap_or("it did not unpack"));
+            let last = lines
+                .lock()
+                .ok()
+                .and_then(|l| l.iter().rev().find(|s| !s.trim().is_empty()).cloned())
+                .unwrap_or_else(|| "it did not unpack".into());
+            bail!("{last}");
         }
         progress(1.0);
         anyhow::Ok(())
     })();
+    if result.is_err() {
+        let pth = model.path();
+        let index = pth.with_extension("index");
+        let _ = std::fs::remove_file(&pth);
+        let _ = std::fs::remove_file(&index);
+        let _ = std::fs::remove_file(format!("{}.part", pth.display()));
+        let _ = std::fs::remove_file(format!("{}.part", index.display()));
+    }
     let _ = std::fs::remove_file(&got);
     result
 }

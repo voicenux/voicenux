@@ -58,17 +58,17 @@ pub fn size() -> u64 {
 
 static DOWNLOADING: AtomicBool = AtomicBool::new(false);
 static DONE: AtomicU64 = AtomicU64::new(0);
+// One download or removal at a time.
+static ONE: Mutex<()> = Mutex::new(());
 
 /// How far the download is, from 0 to 1, while it runs. Settings shows it.
 pub fn progress() -> Option<f64> {
-    DOWNLOADING.load(Ordering::Relaxed).then(|| DONE.load(Ordering::Relaxed) as f64 / size() as f64)
+    DOWNLOADING.load(Ordering::Relaxed).then(|| (DONE.load(Ordering::Relaxed) as f64 / size() as f64).min(1.0))
 }
 
 /// Deletes the model. It downloads again when it is needed.
 pub fn remove() -> std::io::Result<()> {
-    if DOWNLOADING.load(Ordering::Relaxed) {
-        return Ok(());
-    }
+    let Ok(_one) = ONE.try_lock() else { return Ok(()) };
     let _ = std::fs::remove_dir_all(old_dir());
     match std::fs::remove_dir_all(dir()) {
         Err(e) if e.kind() != std::io::ErrorKind::NotFound => Err(e),
@@ -89,8 +89,6 @@ pub fn prepare() {
 
 /// Downloads the model, unless it is there. Blocks: call it off the main thread.
 pub fn download() -> anyhow::Result<()> {
-    // One download at a time. A second caller waits for the first one.
-    static ONE: Mutex<()> = Mutex::new(());
     let _one = ONE.lock().unwrap_or_else(|e| e.into_inner());
     if !ready() {
         DOWNLOADING.store(true, Ordering::Relaxed);
@@ -121,23 +119,29 @@ fn fetch() -> anyhow::Result<()> {
         let mut resp = agent.get(&url).call().with_context(|| format!("download {url}"))?;
         std::fs::create_dir_all(dir())?;
         let part = dir().join(format!("{file}.part"));
-        let mut out = std::fs::File::create(&part)?;
-        let mut body = resp.body_mut().with_config().limit(*size + 1).reader();
-        let mut buf = vec![0u8; 256 * 1024];
-        loop {
-            let n = body.read(&mut buf)?;
-            if n == 0 {
-                break;
+        let result = (|| -> anyhow::Result<()> {
+            let mut out = std::fs::File::create(&part)?;
+            let mut body = resp.body_mut().with_config().limit(*size + 1).reader();
+            let mut buf = vec![0u8; 256 * 1024];
+            loop {
+                let n = body.read(&mut buf)?;
+                if n == 0 {
+                    break;
+                }
+                out.write_all(&buf[..n])?;
+                DONE.fetch_add(n as u64, Ordering::Relaxed);
             }
-            out.write_all(&buf[..n])?;
-            DONE.fetch_add(n as u64, Ordering::Relaxed);
-        }
-        if !complete(&part, *size) {
+            if !complete(&part, *size) {
+                bail!("{url} came in broken");
+            }
+            out.sync_all()?;
+            std::fs::rename(&part, &path)?;
+            Ok(())
+        })();
+        if result.is_err() {
             let _ = std::fs::remove_file(&part);
-            bail!("{url} came in broken");
         }
-        out.sync_all()?;
-        std::fs::rename(&part, &path)?;
+        result?;
     }
     Ok(())
 }
@@ -399,6 +403,9 @@ fn mel_filters(n: usize) -> Vec<f32> {
 
 /// The microphone at 16 kHz, for Whisper.
 pub fn resample(samples: &[f32], rate: u32) -> Vec<f32> {
+    if rate == 0 {
+        return Vec::new();
+    }
     let frames: Vec<[f32; 2]> = samples.iter().map(|&x| [x, x]).collect();
     crate::soundboard::resample(&frames, rate, RATE).into_iter().map(|[l, _]| l).collect()
 }

@@ -227,7 +227,7 @@ pub fn number_of(v: &toml::Value) -> Option<usize> {
     match v {
         toml::Value::String(s) => MODELS.iter().position(|m| m.name.eq_ignore_ascii_case(s) || m.id == s),
         toml::Value::Integer(i) => usize::try_from(*i).ok().filter(|i| *i < MODELS.len()),
-        toml::Value::Float(f) => Some(*f as usize).filter(|i| *i < MODELS.len()),
+        toml::Value::Float(f) if f.is_finite() && *f >= 0.0 => Some(*f as usize).filter(|i| *i < MODELS.len()),
         toml::Value::Table(_) => Some(add(&Source::from_value(v)?)),
         _ => None,
     }
@@ -476,6 +476,8 @@ mod tests {
         assert_ne!(number_of(&other.to_value()), Some(i));
         assert_eq!(number_of(&"Darth Vader".into()), Some(4));
         assert_eq!(value_of(4), toml::Value::from("Darth Vader"));
+        assert_eq!(number_of(&toml::Value::Float(-1.0)), None);
+        assert_eq!(number_of(&toml::Value::Float(f64::NAN)), None);
     }
 
     #[test]

@@ -81,10 +81,13 @@ fn set_status(s: Status) {
 
 enum Event {
     Attach(Stream),
-    Frame(u8, Vec<u8>),
-    Exited,
-    Stop,
+    Frame(u64, u8, Vec<u8>),
+    Exited(u64),
+    Stop(Sender<()>),
 }
+
+/// Biggest frame accepted from the helper, so unexpected stdout output can not exhaust memory.
+const MAX_FRAME: usize = 16 * 1024 * 1024;
 
 static EVENTS: OnceLock<Sender<Event>> = OnceLock::new();
 
@@ -102,14 +105,18 @@ pub fn attach(stream: Stream) {
     let _ = events().send(Event::Attach(stream));
 }
 
-/// Stops the helper, for removing the engine.
+/// Stops the helper and waits until it is gone, for removing or reinstalling the engine.
 pub fn stop() {
     if let Some(tx) = EVENTS.get() {
-        let _ = tx.send(Event::Stop);
+        let (done_tx, done_rx) = mpsc::channel();
+        if tx.send(Event::Stop(done_tx)).is_ok() {
+            let _ = done_rx.recv_timeout(Duration::from_secs(5));
+        }
     }
 }
 
 struct Helper {
+    id: u64,
     child: Child,
     stdin: ChildStdin,
     ready: bool,
@@ -120,6 +127,12 @@ struct Helper {
     block: usize,
     cushion: usize,
     loading: bool,
+    /// True once the current model and rate loaded without error.
+    loaded: bool,
+    /// True when the current model failed to load, so we do not send audio frames to it.
+    failed: bool,
+    /// The helper already sent a specific error message before exiting.
+    error_sent: bool,
     /// Started on the processor.
     cpu: bool,
 }
@@ -139,7 +152,7 @@ fn send(stdin: &mut ChildStdin, kind: u8, payload: &[u8]) -> std::io::Result<()>
     stdin.flush()
 }
 
-fn start(back: Sender<Event>) -> anyhow::Result<Helper> {
+fn start(id: u64, back: Sender<Event>) -> anyhow::Result<Helper> {
     let script = install::write_helper()?;
     let mut cmd = Command::new(install::python());
     // PyTorch for ROCm calls AMD cards "cuda" too.
@@ -183,18 +196,40 @@ fn start(back: Sender<Event>) -> anyhow::Result<Helper> {
     std::thread::spawn(move || {
         let mut head = [0u8; 5];
         while stdout.read_exact(&mut head).is_ok() {
+            if !matches!(head[0], b'R' | b'M' | b'A' | b'E') {
+                log::warn!("AI helper sent unknown frame kind {}", head[0]);
+                break;
+            }
             let len = u32::from_le_bytes([head[1], head[2], head[3], head[4]]) as usize;
+            if len > MAX_FRAME {
+                log::warn!("AI helper sent frame too large ({len} bytes)");
+                break;
+            }
             let mut payload = vec![0u8; len];
             if stdout.read_exact(&mut payload).is_err() {
                 break;
             }
-            if back.send(Event::Frame(head[0], payload)).is_err() {
+            if back.send(Event::Frame(id, head[0], payload)).is_err() {
                 return;
             }
         }
-        let _ = back.send(Event::Exited);
+        let _ = back.send(Event::Exited(id));
     });
-    Ok(Helper { child, stdin, ready: false, model: None, rate: 0, block: 0, cushion: 0, loading: false, cpu: on_cpu() })
+    Ok(Helper {
+        id,
+        child,
+        stdin,
+        ready: false,
+        model: None,
+        rate: 0,
+        block: 0,
+        cushion: 0,
+        loading: false,
+        loaded: false,
+        failed: false,
+        error_sent: false,
+        cpu: on_cpu(),
+    })
 }
 
 /// Throws away what the effect sent: while the helper is not ready, old voice would only pile up.
@@ -208,6 +243,7 @@ fn drain(input: &mut rtrb::Consumer<f32>) {
 fn run(rx: Receiver<Event>, back: Sender<Event>) {
     let mut stream: Option<Stream> = None;
     let mut helper: Option<Helper> = None;
+    let mut next_id: u64 = 0;
     let mut idle = Instant::now();
     // After a failed start, wait before the next try instead of starting again and again.
     let mut retry_at = Instant::now();
@@ -215,19 +251,25 @@ fn run(rx: Receiver<Event>, back: Sender<Event>) {
     loop {
         match rx.recv_timeout(Duration::from_millis(4)) {
             Ok(Event::Attach(s)) => stream = Some(s),
-            Ok(Event::Stop) => {
+            Ok(Event::Stop(done)) => {
                 helper = None;
                 stream = None;
                 set_status(Status::Off);
+                let _ = done.send(());
             }
-            Ok(Event::Exited) => {
-                if helper.take().is_some() && stream.is_some() {
-                    set_status(Status::Failed("The AI helper stopped".into()));
+            Ok(Event::Exited(id)) => {
+                if helper.as_ref().is_some_and(|h| h.id == id)
+                    && let Some(h) = helper.take()
+                    && stream.is_some()
+                {
+                    if !h.error_sent {
+                        set_status(Status::Failed("The AI helper stopped".into()));
+                    }
                     retry_at = Instant::now() + Duration::from_secs(10);
                 }
             }
-            Ok(Event::Frame(kind, payload)) => {
-                let Some(h) = helper.as_mut() else { continue };
+            Ok(Event::Frame(id, kind, payload)) => {
+                let Some(h) = helper.as_mut().filter(|h| h.id == id) else { continue };
                 match kind {
                     b'R' => {
                         let info: serde_json::Value = serde_json::from_slice(&payload).unwrap_or_default();
@@ -240,6 +282,8 @@ fn run(rx: Receiver<Event>, back: Sender<Event>) {
                         h.block = samples("block").max(1);
                         h.cushion = samples("cushion");
                         h.loading = false;
+                        h.loaded = true;
+                        h.failed = false;
                         let delay = (info["delay"].as_f64().unwrap_or(0.0) * 1000.0).round() as u32;
                         log::info!(
                             "AI blocks of {} ms, about {delay} ms delay",
@@ -260,6 +304,9 @@ fn run(rx: Receiver<Event>, back: Sender<Event>) {
                         let text = String::from_utf8_lossy(&payload).into_owned();
                         log::warn!("AI helper: {text}");
                         h.loading = false;
+                        h.loaded = false;
+                        h.failed = true;
+                        h.error_sent = true;
                         set_status(Status::Failed(text));
                     }
                     _ => {}
@@ -272,6 +319,10 @@ fn run(rx: Receiver<Event>, back: Sender<Event>) {
         if stream.as_ref().is_some_and(|s| !s.link.alive.load(Ordering::Acquire)) {
             stream = None;
             idle = Instant::now();
+        }
+        // The setting moved the AI to the processor or back, or the engine was removed.
+        if helper.as_ref().is_some_and(|h| h.cpu != on_cpu() || !install::installed()) {
+            helper = None;
         }
         let Some(s) = stream.as_mut() else {
             // The helper holds a lot of memory on the graphics card: let it go after a while.
@@ -294,17 +345,14 @@ fn run(rx: Receiver<Event>, back: Sender<Event>) {
             drain(&mut s.input);
             continue;
         }
-        // The setting moved the AI to the processor or back: start again on the other one.
-        if helper.as_ref().is_some_and(|h| h.cpu != on_cpu()) {
-            helper = None;
-        }
         if helper.is_none() {
             if Instant::now() < retry_at {
                 drain(&mut s.input);
                 continue;
             }
             set_status(Status::Starting);
-            match start(back.clone()) {
+            next_id = next_id.wrapping_add(1);
+            match start(next_id, back.clone()) {
                 Ok(h) => helper = Some(h),
                 Err(e) => {
                     log::warn!("AI helper: {e}");
@@ -323,6 +371,8 @@ fn run(rx: Receiver<Event>, back: Sender<Event>) {
         if (h.model != Some(index) || h.rate != s.link.rate) && !h.loading {
             set_status(Status::Loading(model.name));
             h.loading = true;
+            h.loaded = false;
+            h.failed = false;
             h.model = Some(index);
             h.rate = s.link.rate;
             let order = serde_json::json!({
@@ -331,11 +381,13 @@ fn run(rx: Receiver<Event>, back: Sender<Event>) {
                 "rate": s.link.rate,
             });
             if send(&mut h.stdin, b'L', order.to_string().as_bytes()).is_err() {
+                set_status(Status::Failed("The AI helper stopped".into()));
+                retry_at = Instant::now() + Duration::from_secs(10);
                 helper = None;
                 continue;
             }
         }
-        if h.loading {
+        if h.loading || !h.loaded || h.failed || h.block == 0 {
             drain(&mut s.input);
             continue;
         }
@@ -354,6 +406,8 @@ fn run(rx: Receiver<Event>, back: Sender<Event>) {
             }
             chunk.commit_all();
             if send(&mut h.stdin, b'A', &frame).is_err() {
+                set_status(Status::Failed("The AI helper stopped".into()));
+                retry_at = Instant::now() + Duration::from_secs(10);
                 helper = None;
                 break;
             }

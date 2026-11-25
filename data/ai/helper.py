@@ -116,45 +116,56 @@ class Converter:
         """Loads a model, warms it up and picks the block size. Returns the block and cushion."""
         from infer_rvc_python.main import load_trained_model
 
-        _, self.sr, self.net, _, cpt, self.version = load_trained_model(path, self.config)
-        self.pitched = cpt.get("f0", 1) == 1
-        self.pitch = 0.0
-        self.load_index(index)
-        # The first runs are slow while the device gets ready: never let a voice wait for them.
-        self.setup(0.1, rate)
-        for _ in range(5):
+        self.net = None
+        try:
+            _, self.sr, self.net, _, cpt, self.version = load_trained_model(path, self.config)
+            self.pitched = cpt.get("f0", 1) == 1
+            self.pitch = 0.0
+            self.load_index(index)
+            # The first runs are slow while the device gets ready: never let a voice wait for them.
+            self.setup(0.1, rate)
+            for _ in range(5):
+                self.render(0.0, learn=False)
+            times = []
+            for _ in range(8):
+                t0 = time.perf_counter()
+                self.render(0.0, learn=False)
+                times.append(time.perf_counter() - t0)
+            took, worst = float(np.median(times)), max(times)
+            block = next((b for b in BLOCKS if b >= 2.5 * took), BLOCKS[-1])
+            self.setup(block, rate)
             self.render(0.0, learn=False)
-        times = []
-        for _ in range(8):
-            t0 = time.perf_counter()
-            self.render(0.0, learn=False)
-            times.append(time.perf_counter() - t0)
-        took, worst = float(np.median(times)), max(times)
-        block = next((b for b in BLOCKS if b >= 2.5 * took), BLOCKS[-1])
-        self.setup(block, rate)
-        self.render(0.0, learn=False)
-        cushion = max(0.04, 0.3 * block, 2 * (worst - took))
-        log(f"renders in {took * 1000:.0f} ms, block {block * 1000:.0f} ms, cushion {cushion * 1000:.0f} ms")
-        # The block fills, renders and waits in the cushion. The join holds back the crossfade
-        # and the search, the resamplers and PipeWire add a little.
-        delay = block + took + cushion + self.fade_s + self.search_s + 0.05
-        return block, cushion, delay
+            cushion = max(0.04, 0.3 * block, 2 * (worst - took))
+            log(f"renders in {took * 1000:.0f} ms, block {block * 1000:.0f} ms, cushion {cushion * 1000:.0f} ms")
+            # The block fills, renders and waits in the cushion. The join holds back the crossfade
+            # and the search, the resamplers and PipeWire add a little.
+            delay = block + took + cushion + self.fade_s + self.search_s + 0.05
+            return block, cushion, delay
+        except Exception:
+            self.net = None
+            raise
 
     def load_index(self, path):
         self.index = self.big = None
         if not path or not os.path.exists(path):
             return
-        import faiss
-
-        index = faiss.read_index(path)
-        if index.ntotal == 0:
-            return
         try:
-            big = index.reconstruct_n(0, index.ntotal)
-        except RuntimeError:
-            faiss.extract_index_ivf(index).make_direct_map()
-            big = index.reconstruct_n(0, index.ntotal)
-        self.index, self.big = index, big
+            import faiss
+
+            index = faiss.read_index(path)
+            want = 256 if self.version == "v1" else 768
+            if index.ntotal == 0 or index.d != want:
+                log("ignoring index:", f"dim {index.d}, expected {want}" if index.ntotal else "empty")
+                return
+            try:
+                big = index.reconstruct_n(0, index.ntotal)
+            except RuntimeError:
+                faiss.extract_index_ivf(index).make_direct_map()
+                big = index.reconstruct_n(0, index.ntotal)
+            self.index, self.big = index, big
+        except Exception as e:  # noqa: BLE001 - an index is optional, keep playing without it
+            log("ignoring broken index:", repr(e))
+            self.index = self.big = None
 
     def setup(self, block, rate):
         import soxr
@@ -296,19 +307,22 @@ def read_exact(stream, n):
     return data
 
 
-def send(kind, payload):
-    out = sys.stdout.buffer
+def send(out, kind, payload):
     out.write(kind + struct.pack("<I", len(payload)) + payload)
     out.flush()
 
 
 def serve(device, models):
+    # Keep fd 1 only for binary frames: libraries writing to stdout go to stderr instead.
+    proto_fd = os.dup(1)
+    os.dup2(2, 1)
+    proto = os.fdopen(proto_fd, "wb", buffering=0)
     try:
         conv = Converter(device, models)
     except Exception as e:  # noqa: BLE001 - the reason goes to Voicenux
-        send(b"E", f"could not start: {e}".encode())
+        send(proto, b"E", f"could not start: {e}".encode())
         raise
-    send(b"R", json.dumps({"device": conv.kind}).encode())
+    send(proto, b"R", json.dumps({"device": conv.kind}).encode())
     log("ready on", conv.device)
     stdin = sys.stdin.buffer
     while True:
@@ -325,15 +339,15 @@ def serve(device, models):
                 block, cushion, delay = conv.load(order["model"], order.get("index"), order["rate"])
                 conv.start()
                 info = {"model": order["model"], "rate": conv.sr, "block": block, "cushion": cushion, "delay": delay}
-                send(b"M", json.dumps(info).encode())
+                send(proto, b"M", json.dumps(info).encode())
                 log("loaded", order["model"], "with index" if conv.index is not None else "without index")
             elif kind == b"A" and conv.net is not None:
                 key, conv.pitch = struct.unpack("<ff", payload[:8])
                 x = np.frombuffer(payload[8:], dtype="<f4")
-                send(b"A", conv.convert(x, key).astype("<f4").tobytes())
+                send(proto, b"A", conv.convert(x, key).astype("<f4").tobytes())
         except Exception as e:  # noqa: BLE001 - keep serving, Voicenux shows the error
             log("error:", repr(e))
-            send(b"E", str(e).encode())
+            send(proto, b"E", str(e).encode())
 
 
 def prepare(models):
@@ -366,19 +380,25 @@ def rvc(path):
         return False
     weight = cpt.get("weight") if isinstance(cpt, dict) else None
     # The speech features go into enc_p.emb_phone: only RVC has it.
-    return isinstance(weight, dict) and "config" in cpt and any("emb_phone" in k for k in weight)
+    return isinstance(weight, dict) and "config" in cpt and any(isinstance(k, str) and "emb_phone" in k for k in weight)
 
 
 def take(z, info, out, most):
     """Writes one file of a zip to `out`, never more than `most` bytes."""
     done = 0
-    with z.open(info) as src, open(out + ".part", "wb") as dst:
-        while chunk := src.read(1 << 20):
-            done += len(chunk)
-            if done > most:
-                raise ValueError("a file in the download is too big")
-            dst.write(chunk)
-    os.replace(out + ".part", out)
+    part = out + ".part"
+    try:
+        with z.open(info) as src, open(part, "wb") as dst:
+            while chunk := src.read(1 << 20):
+                done += len(chunk)
+                if done > most:
+                    raise ValueError("a file in the download is too big")
+                dst.write(chunk)
+        os.replace(part, out)
+    except Exception:
+        if os.path.exists(part):
+            os.remove(part)
+        raise
 
 
 def unpack(path, pth, index):
@@ -397,10 +417,20 @@ def unpack(path, pth, index):
     except zipfile.BadZipFile:
         sys.exit("The download is broken.")
     with z:
-        files = [i for i in z.infolist() if not i.is_dir()]
+        def norm(i):
+            return i.filename.replace("\\", "/")
 
         def name(i):
-            return os.path.basename(i.filename).lower()
+            return norm(i).rsplit("/", 1)[-1].lower()
+
+        files = [
+            i
+            for i in z.infolist()
+            if not i.is_dir()
+            and not norm(i).endswith("/")
+            and "__MACOSX/" not in norm(i)
+            and not name(i).startswith("._")
+        ]
 
         # G_ and D_ are what training leaves behind, not the model to talk with. The smallest
         # file first: a model is smaller than such leftovers.
@@ -408,7 +438,11 @@ def unpack(path, pth, index):
         for info in sorted(models, key=lambda i: i.file_size):
             if info.file_size > MAX_PTH:
                 continue
-            take(z, info, pth, MAX_PTH)
+            try:
+                take(z, info, pth, MAX_PTH)
+            except Exception as e:  # noqa: BLE001 - try the next candidate
+                log("skipping model entry:", info.filename, repr(e))
+                continue
             if rvc(pth):
                 break
             os.remove(pth)
@@ -422,7 +456,12 @@ def unpack(path, pth, index):
             os.remove(index)
         if indexes:
             best = max(indexes, key=lambda i: (name(i).startswith("added"), i.file_size))
-            take(z, best, index, MAX_INDEX)
+            try:
+                take(z, best, index, MAX_INDEX)
+            except Exception as e:  # noqa: BLE001 - index is optional
+                log("skipping broken index entry:", best.filename, repr(e))
+                if os.path.exists(index):
+                    os.remove(index)
     log("unpacked", path, "with index" if os.path.exists(index) else "without index")
 
 
