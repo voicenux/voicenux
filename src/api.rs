@@ -302,7 +302,7 @@ fn client(mut stream: TcpStream, main: &Main, clients: &Clients, stop: &AtomicBo
         );
     }
     // Pictures are for everyone, like the views of plugins that show them.
-    let picture = method == "GET" && path.starts_with("/api/icon/");
+    let picture = !upgrade && method == "GET" && path.starts_with("/api/icon/");
     let key = if picture { Some(String::new()) } else { let_in(&stream, main) };
     let Some(key) = key else {
         return respond(
@@ -431,7 +431,11 @@ fn socket_inode(table: &str, from: u16, to: u16) -> Option<u64> {
     let port = |address: &str| address.rsplit(':').next().and_then(|h| u16::from_str_radix(h, 16).ok());
     table.lines().skip(1).find_map(|line| {
         let f: Vec<&str> = line.split_whitespace().collect();
-        if f.len() > 9 && port(f[1]) == Some(from) && port(f[2]) == Some(to) { f[9].parse().ok() } else { None }
+        if f.len() > 9 && f[3] == "01" && port(f[1]) == Some(from) && port(f[2]) == Some(to) {
+            f[9].parse::<u64>().ok().filter(|&inode| inode != 0)
+        } else {
+            None
+        }
     })
 }
 
@@ -619,7 +623,11 @@ fn http(
         ("POST", ["api", action]) => {
             let text = String::from_utf8_lossy(body);
             let arg = match serde_json::from_str::<Value>(&text) {
-                Ok(Value::Object(o)) => o.get("arg").map(|a| a.as_str().map_or_else(|| a.to_string(), String::from)),
+                Ok(Value::Object(o)) if o.contains_key("arg") => match o.get("arg") {
+                    Some(Value::Null) | None => None,
+                    Some(Value::String(s)) => Some(s.clone()),
+                    Some(a) => Some(a.to_string()),
+                },
                 _ => Some(text.trim().to_string()).filter(|t| !t.is_empty()),
             };
             ask(tx, action, arg)
@@ -669,12 +677,15 @@ fn handle(st: &St, action: &str, arg: Option<&str>) -> Result<Value, String> {
         "sounds" => return Ok(sounds(st)),
         "voice" => {
             let id = find_voice(st, need()?)?;
-            st.set_voice(&id);
+            if !st.set_voice(&id) {
+                return Err("that voice is not ready yet".into());
+            }
             st.voice_cue();
         }
         "random-voice" => {
-            st.random_voice(false);
-            st.voice_cue();
+            if st.random_voice(false) {
+                st.voice_cue();
+            }
         }
         "random-favorite" => {
             if !st.random_voice(true) {
@@ -683,12 +694,14 @@ fn handle(st: &St, action: &str, arg: Option<&str>) -> Result<Value, String> {
             st.voice_cue();
         }
         "next-voice" => {
-            st.step_voice(true);
-            st.voice_cue();
+            if st.step_voice(true) {
+                st.voice_cue();
+            }
         }
         "previous-voice" => {
-            st.step_voice(false);
-            st.voice_cue();
+            if st.step_voice(false) {
+                st.voice_cue();
+            }
         }
         // Read the switch first: a borrow in the argument would last through the call.
         "voice-changer" => {
@@ -733,8 +746,13 @@ fn handle(st: &St, action: &str, arg: Option<&str>) -> Result<Value, String> {
         }
         "stop-sounds" => st.stop_sounds(),
         "sound-volume" => {
-            let v: f32 =
-                need()?.trim_end_matches('%').trim().parse().map_err(|_| "sound-volume needs 0 to 100".to_string())?;
+            let v: f32 = need()?
+                .trim_end_matches('%')
+                .trim()
+                .parse::<f32>()
+                .ok()
+                .filter(|v| v.is_finite())
+                .ok_or_else(|| "sound-volume needs 0 to 100".to_string())?;
             st.update(|c| c.sound_volume = (v / 100.0).clamp(0.0, 1.0));
         }
         "hear-sounds" => {
@@ -1071,9 +1089,10 @@ mod tests {
     fn finds_sockets() {
         let table = "  sl  local_address rem_address   st tx_queue rx_queue tr tm->when retrnsmt   uid  timeout inode
    0: 0100007F:A3EF 00000000:0000 0A 00000000:00000000 00:00000000 00000000  1000        0 111 1 0 100 0 0 10 0
-   1: 0100007F:C350 0100007F:A3EF 01 00000000:00000000 00:00000000 00000000  1000        0 222 1 0 20 4 30 10 -1
-   2: 0100007F:A3EF 0100007F:C350 01 00000000:00000000 00:00000000 00000000  1000        0 333 1 0 20 4 30 10 -1";
-        // The client's end: from its port to ours, not our end the other way round.
+   1: 0100007F:C350 0100007F:A3EF 06 00000000:00000000 00:00000000 00000000  1000        0 0 1 0 20 4 30 10 -1
+   2: 0100007F:C350 0100007F:A3EF 01 00000000:00000000 00:00000000 00000000  1000        0 222 1 0 20 4 30 10 -1
+   3: 0100007F:A3EF 0100007F:C350 01 00000000:00000000 00:00000000 00000000  1000        0 333 1 0 20 4 30 10 -1";
+        // The client's end: established with a real inode, skipping TIME_WAIT.
         assert_eq!(socket_inode(table, 50000, 41967), Some(222));
         assert_eq!(socket_inode(table, 50001, 41967), None);
     }

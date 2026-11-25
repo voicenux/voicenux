@@ -217,7 +217,9 @@ pub fn build(st: &St) -> Lab {
                             x,
                             y,
                             vec![
-                                popup::Item::new("object-select-symbolic", t("Use voice"), move || st1.set_voice(&id1)),
+                                popup::Item::new("object-select-symbolic", t("Use voice"), move || {
+                                    st1.set_voice(&id1);
+                                }),
                                 popup::Item::new("edit-copy-symbolic", t("Duplicate"), move || duplicate(&st2, &id2)),
                                 popup::Item::new("document-save-as-symbolic", t("Export"), move || {
                                     if let Some(p) = parent.upgrade() {
@@ -299,10 +301,19 @@ pub fn build(st: &St) -> Lab {
     let make_new: Rc<dyn Fn()> = Rc::new({
         let st = st.clone();
         let show_editor = show_editor.clone();
+        let list = list.clone();
         move || {
             let v = st.new_custom();
             st.set_voice(&v.id);
             show_editor(&v.id);
+            let mut row = list.first_child();
+            while let Some(r) = row {
+                if r.widget_name() == v.id.as_str() {
+                    list.select_row(r.downcast_ref::<gtk::ListBoxRow>());
+                    break;
+                }
+                row = r.next_sibling();
+            }
         }
     });
     new.set_tooltip_text(Some(&super::with_key(t("New voice"), "N")));
@@ -394,9 +405,10 @@ fn fill_editor(st: &St, editor: &gtk::Box, id: &str) {
     };
     name.connect_activate(save_name.clone());
     let focus = gtk::EventControllerFocus::new();
-    focus.connect_leave({
-        let name = name.clone();
-        move |_| save_name(&name)
+    focus.connect_leave(move |c| {
+        if let Some(name) = c.widget().and_downcast::<gtk::Entry>() {
+            save_name(&name);
+        }
     });
     name.add_controller(focus);
     let about = gtk::Entry::new();
@@ -574,11 +586,17 @@ fn block_card(st: &St, editor: &gtk::Box, id: &str, index: usize, count: usize, 
 
     let restructure = {
         let st = st.clone();
-        let editor = editor.clone();
+        let editor = editor.downgrade();
         let id = id.to_string();
         move |f: Restructure| {
             edit(&st, &id, |v| f(&mut v.blocks));
-            fill_editor(&st, &editor, &id);
+            // Later: the button or switch that fired this is still unwinding its signal.
+            let (st, editor, id) = (st.clone(), editor.clone(), id.clone());
+            gtk::glib::idle_add_local_once(move || {
+                if let Some(editor) = editor.upgrade() {
+                    fill_editor(&st, &editor, &id);
+                }
+            });
         }
     };
     let restructure = Rc::new(restructure);
@@ -689,14 +707,21 @@ fn effect_picker(st: &St, editor: &gtk::Box, id: &str) -> gtk::Popover {
             b.set_child(Some(&inner));
             b.set_tooltip_text(Some(&t_dyn(spec.about)));
             let st = st.clone();
-            let editor = editor.clone();
+            let editor = editor.downgrade();
             let id = id.to_string();
-            let popover = popover.clone();
+            let popover = popover.downgrade();
             let kind = spec.kind;
             b.connect_clicked(move |_| {
-                popover.popdown();
+                if let Some(popover) = popover.upgrade() {
+                    popover.popdown();
+                }
                 edit(&st, &id, |v| v.blocks.push(BlockDef::new(kind)));
-                fill_editor(&st, &editor, &id);
+                let (st, editor, id) = (st.clone(), editor.clone(), id.clone());
+                gtk::glib::idle_add_local_once(move || {
+                    if let Some(editor) = editor.upgrade() {
+                        fill_editor(&st, &editor, &id);
+                    }
+                });
             });
             grid.append(&b);
             let words =

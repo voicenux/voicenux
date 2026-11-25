@@ -98,8 +98,9 @@ impl Ctx {
                 note(if st.muted.get() { t("Microphone muted") } else { t("Microphone on") }.into());
             }
             "random-voice" => {
-                st.random_voice(false);
-                self.voice_note();
+                if st.random_voice(false) {
+                    self.voice_note();
+                }
             }
             "random-favorite" => {
                 if st.random_voice(true) {
@@ -109,18 +110,21 @@ impl Ctx {
                 }
             }
             "next-voice" => {
-                st.step_voice(true);
-                self.voice_note();
+                if st.step_voice(true) {
+                    self.voice_note();
+                }
             }
             "previous-voice" => {
-                st.step_voice(false);
-                self.voice_note();
+                if st.step_voice(false) {
+                    self.voice_note();
+                }
             }
             "stop-sounds" => st.stop_sounds(),
             other => {
                 if let Some(v) = other.strip_prefix("voice:") {
-                    st.set_voice(v);
-                    self.voice_note();
+                    if st.set_voice(v) {
+                        self.voice_note();
+                    }
                 } else if let Some(s) = other.strip_prefix("sound:") {
                     st.play_sound(s);
                 }
@@ -377,6 +381,12 @@ pub fn run() -> glib::ExitCode {
                         w.window.present();
                         crate::ui::settings::ask_app(&c.st, &w.window, peer);
                     }
+                    // An AI voice needs a download: offer it, even from the tray.
+                    if let Change::AiMissing(id) = change {
+                        let w = c.window();
+                        w.window.present();
+                        crate::ui::ai::offer(&c.st, &w.window, id);
+                    }
                 }
             });
             // Logging out sends SIGTERM: save and leave like a normal quit.
@@ -477,6 +487,8 @@ pub fn set_autostart(st: &St, on: bool) {
     }
     if let Err(e) = write_autostart(on) {
         log::error!("autostart: {e}");
+        st.update(|c| c.autostart = false);
+        return;
     }
     st.update(|c| c.autostart = on);
 }
@@ -491,7 +503,7 @@ fn write_autostart(on: bool) -> std::io::Result<()> {
     }
     let exe = std::env::current_exe().ok();
     let exec = match &exe {
-        Some(p) if !p.starts_with("/usr") => p.display().to_string(),
+        Some(p) if !p.starts_with("/usr") => quote_exec(&p.display().to_string()),
         _ => "voicenux".to_string(),
     };
     std::fs::create_dir_all(&dir)?;
@@ -502,4 +514,22 @@ fn write_autostart(on: bool) -> std::io::Result<()> {
             t("Voice changer for Linux")
         ),
     )
+}
+
+/// Quotes a path for a desktop file's Exec line when it has spaces or special characters.
+fn quote_exec(s: &str) -> String {
+    if !s.contains([' ', '\t', '\n', '"', '\'', '\\', '>', '<', '~', '|', '&', ';', '$', '*', '?', '#', '(', ')', '`'])
+    {
+        return s.to_string();
+    }
+    let mut out = String::with_capacity(s.len() + 2);
+    out.push('"');
+    for c in s.chars() {
+        if matches!(c, '\\' | '"' | '`' | '$') {
+            out.push('\\');
+        }
+        out.push(c);
+    }
+    out.push('"');
+    out
 }

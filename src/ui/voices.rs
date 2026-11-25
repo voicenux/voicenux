@@ -458,6 +458,9 @@ pub fn build(st: &St, open_lab: OpenLab) -> VoicesPage {
             for c in CATEGORIES.iter().filter(|c| c.id != "custom") {
                 list.push((c.id, t_dyn(c.label)));
             }
+            if !has_custom && filter.borrow().0 == "custom" {
+                filter.borrow_mut().0 = "all".into();
+            }
             let current = filter.borrow().0.clone();
             let mut first: Option<gtk::ToggleButton> = None;
             // A click on the category you are in goes back to All. A click that picks a category
@@ -487,6 +490,7 @@ pub fn build(st: &St, open_lab: OpenLab) -> VoicesPage {
                 }
                 let filter = filter.clone();
                 let refilter = refilter.clone();
+                let is_all = id == "all";
                 let id = id.to_string();
                 b.connect_toggled({
                     let picked = picked.clone();
@@ -505,23 +509,22 @@ pub fn build(st: &St, open_lab: OpenLab) -> VoicesPage {
                         }
                     }
                 });
-                b.connect_clicked({
-                    let (picked, first) = (picked.clone(), first.clone());
-                    move |b| {
-                        if !picked.replace(false)
-                            && b.is_active()
-                            && let Some(all) = first.as_ref().filter(|all| *all != b)
-                        {
-                            all.set_active(true);
-                            picked.set(false);
+                if !is_all {
+                    b.connect_clicked({
+                        let (picked, first) = (picked.clone(), first.as_ref().map(|f| f.downgrade()));
+                        move |b| {
+                            if !picked.replace(false)
+                                && b.is_active()
+                                && let Some(all) = first.as_ref().and_then(|f| f.upgrade())
+                            {
+                                all.set_active(true);
+                                picked.set(false);
+                            }
                         }
-                    }
-                });
+                    });
+                }
                 chips.append(&b);
                 let _ = &chips;
-            }
-            if !st.voices.borrow().iter().any(|v| !v.builtin) && current == "custom" {
-                filter.borrow_mut().0 = "all".into();
             }
         })
     };
@@ -983,7 +986,11 @@ fn use_voice(st: &St, id: &str) {
     let on = st.config.borrow().voice == id && st.config.borrow().voice_on;
     let missing =
         st.voice(id).and_then(|v| crate::ai::model_of(&v.block_values())).is_some_and(|m| !crate::ai::ready(m));
-    if on && !missing { st.set_voice_on(false) } else { st.set_voice(id) }
+    if on && !missing {
+        st.set_voice_on(false);
+    } else {
+        st.set_voice(id);
+    }
 }
 
 fn refresh_card(c: &Card, v: &Voice) {
@@ -1166,8 +1173,10 @@ fn card_menu(st: &St, open_lab: &OpenLab, child: &gtk::FlowBoxChild, id: &str, x
     // Only your own voices, like ones found on Hugging Face. Undo brings it back.
     if !builtin {
         items.push(
-            popup::Item::new("user-trash-symbolic", t("Delete"), move || st3.delete_customs(std::slice::from_ref(&id3)))
-                .danger(),
+            popup::Item::new("user-trash-symbolic", t("Delete"), move || {
+                st3.delete_customs(std::slice::from_ref(&id3))
+            })
+            .danger(),
         );
     }
     popup::show_list(child, x, y, items);
@@ -1453,13 +1462,15 @@ impl Detail {
                 undo.add_css_class("flat");
                 undo.add_css_class("circular");
                 undo.add_css_class("vn-param-undo");
-                let row_of: Rc<std::cell::OnceCell<gtk::Box>> = Rc::default();
+                let row_of: Rc<RefCell<glib::WeakRef<gtk::Box>>> = Rc::default();
                 let mark = {
-                    let (undo, row_of) = (undo.clone(), row_of.clone());
+                    let (undo, row_of) = (undo.downgrade(), row_of.clone());
                     move |value: f32| {
                         let changed = was.is_some_and(|w| (w - value).abs() > 1e-4);
-                        undo.set_visible(changed);
-                        if let Some(row) = row_of.get() {
+                        if let Some(undo) = undo.upgrade() {
+                            undo.set_visible(changed);
+                        }
+                        if let Some(row) = row_of.borrow().upgrade() {
                             if changed {
                                 row.add_css_class("vn-changed");
                             } else {
@@ -1483,7 +1494,7 @@ impl Detail {
                         mark(value);
                     }
                 });
-                let _ = row_of.set(row.clone());
+                *row_of.borrow_mut() = row.downgrade();
                 mark(values[pi]);
                 if let Some(w) = was {
                     let shown = t_dyn(&blocks::format_value(p, w));
@@ -1587,12 +1598,13 @@ pub fn param_row(
             });
             let shown = value_field(
                 {
-                    let scale = scale.clone();
-                    move || blocks::format_value(p, from_scale(&scale))
+                    let scale = scale.downgrade();
+                    move || scale.upgrade().map_or_else(String::new, |s| blocks::format_value(p, from_scale(&s)))
                 },
                 {
-                    let scale = scale.clone();
+                    let scale = scale.downgrade();
                     move |f, text| {
+                        let Some(scale) = scale.upgrade() else { return };
                         if let Some(v) = blocks::parse_value(p, text) {
                             scale.set_value(to_scale(v));
                         }
@@ -1625,9 +1637,10 @@ pub fn param_row(
                         ButtonPress | TouchBegin => held.set(true),
                         ButtonRelease | TouchEnd | TouchCancel if held.replace(false) => {
                             // After the slider took the release and its last move.
-                            let (scale, apply) = (c.widget().and_downcast::<gtk::Scale>(), apply.clone());
+                            let scale = c.widget().and_downcast::<gtk::Scale>().map(|s| s.downgrade());
+                            let apply = apply.clone();
                             glib::idle_add_local_once(move || {
-                                if let Some(s) = scale {
+                                if let Some(s) = scale.and_then(|s| s.upgrade()).filter(|s| s.is_mapped()) {
                                     apply(from_scale(&s));
                                 }
                             });
@@ -1640,16 +1653,30 @@ pub fn param_row(
             scale.add_controller(press);
             let pause: Rc<RefCell<Option<glib::SourceId>>> = Rc::default();
             let follow: Rc<RefCell<Option<glib::SourceId>>> = Rc::default();
+            scale.connect_unmap({
+                let (pause, follow) = (pause.clone(), follow.clone());
+                move |_| {
+                    if let Some(id) = pause.take() {
+                        id.remove();
+                    }
+                    if let Some(id) = follow.take() {
+                        id.remove();
+                    }
+                }
+            });
+            let shown_weak = shown.downgrade();
             scale.connect_value_changed(move |s| {
                 let v = from_scale(s);
-                shown.set_text(&blocks::format_value(p, v));
+                if let Some(shown) = shown_weak.upgrade() {
+                    shown.set_text(&blocks::format_value(p, v));
+                }
                 if held.get() {
                     if super::live_sliders() && follow.borrow().is_none() {
                         let (scale, apply, again) = (s.downgrade(), apply.clone(), follow.clone());
                         let wait = std::time::Duration::from_millis(40);
                         follow.replace(Some(glib::timeout_add_local_once(wait, move || {
                             again.take();
-                            if let Some(s) = scale.upgrade() {
+                            if let Some(s) = scale.upgrade().filter(|s| s.is_mapped()) {
                                 apply(from_scale(&s));
                             }
                         })));
@@ -1662,7 +1689,7 @@ pub fn param_row(
                 let (scale, apply, again) = (s.downgrade(), apply.clone(), pause.clone());
                 pause.replace(Some(glib::timeout_add_local_once(std::time::Duration::from_millis(250), move || {
                     again.take();
-                    if let Some(s) = scale.upgrade() {
+                    if let Some(s) = scale.upgrade().filter(|s| s.is_mapped()) {
                         apply(from_scale(&s));
                     }
                 })));

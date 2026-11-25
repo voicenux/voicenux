@@ -555,6 +555,17 @@ pub fn value_field(
     field.set_tooltip_text(Some(crate::i18n::t("Click to type a value")));
     // While typing: a click watcher on the window or popover the field is in.
     let outside: std::rc::Rc<RefCell<Option<(gtk::Widget, gtk::GestureClick)>>> = Default::default();
+    field.connect_unmap({
+        let outside = outside.clone();
+        move |f| {
+            if let Some((native, click)) = outside.take() {
+                native.remove_controller(&click);
+            }
+            if f.is_editing() {
+                f.stop_editing(false);
+            }
+        }
+    });
     field.connect_editing_notify(move |f| {
         if f.is_editing() {
             f.set_text(&start());
@@ -567,7 +578,9 @@ pub fn value_field(
             if let Some((native, click)) = outside.take() {
                 native.remove_controller(&click);
             }
-            done(f, &f.text());
+            if f.is_mapped() {
+                done(f, &f.text());
+            }
         }
     });
     field
@@ -587,8 +600,9 @@ fn click_outside(field: &gtk::EditableLabel, native: &gtk::Widget) -> gtk::Gestu
             return;
         }
         // Later, not while this controller is still busy with the click.
+        let weak = f.downgrade();
         glib::idle_add_local_once(move || {
-            if f.is_editing() {
+            if let Some(f) = weak.upgrade().filter(|f| f.is_mapped() && f.is_editing()) {
                 f.stop_editing(true);
             }
         });

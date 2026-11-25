@@ -26,12 +26,20 @@ const LISTEN_MAX: std::time::Duration = std::time::Duration::from_secs(15);
 
 /// A voice of your own that was deleted, kept with where it was for Undo.
 struct GoneVoice {
+    token: u64,
     voice: Voice,
     favorite: Option<usize>,
     folder: Option<String>,
     order: Option<usize>,
     /// It was the voice in use.
     current: bool,
+}
+
+/// A removed sound, kept with where it was for Undo.
+struct GoneSound {
+    token: u64,
+    pos: usize,
+    sound: soundboard::Sound,
 }
 
 /// An app listens to your microphone, see [`State::listen`].
@@ -61,6 +69,7 @@ pub enum Change {
     VoiceShelf,
     /// Sounds were removed, with the text for the note. They can come back until it is gone.
     SoundRemoved {
+        token: u64,
         ids: Vec<String>,
         title: String,
     },
@@ -68,6 +77,7 @@ pub enum Change {
     VoicesImported(Vec<String>),
     /// Voices of your own were deleted, the same way as [`Change::SoundRemoved`].
     VoicesRemoved {
+        token: u64,
         ids: Vec<String>,
         title: String,
     },
@@ -138,9 +148,11 @@ pub struct State {
     loading: RefCell<HashSet<String>>,
     sound_ids: RefCell<HashMap<String, u32>>,
     /// Removed sounds and where they were, kept for Undo. Their files go when the note goes.
-    trash: RefCell<Vec<(usize, soundboard::Sound)>>,
+    trash: RefCell<Vec<GoneSound>>,
     /// Deleted voices of your own, kept for Undo while the note is up.
     voice_trash: RefCell<Vec<GoneVoice>>,
+    /// Each deletion gets a fresh token so an old Undo note never clears a newer delete.
+    trash_gen: Cell<u64>,
     save_source: RefCell<Option<glib::SourceId>>,
 }
 
@@ -199,6 +211,7 @@ impl State {
             sound_ids: RefCell::default(),
             trash: RefCell::default(),
             voice_trash: RefCell::default(),
+            trash_gen: Cell::default(),
             save_source: RefCell::default(),
         });
         st.push_all();
@@ -215,8 +228,15 @@ impl State {
     /// Sends every setting to the engine, at start.
     fn push_all(&self) {
         let c = self.config.borrow().clone();
-        if !self.voices.borrow().iter().any(|v| v.id == c.voice) {
-            self.config.borrow_mut().voice = "baby".into();
+        if !self.playable(&c.voice) {
+            let fallback = self
+                .voices
+                .borrow()
+                .iter()
+                .find(|v| self.playable(&v.id))
+                .map(|v| v.id.clone())
+                .unwrap_or_else(|| "baby".into());
+            self.config.borrow_mut().voice = fallback;
         }
         self.send_voice();
         let e = &self.engine;
@@ -366,8 +386,8 @@ impl State {
         self.engine.send(Ctl::Voice(v.block_values()));
     }
 
-    pub fn set_voice(self: &Rc<Self>, id: &str) {
-        let Some(v) = self.voice(id) else { return };
+    pub fn set_voice(self: &Rc<Self>, id: &str) -> bool {
+        let Some(v) = self.voice(id) else { return false };
         // Also for the voice in use: an AI voice can be missing since the last start.
         if let Some(model) = crate::ai::model_of(&v.block_values()) {
             if !crate::ai::usable() {
@@ -375,18 +395,18 @@ impl State {
                     "AI voices need an NVIDIA or AMD graphics card, or Run on the processor in Settings.",
                 );
                 self.notify(Change::Notice(text.into()));
-                return;
+                return false;
             }
             if !crate::ai::ready(model) {
                 self.notify(Change::AiMissing(id.to_string()));
-                return;
+                return false;
             }
         }
         if self.config.borrow().voice == id && self.ready.get() {
             if !self.config.borrow().voice_on {
                 self.set_voice_on(true);
             }
-            return;
+            return true;
         }
         self.config.borrow_mut().voice = id.to_string();
         self.send_voice();
@@ -395,6 +415,7 @@ impl State {
         }
         self.save_later();
         self.notify(Change::Voice);
+        true
     }
 
     /// Whether a voice can play right away: AI voices need their download. Random and next voice
@@ -434,18 +455,22 @@ impl State {
     }
 
     /// Next or previous voice in the list (favorites first if there are any).
-    pub fn step_voice(self: &Rc<Self>, forward: bool) {
+    pub fn step_voice(self: &Rc<Self>, forward: bool) -> bool {
         let favs = self.config.borrow().favorites.clone();
         let list: Vec<String> =
             if favs.is_empty() { self.voices.borrow().iter().map(|v| v.id.clone()).collect() } else { favs };
+        if list.is_empty() {
+            return false;
+        }
         let current = self.config.borrow().voice.clone();
         let pos = list.iter().position(|id| *id == current).unwrap_or(0) as i64;
         let len = list.len() as i64;
         let step = if forward { 1 } else { -1 };
         let next =
             (1..=len).map(|i| list[(pos + i * step).rem_euclid(len) as usize].clone()).find(|id| self.playable(id));
-        if let Some(id) = next {
-            self.set_voice(&id);
+        match next {
+            Some(id) => self.set_voice(&id),
+            None => false,
         }
     }
 
@@ -465,7 +490,8 @@ impl State {
             if spec.unwrap().kind == "ambience" && index == 0 {
                 crate::dsp::ambience::load(value as usize);
             }
-            self.engine.rt(RtCmd::Param { block: block as u16, index: index as u16, value });
+            let rt_block = v.blocks[..block].iter().filter(|b| crate::dsp::blocks::find(&b.kind).is_some()).count();
+            self.engine.rt(RtCmd::Param { block: rt_block as u16, index: index as u16, value });
         }
         self.notify(Change::VoiceEdited(id.to_string()));
     }
@@ -525,8 +551,15 @@ impl State {
         self.notify(if added { Change::Voices } else { Change::VoiceEdited(v.id.clone()) });
     }
 
+    fn next_trash(&self) -> u64 {
+        let t = self.trash_gen.get().wrapping_add(1);
+        self.trash_gen.set(t);
+        t
+    }
+
     /// Deletes voices of your own, with one note for all of them. Undo brings them back.
     pub fn delete_customs(self: &Rc<Self>, ids: &[String]) {
+        let token = self.next_trash();
         let mut gone = Vec::new();
         for id in ids {
             let Some(voice) = self.voice(id).filter(|v| !v.builtin) else { continue };
@@ -538,7 +571,7 @@ impl State {
             c.favorites.retain(|f| f != id);
             c.voice_order.retain(|o| o != id);
             let folder = c.voice_folder.remove(id);
-            gone.push(GoneVoice { voice, favorite, folder, order, current: c.voice == *id });
+            gone.push(GoneVoice { token, voice, favorite, folder, order, current: c.voice == *id });
         }
         let title = match gone.as_slice() {
             [] => return,
@@ -555,12 +588,14 @@ impl State {
         }
         self.save_later();
         self.notify(Change::Voices);
-        self.notify(Change::VoicesRemoved { ids, title });
+        self.notify(Change::VoicesRemoved { token, ids, title });
     }
 
     /// Brings back a deleted voice of your own, where it was.
-    pub fn undo_delete_voice(self: &Rc<Self>, id: &str) {
-        let Some(i) = self.voice_trash.borrow().iter().position(|g| g.voice.id == id) else { return };
+    pub fn undo_delete_voice(self: &Rc<Self>, token: u64, id: &str) {
+        let Some(i) = self.voice_trash.borrow().iter().position(|g| g.token == token && g.voice.id == id) else {
+            return;
+        };
         let g = self.voice_trash.borrow_mut().remove(i);
         {
             let mut c = self.config.borrow_mut();
@@ -572,7 +607,9 @@ impl State {
                 let i = i.min(c.voice_order.len());
                 c.voice_order.insert(i, g.voice.id.clone());
             }
-            if let Some(folder) = g.folder {
+            if let Some(folder) = g.folder
+                && c.voice_folders.contains(&folder)
+            {
                 c.voice_folder.insert(g.voice.id.clone(), folder);
             }
         }
@@ -590,10 +627,10 @@ impl State {
 
     /// Brings back the voice deleted last. False when there is none.
     pub fn undo_last_voice_delete(self: &Rc<Self>) -> bool {
-        let last = self.voice_trash.borrow().last().map(|g| g.voice.id.clone());
+        let last = self.voice_trash.borrow().last().map(|g| (g.token, g.voice.id.clone()));
         match last {
-            Some(id) => {
-                self.undo_delete_voice(&id);
+            Some((token, id)) => {
+                self.undo_delete_voice(token, &id);
                 true
             }
             None => false,
@@ -617,8 +654,8 @@ impl State {
     }
 
     /// The Undo for a deleted voice is gone.
-    pub fn forget_voice(&self, id: &str) {
-        self.voice_trash.borrow_mut().retain(|g| g.voice.id != id);
+    pub fn forget_voice(&self, token: u64, id: &str) {
+        self.voice_trash.borrow_mut().retain(|g| !(g.token == token && g.voice.id == id));
     }
 
     /// An id for a new voice. Not one of a deleted voice either, while Undo can bring it back.
@@ -774,6 +811,11 @@ impl State {
             }
             for f in c.voice_folder.values_mut().filter(|f| *f == old) {
                 *f = new.to_string();
+            }
+            for g in self.voice_trash.borrow_mut().iter_mut() {
+                if g.folder.as_deref() == Some(old) {
+                    g.folder = Some(new.to_string());
+                }
             }
         }
         self.voice_shelf_changed();
@@ -947,8 +989,13 @@ impl State {
                 }
                 l.timer = None;
             }
-            let heard = st.stop_listening();
-            st.heard.replace(heard);
+            if let Some(mut l) = st.listening.take() {
+                st.engine.rt(RtCmd::Listen(None));
+                l.take_in();
+                // Store what was heard before notifying listeners so callers can read it right away.
+                st.heard.replace(Some((l.heard, l.rate)));
+                st.notify(Change::Toggles);
+            }
             glib::ControlFlow::Break
         });
         self.listening.replace(Some(Listening { ring: rx, heard: Vec::new(), rate, timer: Some(timer) }));
@@ -1208,8 +1255,10 @@ impl State {
     /// Adds a sound found on MyInstants, from `source` there.
     pub fn add_found(&self, name: &str, ext: &str, data: &[u8], icon: &str, source: &str) -> anyhow::Result<()> {
         {
+            let trash = self.trash.borrow();
+            let extra: Vec<&str> = trash.iter().map(|g| g.sound.id.as_str()).collect();
             let mut lib = self.library.borrow_mut();
-            let id = lib.add_bytes(name, ext, data, icon)?.id;
+            let id = lib.add_bytes(name, ext, data, icon, &extra)?.id;
             if let Some(s) = lib.sound.iter_mut().find(|s| s.id == id) {
                 s.level = true;
                 s.source = Some(source.to_string());
@@ -1341,10 +1390,13 @@ impl State {
                 let Some(st) = weak.upgrade() else { return };
                 match r {
                     Ok((file, name)) => {
+                        let trash = st.trash.borrow();
+                        let extra: Vec<&str> = trash.iter().map(|g| g.sound.id.as_str()).collect();
                         let mut lib = st.library.borrow_mut();
-                        lib.add_file(file, &name, crate::ui::emoji::guess(&name).unwrap_or("loudspeaker"));
+                        lib.add_file(file, &name, crate::ui::emoji::guess(&name).unwrap_or("loudspeaker"), &extra);
                         lib.save();
                         drop(lib);
+                        drop(trash);
                         st.notify(Change::Sounds);
                     }
                     Err(e) => {
@@ -1369,6 +1421,7 @@ impl State {
 
     /// Removes sounds with one note for all of them. Undo brings them all back.
     pub fn remove_sounds(&self, ids: &[String]) {
+        let token = self.next_trash();
         let mut gone = Vec::new();
         {
             let mut lib = self.library.borrow_mut();
@@ -1377,7 +1430,7 @@ impl State {
                 self.sounds.borrow_mut().remove(id);
                 if let Some((pos, sound)) = lib.take(id) {
                     gone.push((id.clone(), crate::i18n::t_dyn(&sound.name)));
-                    self.trash.borrow_mut().push((pos, sound));
+                    self.trash.borrow_mut().push(GoneSound { token, pos, sound });
                 }
             }
             lib.save();
@@ -1388,7 +1441,7 @@ impl State {
             _ => crate::i18n::fill(crate::i18n::t("Removed {} sounds"), &[&gone.len().to_string()]),
         };
         self.notify(Change::Sounds);
-        self.notify(Change::SoundRemoved { ids: gone.into_iter().map(|(id, _)| id).collect(), title });
+        self.notify(Change::SoundRemoved { token, ids: gone.into_iter().map(|(id, _)| id).collect(), title });
     }
 
     /// Makes a folder, with a number after the name when it is taken. Gives back its name.
@@ -1409,6 +1462,14 @@ impl State {
         let done = {
             let mut lib = self.library.borrow_mut();
             let done = lib.rename_folder(old, new);
+            if done {
+                let new = new.trim();
+                for g in self.trash.borrow_mut().iter_mut() {
+                    if g.sound.folder.as_deref() == Some(old) {
+                        g.sound.folder = Some(new.to_string());
+                    }
+                }
+            }
             lib.save();
             done
         };
@@ -1448,13 +1509,19 @@ impl State {
         self.notify(Change::Sounds);
     }
 
-    pub fn undo_remove(&self, id: &str) {
-        let Some(i) = self.trash.borrow().iter().position(|(_, s)| s.id == id) else { return };
-        let (pos, sound) = self.trash.borrow_mut().remove(i);
+    pub fn undo_remove(&self, token: u64, id: &str) {
+        let Some(i) = self.trash.borrow().iter().position(|g| g.token == token && g.sound.id == id) else { return };
+        let mut g = self.trash.borrow_mut().remove(i);
         {
             let mut lib = self.library.borrow_mut();
-            let pos = pos.min(lib.sound.len());
-            lib.sound.insert(pos, sound);
+            if lib.find(&g.sound.id).is_some() {
+                return;
+            }
+            if g.sound.folder.as_ref().is_some_and(|f| !lib.folders.contains(f)) {
+                g.sound.folder = None;
+            }
+            let pos = g.pos.min(lib.sound.len());
+            lib.sound.insert(pos, g.sound);
             lib.save();
         }
         self.notify(Change::Sounds);
@@ -1462,10 +1529,10 @@ impl State {
 
     /// Brings back the sound removed last. False when there is none.
     pub fn undo_last_remove(&self) -> bool {
-        let last = self.trash.borrow().last().map(|(_, s)| s.id.clone());
+        let last = self.trash.borrow().last().map(|g| (g.token, g.sound.id.clone()));
         match last {
-            Some(id) => {
-                self.undo_remove(&id);
+            Some((token, id)) => {
+                self.undo_remove(token, &id);
                 true
             }
             None => false,
@@ -1473,22 +1540,22 @@ impl State {
     }
 
     /// The Undo for a removed sound is gone: so is its file.
-    pub fn forget_removed(&self, id: &str) {
+    pub fn forget_removed(&self, token: u64, id: &str) {
         let gone: Vec<_> = {
             let mut trash = self.trash.borrow_mut();
-            let (gone, keep) = trash.drain(..).partition(|(_, s)| s.id == id);
+            let (gone, keep) = trash.drain(..).partition(|g| g.token == token && g.sound.id == id);
             *trash = keep;
             gone
         };
-        for (_, s) in gone {
-            soundboard::delete_file(&s);
+        for g in gone {
+            soundboard::delete_file(&g.sound);
         }
     }
 
     /// Deletes the files of all removed sounds, when the app quits.
     pub fn empty_trash(&self) {
-        for (_, s) in self.trash.borrow_mut().drain(..) {
-            soundboard::delete_file(&s);
+        for g in self.trash.borrow_mut().drain(..) {
+            soundboard::delete_file(&g.sound);
         }
     }
 
@@ -1549,7 +1616,9 @@ impl State {
     pub fn restore_starter_sounds(self: &Rc<Self>) {
         {
             let mut lib = self.library.borrow_mut();
+            let mut trash = self.trash.borrow_mut();
             for s in Library::starter().sound {
+                trash.retain(|g| g.sound.id != s.id);
                 if lib.find(&s.id).is_none() {
                     lib.sound.push(s);
                 }

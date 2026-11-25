@@ -238,22 +238,21 @@ impl Library {
         self.sound.iter().find(|s| s.id == id)
     }
 
-    pub fn new_id(&self) -> String {
+    pub fn new_id(&self, extra: &[&str]) -> String {
         let mut n = self.sound.len() + 1;
         loop {
             let id = format!("sound-{n}");
-            if self.find(&id).is_none() {
+            if self.find(&id).is_none() && !extra.contains(&id.as_str()) {
                 return id;
             }
             n += 1;
         }
     }
 
-    /// Copies an audio file into the soundboard folder and adds it.
     /// Adds a file in the soundboard folder as a new sound, see [`copy_in`].
-    pub fn add_file(&mut self, file: String, name: &str, icon: &str) -> Sound {
+    pub fn add_file(&mut self, file: String, name: &str, icon: &str, extra: &[&str]) -> Sound {
         let sound = Sound {
-            id: self.new_id(),
+            id: self.new_id(extra),
             name: name.trim().to_string(),
             icon: icon.to_string(),
             file: Some(file),
@@ -272,12 +271,19 @@ impl Library {
 
     /// Adds a sound from audio in memory, like a download. The caller decoded it already, so it
     /// is known to play. The file gets a safe name made from `name`.
-    pub fn add_bytes(&mut self, name: &str, ext: &str, data: &[u8], icon: &str) -> anyhow::Result<Sound> {
+    pub fn add_bytes(
+        &mut self,
+        name: &str,
+        ext: &str,
+        data: &[u8],
+        icon: &str,
+        extra: &[&str],
+    ) -> anyhow::Result<Sound> {
         let dir = dir();
         std::fs::create_dir_all(&dir)?;
         let target = free_path(&dir, &file_stem(name), &format!(".{ext}"));
         std::fs::write(&target, data)?;
-        Ok(self.add_file(target.file_name().unwrap().to_string_lossy().to_string(), name, icon))
+        Ok(self.add_file(target.file_name().unwrap().to_string_lossy().to_string(), name, icon, extra))
     }
 
     /// `name`, or with a number after it when a folder has that name already.
@@ -439,9 +445,15 @@ pub fn level(mut d: SoundData) -> SoundData {
     // Like LUFS, quiet parts 10 dB under the rest do not count.
     let mean = powers.iter().sum::<f32>() / powers.len() as f32;
     let loud: Vec<f32> = powers.into_iter().filter(|p| *p > mean * 0.1).collect();
+    if loud.is_empty() {
+        return d;
+    }
     let db = 10.0 * (loud.iter().sum::<f32>() / loud.len() as f32).log10();
     let peak = d.frames.iter().fold(0.0f32, |m, f| m.max(f[0].abs()).max(f[1].abs()));
     let gain = 10f32.powf((TARGET_DB - db) / 20.0).min(PEAK / peak.max(1e-6));
+    if !gain.is_finite() {
+        return d;
+    }
     for f in &mut d.frames {
         *f = f.map(|x| x * gain);
     }
@@ -543,10 +555,22 @@ fn decode_source(source: Box<dyn symphonia::core::io::MediaSource>, ext: Option<
         .clone();
     let mut decoder = symphonia::default::get_codecs().make_audio_decoder(&params, &AudioDecoderOptions::default())?;
 
-    let mut rate = params.sample_rate.unwrap_or(RATE);
-    let mut channels = params.channels.as_ref().map(|c| c.count()).unwrap_or(2).max(1);
-    let mut interleaved: Vec<f32> = Vec::new();
+    // Keep imports sane: ten minutes at most.
+    const MAX_OUT: usize = RATE as usize * 600;
+    let mut seg_rate: u32 = 0;
+    let mut seg: Vec<[f32; 2]> = Vec::new();
+    let mut out: Vec<[f32; 2]> = Vec::new();
     let mut tmp: Vec<f32> = Vec::new();
+    let flush = |seg: &mut Vec<[f32; 2]>, seg_rate: u32, out: &mut Vec<[f32; 2]>| {
+        if seg.is_empty() || seg_rate == 0 {
+            seg.clear();
+            return;
+        }
+        let resampled = resample(seg, seg_rate, RATE);
+        let room = MAX_OUT.saturating_sub(out.len());
+        out.extend_from_slice(&resampled[..resampled.len().min(room)]);
+        seg.clear();
+    };
     loop {
         let packet = match format.next_packet() {
             Ok(Some(p)) => p,
@@ -562,26 +586,46 @@ fn decode_source(source: Box<dyn symphonia::core::io::MediaSource>, ext: Option<
             Err(symphonia::core::errors::Error::DecodeError(_)) => continue,
             Err(e) => return Err(e.into()),
         };
-        rate = buf.spec().rate();
-        channels = buf.spec().channels().count().max(1);
+        let rate = buf.spec().rate();
+        if rate == 0 {
+            continue;
+        }
+        let channels = buf.spec().channels().count().max(1);
+        if seg_rate != 0 && seg_rate != rate {
+            flush(&mut seg, seg_rate, &mut out);
+        }
+        seg_rate = rate;
         tmp.clear();
         buf.copy_to_vec_interleaved(&mut tmp);
-        interleaved.extend_from_slice(&tmp);
-        // Keep imports sane: ten minutes at most.
-        if interleaved.len() > rate as usize * channels * 600 {
+        let clean = |x: f32| if x.is_finite() { x } else { 0.0 };
+        let max_seg = ((MAX_OUT.saturating_sub(out.len())) as f64 * rate as f64 / RATE as f64).ceil() as usize + 1;
+        for c in tmp.chunks(channels) {
+            if seg.len() >= max_seg {
+                break;
+            }
+            seg.push(if c.len() >= 2 {
+                [clean(c[0]), clean(c[1])]
+            } else {
+                let s = clean(c[0]);
+                [s, s]
+            });
+        }
+        if seg.len() >= max_seg {
             break;
         }
     }
-    if interleaved.is_empty() {
+    flush(&mut seg, seg_rate, &mut out);
+    if out.is_empty() {
         anyhow::bail!("the file has no sound in it");
     }
-    let frames: Vec<[f32; 2]> =
-        interleaved.chunks(channels).map(|c| if c.len() >= 2 { [c[0], c[1]] } else { [c[0], c[0]] }).collect();
-    Ok(SoundData { frames: resample(&frames, rate, RATE) })
+    Ok(SoundData { frames: out })
 }
 
 /// Windowed sinc resampling, for files that are not at 48 kHz.
 pub fn resample(input: &[[f32; 2]], from: u32, to: u32) -> Vec<[f32; 2]> {
+    if from == 0 || to == 0 {
+        return Vec::new();
+    }
     if from == to || input.is_empty() {
         return input.to_vec();
     }
@@ -862,6 +906,16 @@ mod tests {
         assert!(peak(&level(click)) <= 0.9);
         // Silence stays silence.
         assert_eq!(peak(&level(tone(0.0))), 0.0);
+        // Non-finite samples never poison the output with NaN.
+        let mut huge = tone(0.0);
+        huge.frames[100] = [f32::INFINITY, f32::INFINITY];
+        assert!(level(huge).frames.iter().all(|f| !f[0].is_nan() && !f[1].is_nan()));
+        // Zero sample rate never panics in resample.
+        assert!(resample(&[[0.5, 0.5]], 0, RATE).is_empty());
+        assert!(resample(&[[0.5, 0.5]], RATE, 0).is_empty());
+        // New IDs skip sounds currently in the undo trash.
+        let lib = Library::default();
+        assert_eq!(lib.new_id(&["sound-1"]), "sound-2");
     }
 
     #[test]

@@ -93,6 +93,19 @@ pub fn start(st: &St, handle: &Handle, run: Rc<dyn Fn(&str)>) {
                 return;
             }
         };
+        if let Ok(mut changed) = proxy.receive_shortcuts_changed().await {
+            let (st, handle) = (st.clone(), handle.clone());
+            glib::spawn_future_local(async move {
+                while let Some(ev) = changed.next().await {
+                    handle.borrow_mut().bound = ev
+                        .shortcuts()
+                        .iter()
+                        .map(|s| (s.id().to_string(), s.trigger_description().to_string()))
+                        .collect();
+                    st.notify(Change::Settings);
+                }
+            });
+        }
         let portal = Rc::new((proxy, session));
         handle.borrow_mut().portal = Some(portal.clone());
         if st.config.borrow().shortcuts_on {

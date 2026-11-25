@@ -115,7 +115,7 @@ The state:
 
 `apps` are the apps that hear your voice right now. `listening` is true while an app listens, see `listen`.
 
-A voice: `{"id": "robot", "name": "Robot", "icon": "robot", "category": "scifi", "favorite": false, "custom": false}`. Categories are `characters`, `horror`, `scifi`, `places`, `devices`, `music`, `funny` and `custom` for voices made in Voicelab.
+A voice: `{"id": "robot", "name": "Robot", "icon": "robot", "category": "scifi", "favorite": false, "custom": false}`. Categories are `characters`, `horror`, `scifi`, `places`, `devices`, `music`, `funny`, `ai` and `custom` for voices made in Voicelab.
 
 A sound: `{"id": "airhorn", "name": "Air Horn", "icon": "postal-horn", "mode": "restart", "volume": 100, "favorite": false}`. `mode` is how a click plays it, the same for all sounds: `restart`, `toggle` or `overlap`. `favorite` is true for a sound with a star.
 

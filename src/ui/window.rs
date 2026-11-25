@@ -152,13 +152,13 @@ impl Window {
             }
             gdk::Key::question | gdk::Key::slash => super::help::show(&self.window),
             // Brings back the sound or voice removed last, while its note is up.
-            gdk::Key::z if page == "soundboard" => {
-                if !st.undo_last_remove() {
-                    return glib::Propagation::Proceed;
-                }
-            }
-            gdk::Key::z if page == "voices" || page == "voicelab" => {
-                if !st.undo_last_voice_delete() {
+            gdk::Key::z
+                if (page == "soundboard" || page == "voices" || page == "voicelab")
+                    && !GtkWindowExt::focus(&self.window)
+                        .is_some_and(|f| f.is::<gtk::Text>() || f.is::<gtk::TextView>()) =>
+            {
+                let done = if page == "soundboard" { st.undo_last_remove() } else { st.undo_last_voice_delete() };
+                if !done {
                     return glib::Propagation::Proceed;
                 }
             }
@@ -207,13 +207,13 @@ pub fn build(app: &adw::Application, st: &St) -> Window {
             let target = if builtin { st.duplicate(id).map(|v| v.id) } else { Some(id.to_string()) };
             if let Some(target) = target {
                 st.set_voice(&target);
-                lab.open(&target);
                 if let Some(w) = win_cell.get() {
                     w.show_page("voicelab");
                     if builtin {
                         w.toast(t("Saved a copy in Voicelab. Change it as you like."));
                     }
                 }
+                lab.open(&target);
             }
         }
     });
@@ -243,15 +243,16 @@ pub fn build(app: &adw::Application, st: &St) -> Window {
     // pages. So the list selects nothing and marks the page itself.
     nav.set_selection_mode(gtk::SelectionMode::None);
     nav.connect_row_activated({
-        let stack = stack.clone();
-        move |nav, row| {
+        let win_cell = win_cell.clone();
+        move |_, row| {
             let name = PAGES[row.index() as usize].0;
+            let Some(w) = win_cell.get() else { return };
             // A click on the page you are on only makes its icon jump.
-            if stack.visible_child_name().as_deref() == Some(name) {
+            if w.stack.visible_child_name().as_deref() == Some(name) {
                 jump(row);
+                return;
             }
-            stack.set_visible_child_name(name);
-            mark_page(nav, name);
+            w.show_page(name);
         }
     });
 
@@ -418,9 +419,14 @@ pub fn build(app: &adw::Application, st: &St) -> Window {
                     win.toast(text);
                 }
             }
-            Change::SoundRemoved { ids, title } => {
-                let (st1, st2) = (win.st.clone(), win.st.clone());
-                win.undo_toast(title, ids, move |id| st1.undo_remove(id), move |id| st2.forget_removed(id));
+            Change::SoundRemoved { token, ids, title } => {
+                let (st1, st2, token) = (win.st.clone(), win.st.clone(), *token);
+                win.undo_toast(
+                    title,
+                    ids,
+                    move |id| st1.undo_remove(token, id),
+                    move |id| st2.forget_removed(token, id),
+                );
             }
             // New voices from files open in Voicelab, where you see what they are.
             Change::VoicesImported(ids) => {
@@ -432,9 +438,14 @@ pub fn build(app: &adw::Application, st: &St) -> Window {
                     _ => fill(t("Added {} voices"), &[&ids.len().to_string()]),
                 });
             }
-            Change::VoicesRemoved { ids, title } => {
-                let (st1, st2) = (win.st.clone(), win.st.clone());
-                win.undo_toast(title, ids, move |id| st1.undo_delete_voice(id), move |id| st2.forget_voice(id));
+            Change::VoicesRemoved { token, ids, title } => {
+                let (st1, st2, token) = (win.st.clone(), win.st.clone(), *token);
+                win.undo_toast(
+                    title,
+                    ids,
+                    move |id| st1.undo_delete_voice(token, id),
+                    move |id| st2.forget_voice(token, id),
+                );
             }
             Change::Engine(err) => match err {
                 Some(e) => {
@@ -443,10 +454,6 @@ pub fn build(app: &adw::Application, st: &St) -> Window {
                 }
                 None => banner.set_revealed(false),
             },
-            Change::AiMissing(id) => {
-                win.window.present();
-                super::ai::offer(&win.st, &win.window, id);
-            }
             _ => {}
         }
     });
