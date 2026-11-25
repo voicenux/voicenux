@@ -141,7 +141,7 @@ drop it on Voicenux to add it.
 <summary>AI voices</summary>
 
 <p align="center">
-  <img width="720" src="res/ai-voices.png" alt="The voice page with the AI category picked: SpongeBob, Patrick, Squidward, Plankton, Darth Vader, Yoda, Optimus Prime, GLaDOS and Rick Sanchez, each with an AI badge and a download button. SpongeBob is selected, with Not downloaded yet under its settings">
+  <img width="720" src="res/ai-voices.png" alt="The voice page with the AI category picked: SpongeBob, Patrick, Squidward, Plankton, Darth Vader, Yoda, Optimus Prime, GLaDOS, Rick Sanchez and Homer Simpson, each with an AI badge and a download button">
 </p>
 
 Characters like SpongeBob, Darth Vader and GLaDOS, with an [RVC](https://github.com/RVC-Project/Retrieval-based-Voice-Conversion-WebUI)
@@ -151,6 +151,10 @@ AI engine once (about 8 GB, 18 GB for AMD, or 3 GB for the processor).
 
 Want more? **Find AI voices** on the voice page searches Hugging Face for RVC voices people made
 and shared. Pick one, say how high it is, and it lands among your voices.
+
+<p align="center">
+  <img width="720" src="res/find-voices.png" alt="Find AI voices: a search for spongebob lists SpongeBob voices from Hugging Face with who made them, their size and likes, a button for their page and a plus to add each">
+</p>
 
 </details>
 
