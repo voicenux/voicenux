@@ -107,11 +107,15 @@ fn read(request: impl Fn(&ureq::Agent) -> Result<Response, ureq::Error>) -> Resu
 /// The sounds on the front page of MyInstants for your country, most played first, page `page`
 /// counted from 1. Blocks: call it off the main thread.
 pub fn popular(page: u32) -> Result<Vec<Found>, Error> {
+    let mut regions = vec![region()];
+    if regions[0] != "us" {
+        regions.push("us".into());
+    }
     let mut last = Ok(Vec::new());
-    for region in [region(), "us".into()] {
+    for region in regions {
         last = read(|a| a.get(format!("{SITE}/en/index/{region}/")).query("page", page.to_string()).call())
             .map(|text| parse(&text));
-        if last.as_ref().is_ok_and(|f| !f.is_empty()) {
+        if last.is_err() || last.as_ref().is_ok_and(|f| !f.is_empty()) {
             break;
         }
     }

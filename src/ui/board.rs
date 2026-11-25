@@ -214,6 +214,11 @@ pub fn bounce(w: &impl IsA<gtk::Widget>, class: &'static str) {
     });
 }
 
+/// A tile that is dragged, by id. A type of its own, so plain text drags never drop onto tiles.
+#[derive(Clone, Debug, glib::Boxed)]
+#[boxed_type(name = "VoicenuxItemDrag")]
+struct ItemDrag(String);
+
 /// Lets a tile be dragged: onto the grid to move it, or onto a folder to put it there. A picked
 /// tile takes the other picked ones along, and they show as a little stack under the pointer.
 pub fn drag_source(child: &gtk::FlowBoxChild, face: &gtk::Widget, id: &str, picks: &Rc<Picks>, faces: &Faces) {
@@ -226,7 +231,7 @@ pub fn drag_source(child: &gtk::FlowBoxChild, face: &gtk::Widget, id: &str, pick
         let (grabbed, id) = (grabbed.clone(), id.to_string());
         move |_, x, y| {
             grabbed.set((x, y));
-            Some(gdk::ContentProvider::for_value(&id.to_value()))
+            Some(gdk::ContentProvider::for_value(&ItemDrag(id.clone()).to_value()))
         }
     });
     drag.connect_drag_begin({
@@ -450,14 +455,14 @@ pub fn drop_on_grid(
             (moved != shown).then_some((target, after))
         }
     };
-    let drop = gtk::DropTarget::new(String::static_type(), gdk::DragAction::MOVE);
+    let drop = gtk::DropTarget::new(ItemDrag::static_type(), gdk::DragAction::MOVE);
     // The dragged id, already while it moves over: a tile from elsewhere may come in anywhere.
     drop.set_preload(true);
     drop.connect_motion({
         let (mark, nearest, elsewhere, can_order, spot_for) =
             (mark.clone(), nearest.clone(), elsewhere.clone(), can_order.clone(), spot_for.clone());
         move |target, x, y| {
-            let id = target.value().and_then(|v| v.get::<String>().ok());
+            let id = target.value().and_then(|v| v.get::<ItemDrag>().ok()).map(|d| d.0);
             if can_order()
                 && let Some(gap) = nearest(x, y)
                 && spot_for(id.as_deref(), gap.clone()).is_some()
@@ -478,7 +483,7 @@ pub fn drop_on_grid(
             (shelf.clone(), shown.clone(), picks.clone(), sync_picks.clone(), landing.clone());
         move |_, value, x, y| {
             mark.clear();
-            let Ok(from) = value.get::<String>() else { return false };
+            let Ok(ItemDrag(from)) = value.get::<ItemDrag>() else { return false };
             let spot = can_order().then(|| nearest(x, y)).flatten().and_then(|gap| spot_for(Some(&from), gap));
             let group = group_of(&shelf, &picks, &from);
             let into = elsewhere(&from);
@@ -687,9 +692,16 @@ fn folder_glass(w: i32, h: i32, back: bool) -> gtk::DrawingArea {
     });
     // The theme can change while it is on screen.
     let weak = area.downgrade();
-    adw::StyleManager::default().connect_dark_notify(move |_| {
+    let style = adw::StyleManager::default();
+    let handler = style.connect_dark_notify(move |_| {
         if let Some(a) = weak.upgrade() {
             a.queue_draw();
+        }
+    });
+    let handler = RefCell::new(Some(handler));
+    area.connect_destroy(move |_| {
+        if let Some(id) = handler.borrow_mut().take() {
+            style.disconnect(id);
         }
     });
     area
@@ -741,9 +753,13 @@ pub fn folder_actions(
 
     // A tile held over it for a moment opens the folder, to be dropped at a place in it. While
     // it is held there the folder lifts and opens, and its pictures rise.
-    let drop = gtk::DropTarget::new(String::static_type(), gdk::DragAction::MOVE);
+    let drop = gtk::DropTarget::new(ItemDrag::static_type(), gdk::DragAction::MOVE);
     let spring = Spring::default();
     let weak = child.downgrade();
+    child.connect_unmap({
+        let spring = spring.clone();
+        move |_| spring.cancel()
+    });
     drop.connect_enter({
         let (weak, spring, spring_to, name) = (weak.clone(), spring.clone(), spring_to.clone(), name.to_string());
         move |_, _, _| {
@@ -752,9 +768,8 @@ pub fn folder_actions(
             }
             let (weak, spring_to, name) = (weak.clone(), spring_to.clone(), name.clone());
             spring.arm(move || {
-                if let Some(c) = weak.upgrade() {
-                    c.remove_css_class("vn-drop-into");
-                }
+                let Some(c) = weak.upgrade().filter(|c| c.is_mapped()) else { return };
+                c.remove_css_class("vn-drop-into");
                 spring_to(Some(name));
             });
             gdk::DragAction::MOVE
@@ -777,7 +792,7 @@ pub fn folder_actions(
             if let Some(c) = weak.upgrade() {
                 c.remove_css_class("vn-drop-into");
             }
-            let Ok(id) = value.get::<String>() else { return false };
+            let Ok(ItemDrag(id)) = value.get::<ItemDrag>() else { return false };
             let ids = group_of(&shelf, &picks, &id);
             picks.clear();
             sync_picks();
@@ -983,8 +998,12 @@ pub fn up_takes_drops(
     sync_picks: &Rc<dyn Fn()>,
     spring_to: &Open,
 ) {
-    let out = gtk::DropTarget::new(String::static_type(), gdk::DragAction::MOVE);
+    let out = gtk::DropTarget::new(ItemDrag::static_type(), gdk::DragAction::MOVE);
     let spring = Spring::default();
+    up.connect_unmap({
+        let spring = spring.clone();
+        move |_| spring.cancel()
+    });
     out.connect_enter({
         let (spring, spring_to, up) = (spring.clone(), spring_to.clone(), up.downgrade());
         move |_, _, _| {
@@ -993,9 +1012,8 @@ pub fn up_takes_drops(
             }
             let (spring_to, up) = (spring_to.clone(), up.clone());
             spring.arm(move || {
-                if let Some(up) = up.upgrade() {
-                    up.remove_css_class("vn-drop-into");
-                }
+                let Some(up) = up.upgrade().filter(|u| u.is_mapped()) else { return };
+                up.remove_css_class("vn-drop-into");
                 spring_to(None);
             });
             gdk::DragAction::MOVE
@@ -1017,7 +1035,7 @@ pub fn up_takes_drops(
             if let Some(up) = up.upgrade() {
                 up.remove_css_class("vn-drop-into");
             }
-            let Ok(id) = value.get::<String>() else { return false };
+            let Ok(ItemDrag(id)) = value.get::<ItemDrag>() else { return false };
             let ids = group_of(&shelf, &picks, &id);
             picks.clear();
             sync_picks();
@@ -1045,10 +1063,11 @@ pub fn pick_clicks(grid: &gtk::FlowBox, item_of: &ItemOf, picks: &Rc<Picks>, syn
             let Some(id) = item_of(child.upcast_ref()) else { return };
             g.set_state(gtk::EventSequenceState::Claimed);
             let anchor = picks.anchor.borrow().clone();
-            match anchor.filter(|_| shift) {
+            let shown = shown_items(&grid, &item_of);
+            match anchor.filter(|a| shift && shown.iter().any(|i| i == a)) {
                 Some(anchor) => {
                     let (mut on, mut row) = (false, Vec::new());
-                    for i in shown_items(&grid, &item_of) {
+                    for i in shown {
                         let edge = i == anchor || i == id;
                         if edge || on {
                             row.push(i.clone());

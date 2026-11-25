@@ -50,7 +50,7 @@ struct Finder {
     stack: gtk::Stack,
     message: gtk::Label,
     heading: gtk::Label,
-    last: RefCell<String>,
+    last: RefCell<Option<String>>,
     /// Counts searches, so an answer that comes late is dropped.
     search_no: Cell<u32>,
     /// Found sounds by search words. The popular ones are under "".
@@ -91,8 +91,8 @@ struct Finder {
     in_sight_soon: Cell<bool>,
 }
 
-/// The panel, and its search field to focus.
-pub fn panel(st: &St) -> (gtk::Box, gtk::SearchEntry) {
+/// The panel, its search field to focus, and a callback to stop any preview.
+pub fn panel(st: &St) -> (gtk::Box, gtk::SearchEntry, Rc<dyn Fn()>) {
     let search = gtk::SearchEntry::new();
     search.set_placeholder_text(Some(t("Search MyInstants")));
     // Searches while typing, after a short pause. Enter searches at once.
@@ -189,8 +189,7 @@ pub fn panel(st: &St) -> (gtk::Box, gtk::SearchEntry) {
         stack,
         message,
         heading,
-        // Not a search anyone types, so the first one always runs.
-        last: RefCell::new("\u{0}".into()),
+        last: RefCell::new(None),
         search_no: Cell::new(0),
         results: RefCell::default(),
         audio: RefCell::default(),
@@ -256,21 +255,45 @@ pub fn panel(st: &St) -> (gtk::Box, gtk::SearchEntry) {
         let (finder, search) = (finder.clone(), search.clone());
         move |_| finder.search(&search.text())
     });
+    panel.connect_unmap({
+        let finder = Rc::downgrade(&finder);
+        move |_| {
+            if let Some(f) = finder.upgrade() {
+                f.stop_listen();
+            }
+        }
+    });
     search.connect_search_changed({
         let finder = finder.clone();
         move |s| finder.search(&s.text())
     });
+    let stop: Rc<dyn Fn()> = Rc::new({
+        let finder = Rc::downgrade(&finder);
+        move || {
+            if let Some(f) = finder.upgrade() {
+                f.stop_listen();
+            }
+        }
+    });
     search.connect_activate(move |s| finder.search(&s.text()));
-    (panel, search)
+    (panel, search, stop)
 }
 
 impl Finder {
+    fn stop_listen(&self) {
+        self.listen_no.set(self.listen_no.get() + 1);
+        if let Some(old) = self.playing.take() {
+            old.set_icon_name("media-playback-start-symbolic");
+        }
+        self.st.stop_preview();
+    }
+
     fn search(self: &Rc<Self>, text: &str) {
         let query = text.trim().to_string();
-        if *self.last.borrow() == query {
+        if self.last.borrow().as_deref() == Some(query.as_str()) {
             return;
         }
-        self.last.replace(query.clone());
+        self.last.replace(Some(query.clone()));
         let no = self.search_no.get() + 1;
         self.search_no.set(no);
         // Without a search: the popular sounds.
@@ -279,6 +302,8 @@ impl Finder {
             self.show(&query, found);
             return;
         }
+        self.loading_more.set(false);
+        self.more.set_visible(false);
         self.stack.set_visible_child_name("loading");
         let me = self.clone();
         let q = query.clone();
@@ -296,7 +321,7 @@ impl Finder {
                     }
                     Err(e) => {
                         // So the same words can be tried again.
-                        me.last.replace(String::new());
+                        me.last.replace(None);
                         me.say(error_text(e));
                     }
                 }
@@ -310,9 +335,11 @@ impl Finder {
     }
 
     fn show(self: &Rc<Self>, query: &str, found: Vec<Found>) {
+        self.stop_listen();
         clear(&self.list);
         self.rows.borrow_mut().clear();
         self.shown.replace(query.to_string());
+        self.loading_more.set(false);
         self.more.set_visible(false);
         self.blocks.replace(vec![0]);
         if found.is_empty() {
@@ -378,11 +405,11 @@ impl Finder {
         off_thread(
             move || if q.is_empty() { online::popular(page + 1) } else { online::search(&q, page + 1) },
             move |r| {
-                me.loading_more.set(false);
-                me.more.set_visible(false);
                 if me.search_no.get() != no {
                     return;
                 }
+                me.loading_more.set(false);
+                me.more.set_visible(false);
                 let found = match r {
                     Ok(found) => found,
                     Err(e) => {
@@ -654,7 +681,12 @@ impl Finder {
             button.set_icon_name(icon);
             match r {
                 Ok(audio) => then(&button, audio),
-                Err(e) => me.st.notify(Change::Notice(error_text(e).to_string())),
+                Err(e) => {
+                    if me.playing.borrow().as_ref() == Some(&button) {
+                        me.playing.take();
+                    }
+                    me.st.notify(Change::Notice(error_text(e).to_string()));
+                }
             }
         });
     }

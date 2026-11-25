@@ -193,10 +193,10 @@ pub fn open(st: &St, id: &str, parent: &impl IsA<gtk::Widget>) {
     let dialog = adw::Dialog::builder().content_width(680).build();
     let whole = soundboard::audible(&data);
     let (start, end) = if sound.is_trimmed() { (sound.start, sound.end.unwrap_or(length)) } else { whole };
-    let start = start.clamp(0.0, length - SHORTEST);
-    let mut end = end.clamp(SHORTEST, length);
-    if end <= start {
-        end = length;
+    let start = if start.is_finite() { start } else { 0.0 }.clamp(0.0, (length - SHORTEST).max(0.0));
+    let mut end = if end.is_finite() { end } else { length }.clamp(SHORTEST.min(length), length);
+    if end < start + SHORTEST {
+        end = (start + SHORTEST).min(length);
     }
     let view = gtk::Adjustment::new(0.0, 0.0, length as f64, 0.1, 1.0, length as f64);
     let scrollbar = gtk::Scrollbar::new(gtk::Orientation::Horizontal, Some(&view));
@@ -274,8 +274,7 @@ pub fn open(st: &St, id: &str, parent: &impl IsA<gtk::Widget>) {
         move |_| {
             if let Some(e) = with() {
                 e.remember();
-                e.set(Side::Start, e.whole.0);
-                e.set(Side::End, e.whole.1);
+                e.set_range(e.whole.0, e.whole.1);
             }
         }
     });
@@ -534,10 +533,26 @@ impl Trim {
 
     /// Moves one side, but never past the other one.
     fn set(&self, side: Side, v: f32) {
-        match side {
-            Side::Start => self.start.set(v.clamp(0.0, self.end.get() - SHORTEST)),
-            Side::End => self.end.set(v.clamp(self.start.get() + SHORTEST, self.length)),
+        if !v.is_finite() {
+            return;
         }
+        match side {
+            Side::Start => self.start.set(v.clamp(0.0, (self.end.get() - SHORTEST).max(0.0))),
+            Side::End => self.end.set(v.clamp((self.start.get() + SHORTEST).min(self.length), self.length)),
+        }
+        self.stop();
+        self.update();
+    }
+
+    /// Moves both sides at once without clamping the new start against the old end.
+    fn set_range(&self, start: f32, end: f32) {
+        let start = if start.is_finite() { start } else { 0.0 }.clamp(0.0, (self.length - SHORTEST).max(0.0));
+        let mut end = if end.is_finite() { end } else { self.length }.clamp(SHORTEST.min(self.length), self.length);
+        if end < start + SHORTEST {
+            end = (start + SHORTEST).min(self.length);
+        }
+        self.start.set(start);
+        self.end.set(end);
         self.stop();
         self.update();
     }

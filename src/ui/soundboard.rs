@@ -239,7 +239,7 @@ pub fn build(st: &St) -> SoundboardPage {
     });
 
     // Finding sounds online slides in on the right, so new sounds show up in the grid beside it.
-    let (finder, online) = super::find_sounds::panel(st);
+    let (finder, online, stop_online) = super::find_sounds::panel(st);
     let reveal = gtk::Revealer::builder()
         .transition_type(gtk::RevealerTransitionType::SlideLeft)
         .transition_duration(260)
@@ -249,7 +249,6 @@ pub fn build(st: &St) -> SoundboardPage {
     // would still get half of the free width, and the grid only the other half.
     reveal.set_hexpand(false);
     find.connect_toggled({
-        let st = st.clone();
         let reveal = reveal.clone();
         let online = online.clone();
         move |b| {
@@ -257,7 +256,7 @@ pub fn build(st: &St) -> SoundboardPage {
             if b.is_active() {
                 online.grab_focus();
             } else {
-                st.stop_preview();
+                stop_online();
             }
         }
     });
@@ -484,6 +483,9 @@ pub fn build(st: &St) -> SoundboardPage {
                 pads.borrow_mut().insert(s.id.clone(), p);
             }
             picks.ids.borrow_mut().retain(|id| pads.borrow().contains_key(id));
+            if picks.anchor.borrow().as_ref().is_some_and(|id| !pads.borrow().contains_key(id)) {
+                *picks.anchor.borrow_mut() = None;
+            }
             refilter();
             sync_picks();
             landing.play(|id| pads.borrow().get(id).map(|p| p.child.clone().upcast()), &tiles);
@@ -620,18 +622,12 @@ pub fn build(st: &St) -> SoundboardPage {
         // Sorted by name, a place in the order means nothing, but a folder still does.
         move || !st.config.borrow().sounds_by_name
     });
-    board::drop_on_grid(
-        &shelf,
-        &stack,
-        &grid,
-        &item_of,
-        &shown,
-        &picks,
-        &sync_picks,
-        can_order,
-        Rc::new(|| true),
-        &landing,
-    );
+    let can_take: Rc<dyn Fn() -> bool> = Rc::new({
+        let (shown, search) = (shown.clone(), search.clone());
+        // Top-level search shows sounds from all folders: do not eject them when dropped.
+        move || shown.borrow().is_some() || search.text().trim().is_empty()
+    });
+    board::drop_on_grid(&shelf, &stack, &grid, &item_of, &shown, &picks, &sync_picks, can_order, can_take, &landing);
     board::drop_folders_on_grid(&shelf, &stack, &grid, &tiles, &landing);
     board::up_takes_drops(&path.up, &shelf, &picks, &sync_picks, &spring_to);
     path.up.connect_clicked({
@@ -777,6 +773,7 @@ pub fn build(st: &St) -> SoundboardPage {
         let (st, picks, sync_picks) = (st.clone(), picks.clone(), sync_picks.clone());
         let (shown, open_folder, search) = (shown.clone(), open_folder.clone(), search.clone());
         move |_, key, _, mods| {
+            let mods = mods & gtk::accelerator_get_default_mod_mask();
             let alt_left = key == gdk::Key::Left && mods == gdk::ModifierType::ALT_MASK;
             let backspace = key == gdk::Key::BackSpace && mods.is_empty() && search.text().is_empty();
             if (alt_left || backspace) && shown.borrow().is_some() {
@@ -1287,8 +1284,9 @@ fn editor(st: &St, s: &Sound) -> gtk::Popover {
     b.set_width_request(280);
 
     let top = gtk::Box::new(gtk::Orientation::Horizontal, 8);
+    let shown_name = Rc::new(RefCell::new(t_dyn(&s.name)));
     let entry = gtk::Entry::new();
-    entry.set_text(&t_dyn(&s.name));
+    entry.set_text(&shown_name.borrow());
     entry.set_hexpand(true);
     entry.set_valign(gtk::Align::Center);
     let save = {
@@ -1307,11 +1305,14 @@ fn editor(st: &St, s: &Sound) -> gtk::Popover {
     }));
     top.append(&entry);
     entry.connect_activate({
-        let sound = sound.clone();
-        let save = save.clone();
+        let (sound, shown_name, save) = (sound.clone(), shown_name.clone(), save.clone());
         move |e| {
-            sound.borrow_mut().name = e.text().to_string();
-            save();
+            let name = e.text().to_string();
+            if !name.trim().is_empty() && *shown_name.borrow() != name {
+                *shown_name.borrow_mut() = name.clone();
+                sound.borrow_mut().name = name;
+                save();
+            }
         }
     });
     b.append(&top);
@@ -1363,13 +1364,11 @@ fn editor(st: &St, s: &Sound) -> gtk::Popover {
         }
     });
     p.connect_closed({
-        let sound = sound.clone();
-        let entry = entry.clone();
-        let save = save.clone();
+        let (sound, shown_name, entry, save) = (sound.clone(), shown_name.clone(), entry.clone(), save.clone());
         move |_| {
             let name = entry.text().to_string();
-            let changed = sound.borrow().name != name;
-            if changed && !name.trim().is_empty() {
+            if *shown_name.borrow() != name && !name.trim().is_empty() {
+                *shown_name.borrow_mut() = name.clone();
                 sound.borrow_mut().name = name;
                 save();
             }
