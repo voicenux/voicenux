@@ -189,12 +189,14 @@ fn device_row(st: &St, title: &str, inputs: bool) -> adw::ComboRow {
     let model = gtk::StringList::new(&[]);
     row.set_model(Some(&model));
     let names: Rc<std::cell::RefCell<Vec<Option<String>>>> = Rc::default();
+    let last_chosen: Rc<std::cell::RefCell<Option<String>>> = Rc::default();
     let syncing = Rc::new(std::cell::Cell::new(false));
     let sync = {
         let st = st.clone();
         let row = row.clone();
         let model = model.clone();
         let names = names.clone();
+        let last_chosen = last_chosen.clone();
         let syncing = syncing.clone();
         move || {
             syncing.set(true);
@@ -223,6 +225,7 @@ fn device_row(st: &St, title: &str, inputs: bool) -> adw::ComboRow {
             let pos = n.iter().position(|x| *x == chosen).unwrap_or(0);
             row.set_selected(pos as u32);
             *names.borrow_mut() = n;
+            *last_chosen.borrow_mut() = chosen;
             syncing.set(false);
         }
     };
@@ -239,9 +242,20 @@ fn device_row(st: &St, title: &str, inputs: bool) -> adw::ComboRow {
             st.update(|c| if inputs { c.input = pick } else { c.output = pick });
         }
     });
-    st.subscribe(move |c| {
-        if matches!(c, Change::Devices) {
-            sync();
+    st.subscribe({
+        let weak = Rc::downgrade(st);
+        move |c| match c {
+            Change::Devices => sync(),
+            Change::Settings => {
+                if let Some(st) = weak.upgrade() {
+                    let chosen =
+                        if inputs { st.config.borrow().input.clone() } else { st.config.borrow().output.clone() };
+                    if chosen != *last_chosen.borrow() {
+                        sync();
+                    }
+                }
+            }
+            _ => {}
         }
     });
     row
@@ -380,7 +394,24 @@ pub fn build(st: &St, window: &adw::ApplicationWindow) -> SettingsPage {
         .build();
     default.connect_active_notify({
         let st = st.clone();
-        move |r| st.update(|c| c.default_mic = r.is_active())
+        move |r| {
+            let active = r.is_active();
+            if st.config.borrow().default_mic != active {
+                st.update(|c| c.default_mic = active);
+            }
+        }
+    });
+    // The welcome dialog sets this too.
+    st.subscribe({
+        let (weak, default) = (Rc::downgrade(st), default.clone());
+        move |c| {
+            if let (Change::Settings, Some(st)) = (c, weak.upgrade()) {
+                let on = st.config.borrow().default_mic;
+                if default.is_active() != on {
+                    default.set_active(on);
+                }
+            }
+        }
     });
     virt.add(&default);
     virt.add(&scale_row(t("Volume"), t("How loud apps hear you."), -24.0, 12.0, c.mic_volume_db as f64, Unit::Db, {
@@ -484,7 +515,7 @@ pub fn build(st: &St, window: &adw::ApplicationWindow) -> SettingsPage {
     let key_rows: Vec<(String, adw::ActionRow)> = ACTIONS
         .iter()
         .map(|(id, desc, _)| {
-            let row = adw::ActionRow::builder().title(t_dyn(desc)).build();
+            let row = adw::ActionRow::builder().title(t_dyn(desc)).use_markup(false).build();
             keys.add(&row);
             (id.to_string(), row)
         })
@@ -824,9 +855,12 @@ fn ai_group(st: &St) -> Group {
     remove.set_valign(gtk::Align::Center);
     row.add_suffix(&remove);
     group.add(&row);
+    let round = Rc::new(std::cell::Cell::new(0u64));
     let refresh: Rc<dyn Fn()> = Rc::new({
-        let (row, remove) = (row.clone(), remove.clone());
+        let (row, remove, round) = (row.clone(), remove.clone(), round.clone());
         move || {
+            let ticket = round.get().wrapping_add(1);
+            round.set(ticket);
             // Anything there counts for removing, also a build for the other setting.
             let there = crate::ai::dir().join("ready").exists();
             remove.set_visible(there);
@@ -846,9 +880,11 @@ fn ai_group(st: &St) -> Group {
             std::thread::spawn(move || {
                 let _ = tx.send_blocking(crate::ai::install::size());
             });
-            let row = row.clone();
+            let (row, round) = (row.clone(), round.clone());
             gtk::glib::spawn_future_local(async move {
-                if let Ok(size) = rx.recv().await {
+                if let Ok(size) = rx.recv().await
+                    && round.get() == ticket
+                {
                     row.set_subtitle(&fill(t("Installed, it takes {} on disk."), &[&gigabytes(size)]));
                 }
             });
@@ -940,7 +976,12 @@ fn api_group(st: &St) -> Group {
                 allowed.remove(&r);
             }
             for app in apps {
-                let row = adw::ActionRow::builder().title(&app.name).subtitle(&app.key).subtitle_lines(2).build();
+                let row = adw::ActionRow::builder()
+                    .title(&app.name)
+                    .subtitle(&app.key)
+                    .subtitle_lines(2)
+                    .use_markup(false)
+                    .build();
                 let remove = gtk::Button::from_icon_name("user-trash-symbolic");
                 remove.add_css_class("flat");
                 remove.set_valign(gtk::Align::Center);
@@ -957,7 +998,7 @@ fn api_group(st: &St) -> Group {
     };
     sync_allowed();
     let address = format!("ws://127.0.0.1:{0}   http://127.0.0.1:{0}/api", crate::api::PORT);
-    let status = adw::ActionRow::builder().subtitle_selectable(true).build();
+    let status = adw::ActionRow::builder().subtitle_selectable(true).use_markup(false).build();
     status.add_css_class("property");
     let apps = label("", &["dim-label"]);
     apps.set_valign(gtk::Align::Center);

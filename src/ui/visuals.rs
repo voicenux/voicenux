@@ -38,6 +38,9 @@ mod imp {
     impl WidgetImpl for Canvas {
         fn snapshot(&self, snapshot: &gtk::Snapshot) {
             let w = self.obj();
+            if w.width() <= 0 || w.height() <= 0 {
+                return;
+            }
             if let Some(draw) = self.draw.borrow().as_ref() {
                 draw(w.upcast_ref(), snapshot, w.width() as f32, w.height() as f32);
             }
@@ -152,6 +155,9 @@ impl Orb {
             let (cx, cy) = (w / 2.0, h / 2.0);
             let center = graphene::Point::new(cx, cy);
             let half = w.min(h) / 2.0;
+            if half <= 0.0 {
+                return;
+            }
             let base = half * 0.56 * p2.get() as f32;
 
             // Glow, fading out before the edge of the drawing.

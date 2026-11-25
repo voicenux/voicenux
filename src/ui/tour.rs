@@ -262,14 +262,19 @@ fn show(layer: &gtk::Overlay, tips: Rc<Vec<Tip>>, i: usize) {
                 ring.set_visible(a.is_some());
             }
             if a.is_some() {
-                let (rx, ry, rw, rh) = (r.x() as i32, r.y() as i32, r.width() as i32, r.height() as i32);
+                let (rx, ry, rw, rh) = (
+                    (r.x() as i32).max(0),
+                    (r.y() as i32).max(0),
+                    (r.width() as i32).max(1),
+                    (r.height() as i32).max(1),
+                );
                 if ring.margin_start() != rx || ring.margin_top() != ry {
-                    ring.set_margin_start(rx.max(0));
-                    ring.set_margin_top(ry.max(0));
+                    ring.set_margin_start(rx);
+                    ring.set_margin_top(ry);
                 }
                 if ring.content_width() != rw || ring.content_height() != rh {
-                    ring.set_content_width(rw.max(1));
-                    ring.set_content_height(rh.max(1));
+                    ring.set_content_width(rw);
+                    ring.set_content_height(rh);
                 }
             }
             true

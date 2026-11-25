@@ -53,22 +53,44 @@ pub fn show_at(st: &St, parent: &adw::ApplicationWindow, start: u32) {
     );
     let devices = gtk::DropDown::from_strings(&[]);
     let model = gtk::StringList::new(&[]);
-    let names: Vec<Option<String>> =
-        std::iter::once(None).chain(st.inputs.borrow().iter().map(|d| Some(d.name.clone()))).collect();
-    model.append(t("System default"));
-    for d in st.inputs.borrow().iter() {
-        model.append(&d.description);
-    }
     devices.set_model(Some(&model));
-    let chosen = st.config.borrow().input.clone();
-    devices.set_selected(names.iter().position(|n| *n == chosen).unwrap_or(0) as u32);
+    let names: std::rc::Rc<std::cell::RefCell<Vec<Option<String>>>> = Default::default();
+    let syncing = std::rc::Rc::new(std::cell::Cell::new(false));
+    let sync_devices = {
+        let st = st.clone();
+        let devices = devices.downgrade();
+        let model = model.downgrade();
+        let names = names.clone();
+        let syncing = syncing.clone();
+        move || {
+            let (Some(devices), Some(model)) = (devices.upgrade(), model.upgrade()) else { return };
+            syncing.set(true);
+            let list = st.inputs.borrow().clone();
+            let chosen = st.config.borrow().input.clone();
+            let mut n: Vec<Option<String>> = vec![None];
+            let mut labels: Vec<String> = vec![t("System default").to_string()];
+            for d in &list {
+                n.push(Some(d.name.clone()));
+                labels.push(d.description.clone());
+            }
+            let refs: Vec<&str> = labels.iter().map(String::as_str).collect();
+            model.splice(0, model.n_items(), &refs);
+            devices.set_selected(n.iter().position(|x| *x == chosen).unwrap_or(0) as u32);
+            *names.borrow_mut() = n;
+            syncing.set(false);
+        }
+    };
+    sync_devices();
     devices.set_halign(gtk::Align::Center);
     super::popup::menus_in(&devices);
     devices.set_margin_top(10);
     devices.connect_selected_notify({
-        let st = st.clone();
+        let (st, names, syncing) = (st.clone(), names.clone(), syncing.clone());
         move |d| {
-            let pick = names.get(d.selected() as usize).cloned().flatten();
+            if syncing.get() {
+                return;
+            }
+            let pick = names.borrow().get(d.selected() as usize).cloned().flatten();
             st.update(|c| c.input = pick);
         }
     });
@@ -88,7 +110,11 @@ pub fn show_at(st: &St, parent: &adw::ApplicationWindow, start: u32) {
     default.set_halign(gtk::Align::Center);
     default.set_margin_top(10);
     let sw = gtk::Switch::new();
-    sw.set_active(true);
+    let default_on = {
+        let c = st.config.borrow();
+        !c.onboarded || c.default_mic
+    };
+    sw.set_active(default_on);
     default.append(&label(t("Use as default microphone"), &["heading"]));
     default.append(&sw);
     apps.append(&default);
@@ -108,7 +134,28 @@ pub fn show_at(st: &St, parent: &adw::ApplicationWindow, start: u32) {
     row.append(&on);
     on.connect_active_notify({
         let st = st.clone();
-        move |s| crate::app::set_autostart(&st, s.is_active())
+        move |s| {
+            let active = s.is_active();
+            if st.config.borrow().autostart != active {
+                crate::app::set_autostart(&st, active);
+            }
+        }
+    });
+    st.subscribe({
+        let st = st.clone();
+        let on = on.downgrade();
+        move |c| match c {
+            crate::state::Change::Devices => sync_devices(),
+            crate::state::Change::Settings => {
+                if let Some(on) = on.upgrade() {
+                    let want = st.config.borrow().autostart;
+                    if on.is_active() != want {
+                        on.set_active(want);
+                    }
+                }
+            }
+            _ => {}
+        }
     });
     ready.append(&row);
     carousel.append(&ready);

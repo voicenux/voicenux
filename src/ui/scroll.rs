@@ -43,6 +43,8 @@ struct Scroller {
     /// and ignores the one of the scrolled window. So that widget gets it too, until the release.
     /// Kept with its own cursor, to give it back.
     held: RefCell<Option<(gtk::Widget, Option<gdk::Cursor>)>>,
+    /// Window-level controllers active during autoscroll so clicks, motion and Escape work outside `sw`.
+    root_hooks: RefCell<Option<(gtk::Widget, Vec<gtk::EventController>)>>,
     tick: RefCell<Option<gtk::TickCallbackId>>,
     last_frame: Cell<i64>,
     /// When the wheel last scrolled the page.
@@ -73,8 +75,73 @@ impl Scroller {
             if let Some((overlay, mark)) = self.mark.take() {
                 overlay.remove_overlay(&mark);
             }
+            if let Some((root, hooks)) = self.root_hooks.take() {
+                for h in hooks {
+                    root.remove_controller(&h);
+                }
+            }
             self.release();
         }
+    }
+
+    fn hook_root(self: &Rc<Self>) {
+        if self.root_hooks.borrow().is_some() {
+            return;
+        }
+        let Some(sw) = self.sw.upgrade() else { return };
+        let Some(root) = sw.root().map(|r| r.upcast::<gtk::Widget>()) else { return };
+        let click = gtk::GestureClick::new();
+        click.set_button(0);
+        click.set_propagation_phase(gtk::PropagationPhase::Capture);
+        click.connect_pressed({
+            let (s, sw_weak) = (self.clone(), self.sw.clone());
+            move |g, _, x, y| {
+                if s.anchor.get().is_none() {
+                    return;
+                }
+                // Let `sw`'s own drag handler handle presses inside `sw`.
+                if let (Some(w), Some(sw)) = (g.widget(), sw_weak.upgrade())
+                    && w.pick(x, y, gtk::PickFlags::DEFAULT)
+                        .is_some_and(|h| h == *sw.upcast_ref::<gtk::Widget>() || h.is_ancestor(&sw))
+                {
+                    return;
+                }
+                s.stop_auto();
+                g.set_state(gtk::EventSequenceState::Claimed);
+            }
+        });
+        let motion = gtk::EventControllerMotion::new();
+        motion.set_propagation_phase(gtk::PropagationPhase::Capture);
+        motion.connect_motion({
+            let (s, sw_weak) = (self.clone(), self.sw.clone());
+            move |c, x, y| {
+                if s.anchor.get().is_none() {
+                    return;
+                }
+                if let (Some(root), Some(sw)) = (c.widget(), sw_weak.upgrade())
+                    && let Some(p) = root.compute_point(&sw, &gtk::graphene::Point::new(x as f32, y as f32))
+                {
+                    s.pointer.set(p.y() as f64);
+                }
+            }
+        });
+        let keys = gtk::EventControllerKey::new();
+        keys.set_propagation_phase(gtk::PropagationPhase::Capture);
+        keys.connect_key_pressed({
+            let s = self.clone();
+            move |_, key, _, _| {
+                if key == gdk::Key::Escape && s.anchor.get().is_some() {
+                    s.stop_auto();
+                    return glib::Propagation::Stop;
+                }
+                glib::Propagation::Proceed
+            }
+        });
+        let hooks: Vec<gtk::EventController> = vec![click.upcast(), motion.upcast(), keys.upcast()];
+        for h in &hooks {
+            root.add_controller(h.clone());
+        }
+        *self.root_hooks.borrow_mut() = Some((root, hooks));
     }
 
     /// The middle button is up: the widget that got the press gets its own cursor back.
@@ -191,6 +258,7 @@ pub fn smooth_scroll(widget: &impl IsA<gtk::Widget>) {
         cursors: [Pan::Both, Pan::Up, Pan::Down].map(pan_cursor),
         mark: RefCell::default(),
         held: RefCell::default(),
+        root_hooks: RefCell::default(),
         tick: RefCell::default(),
         last_frame: Cell::new(0),
         wheeled: Cell::new(None),
@@ -275,6 +343,7 @@ fn autoscroll(sw: &gtk::ScrolledWindow, s: &Rc<Scroller>) {
             }
             s.set_cursor(Pan::Both);
             s.show_mark(x, y);
+            s.hook_root();
             s.run();
         }
     });

@@ -24,9 +24,8 @@ pub fn button(st: &St, id: &str, what: &str) -> gtk::Button {
     b.add_css_class("pill");
     let sync = {
         let st = st.clone();
-        let b = b.clone();
         let id = id.to_string();
-        move || {
+        move |b: &gtk::Button| {
             let text = shown(&st, &id);
             b.set_child(Some(
                 &adw::ButtonContent::builder()
@@ -36,7 +35,7 @@ pub fn button(st: &St, id: &str, what: &str) -> gtk::Button {
             ));
         }
     };
-    sync();
+    sync(&b);
     b.connect_clicked({
         let st = st.clone();
         let id = id.to_string();
@@ -52,8 +51,10 @@ pub fn button(st: &St, id: &str, what: &str) -> gtk::Button {
     });
     let weak = b.downgrade();
     st.subscribe(move |c| {
-        if matches!(c, Change::Settings) && weak.upgrade().is_some() {
-            sync();
+        if matches!(c, Change::Settings)
+            && let Some(b) = weak.upgrade()
+        {
+            sync(&b);
         }
     });
     b
@@ -105,7 +106,8 @@ pub fn record(st: &St, parent: &impl IsA<gtk::Widget>, id: &str, what: &str) {
         let keys = keys.clone();
         let save = save.clone();
         move |_, key, _, mods| {
-            if key == gtk::gdk::Key::Escape && mods.is_empty() {
+            let clean = mods & gtk::accelerator_get_default_mod_mask();
+            if key == gtk::gdk::Key::Escape && clean.is_empty() {
                 return glib::Propagation::Proceed;
             }
             if let Some(tr) = shortcuts::trigger(key, mods) {

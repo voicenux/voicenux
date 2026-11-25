@@ -78,7 +78,8 @@ pub fn menu(p: &gtk::Popover) {
         if p.surface().as_ref() == Some(&surface) {
             return;
         }
-        let opener = p.parent().map(|w| w.downgrade());
+        // A background context menu hangs on a ScrolledWindow: do not swallow clicks on items inside it.
+        let opener = p.parent().filter(|w| !w.is::<gtk::ScrolledWindow>()).map(|w| w.downgrade());
         PENDING
             .with(|c| *c.borrow_mut() = Some(Pending { surface: surface.clone(), x, y, opener, when: Instant::now() }));
         // GTK closes only the menu on top. A click outside of a menu in a menu, like the list of a
