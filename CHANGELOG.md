@@ -2,6 +2,26 @@
 
 What each release brings, newest first. The [GitHub releases](https://github.com/voicenux/voicenux/releases) add every commit that went into it.
 
+## v0.5.0
+
+_2026-11-25_
+
+Welcome to Voicenux `v0.5.0`! Find more AI voices on Hugging Face, and share your own voices with friends.
+
+<p align="center">
+  <img width="720" alt="Find AI voices: a search for spongebob lists SpongeBob voices from Hugging Face with who made them, their size and likes, a button for their page and a plus to add each" src="https://raw.githubusercontent.com/voicenux/voicenux/v0.5.0/res/find-voices.png">
+</p>
+
+### Highlights
+
+- **Find AI voices** on the voice page searches Hugging Face for more. Pick one, say how high it is, and it joins your voices
+- **Export** in Voicelab saves a voice as a file. Your friends drop it on Voicenux, or use **Import a voice**
+- Delete your own voices right on the voice page, with **Undo** if you change your mind. Their cards now have a mark
+- The star next to a voice's name makes it a favorite
+- A short sound when a shortcut changes your voice
+- Apps like the Stream Deck plugin work without a trip to Settings. Voicenux still asks before each new one
+- Lots of fixes for AI voices, the soundboard, the welcome dialog and more
+
 ## v0.4.0
 
 _2026-10-30_

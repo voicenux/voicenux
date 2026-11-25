@@ -74,6 +74,11 @@
   </supports>
   <content_rating type="oars-1.1"/>
   <releases>
+    <release version="0.5.0" date="2026-11-25">
+      <description>
+        <p>Find more AI voices on Hugging Face, export and import voices, delete your own voices from the voice page with undo, and a star for favorites.</p>
+      </description>
+    </release>
     <release version="0.4.0" date="2026-10-30">
       <description>
         <p>Voicenux in seven more languages, search sounds by voice, speech recognition for apps like the Stream Deck plugin, and switch sounds.</p>
