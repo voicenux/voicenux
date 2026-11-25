@@ -248,7 +248,7 @@ impl Effect for Phaser {
     fn process(&mut self, buf: &mut [f32], _ctx: &Ctx) {
         for x in buf.iter_mut() {
             let s = 0.5 + 0.5 * sine(self.lfo.next(self.speed, self.rate));
-            let f = 250.0 * 2f32.powf(s * self.depth * 4.0);
+            let f = (250.0 * 2f32.powf(s * self.depth * 4.0)).min(self.rate * 0.45);
             let t = (std::f32::consts::PI * f / self.rate).tan();
             let a = (t - 1.0) / (t + 1.0);
             let mut y = *x + self.last * self.feedback;

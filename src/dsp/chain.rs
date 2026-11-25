@@ -44,7 +44,8 @@ impl Chain {
             .iter()
             .filter_map(|d| {
                 let spec = blocks::find(&d.kind)?;
-                Some(((spec.build)(&d.values, ctx), d.enabled))
+                let bctx = BuildCtx { live: ctx.live && d.enabled, ..*ctx };
+                Some(((spec.build)(&d.values, &bctx), d.enabled))
             })
             .collect();
         Self { rate: ctx.rate as u32, blocks, max_block: ctx.max_block, trim: 1.0 }

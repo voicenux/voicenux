@@ -48,7 +48,8 @@ impl Biquad {
     }
 
     pub fn set(&mut self, kind: FilterType, freq: f32, q: f32, gain_db: f32, rate: f32) {
-        let freq = freq.clamp(10.0, rate * 0.49);
+        let rate = rate.max(100.0);
+        let freq = freq.clamp(10.0, (rate * 0.49).max(10.0));
         let q = q.max(0.05);
         let w0 = 2.0 * PI * freq / rate;
         let (sin, cos) = w0.sin_cos();
@@ -115,8 +116,9 @@ pub struct Butter4 {
 }
 
 impl Butter4 {
-    pub fn new(kind: FilterType, freq: f32, rate: f32) -> Self {
-        Self { a: Biquad::new(kind, freq, 0.541_196, 0.0, rate), b: Biquad::new(kind, freq, 1.306_563, 0.0, rate) }
+    pub fn set(&mut self, kind: FilterType, freq: f32, rate: f32) {
+        self.a.set(kind, freq, 0.541_196, 0.0, rate);
+        self.b.set(kind, freq, 1.306_563, 0.0, rate);
     }
 
     #[inline]
@@ -140,7 +142,8 @@ impl OnePole {
     }
 
     pub fn set(&mut self, freq: f32, rate: f32) {
-        self.a = (-2.0 * PI * freq.clamp(5.0, rate * 0.49) / rate).exp();
+        let rate = rate.max(100.0);
+        self.a = (-2.0 * PI * freq.clamp(5.0, (rate * 0.49).max(5.0)) / rate).exp();
     }
 
     #[inline]

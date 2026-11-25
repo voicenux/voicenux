@@ -81,7 +81,7 @@ impl ParamSpec {
     }
 
     pub fn clamp(&self, v: f32) -> f32 {
-        let v = v.clamp(self.min, self.max);
+        let v = if v.is_nan() { self.default } else { v }.clamp(self.min, self.max);
         match self.kind {
             Kind::Float => v,
             _ => v.round(),
@@ -665,7 +665,8 @@ fn parse_note(t: &str) -> Option<f32> {
         _ => (0, rest),
     };
     let octave: i32 = rest.trim().parse().ok()?;
-    Some(((octave + 1) * 12 + base + sharp) as f32)
+    let midi = octave.checked_add(1)?.checked_mul(12)?.checked_add(base + sharp)?;
+    Some(midi as f32)
 }
 
 #[cfg(test)]
@@ -768,5 +769,7 @@ mod tests {
         assert_eq!(format_value(s, 7.0), "+7");
         assert_eq!(format_value(s, -3.5), "-3.5");
         assert_eq!(note_name(60.0), "C4");
+        assert_eq!(s.clamp(f32::NAN), s.default);
+        assert_eq!(parse_note("C999999999"), None);
     }
 }

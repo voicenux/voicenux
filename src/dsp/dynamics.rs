@@ -164,6 +164,9 @@ impl Gate {
 
     #[inline]
     pub fn next(&mut self, x: f32) -> f32 {
+        if !x.is_finite() {
+            return 0.0;
+        }
         let a = x.abs();
         self.env = if a > self.env { a } else { a + (self.env - a) * self.env_rel };
         let target = if self.env > self.threshold { 1.0 } else { 0.0 };
@@ -204,6 +207,9 @@ impl Limiter {
 
     #[inline]
     pub fn next(&mut self, x: f32) -> f32 {
+        if !x.is_finite() {
+            return 0.0;
+        }
         let a = x.abs();
         let need = if a * self.gain > self.ceiling { self.ceiling / a } else { 1.0 };
         if need < self.gain {
@@ -252,6 +258,11 @@ mod tests {
             let y = l.next((i as f32 * 0.05).sin() * 4.0);
             assert!(y.abs() <= 0.892, "{y}");
         }
+        for bad in [f32::INFINITY, f32::NEG_INFINITY, f32::NAN] {
+            let y = l.next(bad);
+            assert_eq!(y, 0.0);
+        }
+        assert!(l.next(0.5).is_finite());
     }
 
     #[test]

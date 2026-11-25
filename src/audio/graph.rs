@@ -294,8 +294,12 @@ impl Graph {
             );
         }
         if let Some(sink) = self.pick_output() {
-            for ch in ["FL", "FR"] {
-                let target = self.port_channel(sink, false, ch).or_else(|| self.port_channel(sink, false, "MONO"));
+            let ports = self.ports_of(sink, false);
+            for (idx, ch) in ["FL", "FR"].iter().enumerate() {
+                let target = self
+                    .port_channel(sink, false, ch)
+                    .or_else(|| self.port_channel(sink, false, "MONO"))
+                    .or_else(|| ports.get(idx).or_else(|| ports.first()).map(|(id, _)| *id));
                 link(engine, self.port_named(engine, true, &format!("monitor_{ch}")), sink, target);
             }
         }
@@ -419,8 +423,9 @@ impl Graph {
         let key = "default.configured.audio.source";
         if on {
             let before = self.configured_source.clone().filter(|s| s != MIC_NODE);
-            if before.is_some() {
-                self.fallback_input = before.clone();
+            let fallback = before.clone().or_else(|| self.default_source.clone().filter(|s| s != MIC_NODE));
+            if fallback.is_some() {
+                self.fallback_input = fallback;
             }
             md.set_property(0, key, Some("Spa:String:JSON"), Some(&format!("{{ \"name\": \"{MIC_NODE}\" }}")));
             let _ = events.try_send(Event::DefaultMic { previous: before });
@@ -477,7 +482,11 @@ impl Graph {
     }
 
     fn remove(&mut self, id: u32) {
-        if self.nodes.remove(&id).is_some() || self.ports.remove(&id).is_some() || self.links.remove(&id).is_some() {
+        if let Some(link) = self.links.remove(&id) {
+            self.created.remove(&(link.out_port, link.in_port));
+            self.dirty = true;
+        }
+        if self.nodes.remove(&id).is_some() || self.ports.remove(&id).is_some() {
             self.dirty = true;
         }
         // Forget link proxies whose ports are gone, so they get made again later.
@@ -533,7 +542,6 @@ fn run(
         .add_listener_local()
         .global({
             let graph = graph.clone();
-            let events = events.clone();
             let registry = registry.downgrade();
             move |obj| {
                 if obj.type_ == ObjectType::Metadata
@@ -563,7 +571,7 @@ fn run(
                     let mut g = graph.borrow_mut();
                     g.metadata = Some(md);
                     g.metadata_listener = Some(listener);
-                    g.apply_default(&events);
+                    g.dirty = true;
                     return;
                 }
                 graph.borrow_mut().add(obj);
@@ -619,6 +627,9 @@ fn run(
                 build();
             }
             let mut g = graph.borrow_mut();
+            if g.want_default.is_some() && g.metadata.is_some() {
+                g.apply_default(&events);
+            }
             if g.dirty {
                 g.relink(&core, &registry);
                 g.report(&events);
@@ -637,7 +648,15 @@ fn run(
         let filter = filter.clone();
         let events = events.clone();
         move |ctl| match ctl {
-            Ctl::Rt(cmd) => push(cmd),
+            Ctl::Rt(cmd) => {
+                if let RtCmd::Param { block, index, value } = &cmd
+                    && let Some(b) = voice.borrow_mut().0.get_mut(*block as usize)
+                    && let Some(v) = b.values.get_mut(*index as usize)
+                {
+                    *v = *value;
+                }
+                push(cmd);
+            }
             Ctl::Voice(blocks) => {
                 voice.borrow_mut().0 = blocks;
                 build();

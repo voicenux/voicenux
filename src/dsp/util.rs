@@ -212,6 +212,9 @@ impl DelayLine {
     /// Hermite interpolated read, `delay` in samples (>= 1 for best results).
     #[inline]
     pub fn read(&self, delay: f32) -> f32 {
+        if !delay.is_finite() {
+            return 0.0;
+        }
         let delay = delay.clamp(1.0, (self.buf.len() - 3) as f32);
         let i = delay.floor() as usize;
         let f = delay - i as f32;
@@ -253,6 +256,8 @@ mod tests {
         assert_eq!(d.tap(0), 63.0);
         assert_eq!(d.tap(10), 53.0);
         assert!((d.read(10.5) - 52.5).abs() < 1e-3);
+        assert_eq!(d.read(f32::NAN), 0.0);
+        assert_eq!(d.read(f32::INFINITY), 0.0);
     }
 
     #[test]

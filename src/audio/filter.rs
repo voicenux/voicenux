@@ -36,8 +36,12 @@ unsafe extern "C" fn on_process(data: *mut c_void, position: *mut spa_sys::spa_i
     let d = unsafe { &mut *(data as *mut Data) };
     let pos = unsafe { &*position };
     let n = (pos.clock.duration as usize).min(SCRATCH) as u32;
-    let rate = pos.clock.rate.denom.max(1);
-    if n == 0 {
+    let (num, denom) = (pos.clock.rate.num, pos.clock.rate.denom);
+    if n == 0 || num == 0 || denom == 0 {
+        return;
+    }
+    let rate = denom / num;
+    if rate < 1000 {
         return;
     }
     let buf = |port: *mut c_void| unsafe { pw_sys::pw_filter_get_dsp_buffer(port, n) as *mut f32 };
@@ -115,15 +119,21 @@ impl Filter {
         };
         let input = spa_sys::SPA_DIRECTION_INPUT;
         let output = spa_sys::SPA_DIRECTION_OUTPUT;
+        let filter = Self { ptr, data, _hook: hook, _events: events };
         unsafe {
             (*data).input = port(input, "input_MONO", "MONO");
             (*data).out = [port(output, "output_FL", "FL"), port(output, "output_FR", "FR")];
             (*data).monitor = [port(output, "monitor_FL", "FL"), port(output, "monitor_FR", "FR")];
+            if (*data).input.is_null()
+                || (*data).out.iter().any(|p| p.is_null())
+                || (*data).monitor.iter().any(|p| p.is_null())
+            {
+                anyhow::bail!("PipeWire could not add filter ports");
+            }
         }
         let res = unsafe {
             pw_sys::pw_filter_connect(ptr, pw_sys::pw_filter_flags_PW_FILTER_FLAG_RT_PROCESS, ptr::null_mut(), 0)
         };
-        let filter = Self { ptr, data, _hook: hook, _events: events };
         if res < 0 {
             anyhow::bail!("PipeWire refused the filter ({res})");
         }

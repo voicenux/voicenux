@@ -24,7 +24,10 @@ impl Ai {
         let size = (ctx.rate * 4.0) as usize;
         let (to_helper, input) = rtrb::RingBuffer::new(size);
         let (output, from_helper) = rtrb::RingBuffer::new(size);
-        let link = Arc::new(Link::new(p[0] as usize, p[1], crate::ai::height_hz(p[2] as usize), ctx.rate as u32));
+        let model = p.first().copied().unwrap_or(0.0).max(0.0) as usize;
+        let key = p.get(1).copied().unwrap_or(0.0);
+        let height = p.get(2).copied().unwrap_or(0.0).max(0.0) as usize;
+        let link = Arc::new(Link::new(model, key, crate::ai::height_hz(height), ctx.rate as u32));
         bridge::attach(Stream { link: link.clone(), input, output });
         Self { io: Some((to_helper, from_helper, link)), playing: false, waited: 0 }
     }

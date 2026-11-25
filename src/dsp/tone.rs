@@ -89,10 +89,10 @@ impl Effect for Band {
             2 => self.boost = v,
             _ => {}
         }
-        self.hp = Butter4::new(FilterType::Highpass, self.low, self.rate);
-        self.lp = Butter4::new(FilterType::Lowpass, self.high, self.rate);
+        self.hp.set(FilterType::Highpass, self.low, self.rate);
+        self.lp.set(FilterType::Lowpass, self.high, self.rate);
         let center = (self.low * self.high).sqrt();
-        self.mid = Biquad::new(FilterType::Peak, center, 0.8, self.boost, self.rate);
+        self.mid.set(FilterType::Peak, center, 0.8, self.boost, self.rate);
     }
 }
 
