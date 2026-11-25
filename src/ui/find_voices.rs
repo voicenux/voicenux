@@ -31,6 +31,8 @@ struct Row {
     row: gtk::ListBoxRow,
     /// "Someone · 55 MB" under the name.
     about: gtk::Label,
+    /// Size is being fetched for a click on this row.
+    pending: Cell<bool>,
 }
 
 struct Finder {
@@ -167,6 +169,15 @@ pub fn open(st: &St, parent: &impl IsA<gtk::Widget>, words: &str) {
             }
         }
     });
+    dialog.connect_closed({
+        let finder = Rc::downgrade(&finder);
+        move |_| {
+            if let Some(f) = finder.upgrade() {
+                f.search_no.set(f.search_no.get() + 1);
+                f.queue.borrow_mut().clear();
+            }
+        }
+    });
     let words = if words.is_empty() { LAST.with_borrow(|l| l.clone()) } else { words.to_string() };
     search.set_text(&words);
     search.set_position(-1);
@@ -199,7 +210,7 @@ impl Finder {
         off_thread(
             move || hub::search(&w),
             move |r| {
-                if me.search_no.get() != no {
+                if me.search_no.get() != no || me.dialog.upgrade().is_none() {
                     return;
                 }
                 match r {
@@ -291,14 +302,18 @@ impl Finder {
         row.set_child(Some(&b));
         row.set_activatable(ai::usable());
         let repo = hit.source.repo.clone();
-        let r = Rc::new(Row { hit: RefCell::new(hit), row, about });
+        let r = Rc::new(Row { hit: RefCell::new(hit), row, about, pending: Cell::new(false) });
         page.connect_clicked(move |b| {
             let window = b.root().and_downcast::<gtk::Window>();
             gtk::UriLauncher::new(&hub::page(&repo)).launch(window.as_ref(), None::<&gtk::gio::Cancellable>, |_| {});
         });
         add.connect_clicked({
-            let (me, r) = (self.clone(), r.clone());
-            move |b| me.add(&r, Some(b))
+            let (me, r) = (Rc::downgrade(self), Rc::downgrade(&r));
+            move |b| {
+                if let (Some(me), Some(r)) = (me.upgrade(), r.upgrade()) {
+                    me.add(&r, Some(b));
+                }
+            }
         });
         r
     }
@@ -321,6 +336,10 @@ impl Finder {
 
     /// Reads the sizes of the next repos in line, as long as fewer than [`PARALLEL`] are read.
     fn next_sizes(self: &Rc<Self>) {
+        if self.dialog.upgrade().is_none() {
+            self.queue.borrow_mut().clear();
+            return;
+        }
         while self.reading.get() < PARALLEL {
             let Some((repo, commit)) = self.queue.borrow_mut().pop_front() else { return };
             if SIZES.with_borrow(|s| s.contains_key(&repo)) {
@@ -344,11 +363,15 @@ impl Finder {
                 let ok = result.is_ok();
                 if let Ok(sizes) = result {
                     SIZES.with_borrow_mut(|s| s.insert(repo.clone(), sizes));
-                    for row in me.rows.borrow().iter().filter(|row| row.hit.borrow().source.repo == repo) {
-                        me.sized(row);
+                    if me.dialog.upgrade().is_some() {
+                        for row in me.rows.borrow().iter().filter(|row| row.hit.borrow().source.repo == repo) {
+                            me.sized(row);
+                        }
                     }
                 }
-                done(ok);
+                if me.dialog.upgrade().is_some() {
+                    done(ok);
+                }
             },
         );
     }
@@ -359,6 +382,9 @@ impl Finder {
             return;
         }
         if r.hit.borrow().source.mb == 0 {
+            if r.pending.replace(true) {
+                return;
+            }
             let (repo, commit) = {
                 let s = &r.hit.borrow().source;
                 (s.repo.clone(), s.commit.clone())
@@ -368,6 +394,7 @@ impl Finder {
             }
             let (me, r, b) = (self.clone(), r.clone(), button.cloned());
             self.read_sizes(repo, commit, move |ok| {
+                r.pending.set(false);
                 if let Some(b) = &b {
                     b.set_sensitive(true);
                 }

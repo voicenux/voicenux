@@ -27,6 +27,7 @@ struct Download {
     id: String,
     name: String,
     icon: String,
+    voice: crate::voice::Voice,
     fraction: Cell<f64>,
     what: RefCell<String>,
     detail: RefCell<String>,
@@ -172,12 +173,11 @@ fn seconds(ms: u32) -> String {
 /// shows that one: one at a time.
 pub fn offer(st: &St, parent: &impl IsA<gtk::Widget>, id: &str) {
     let busy = running();
-    // It is going away already.
-    if busy.as_ref().is_some_and(|d| d.stopping.get()) {
+    // It is going away already, or already shown in a dialog.
+    if busy.as_ref().is_some_and(|d| d.stopping.get() || d.view.borrow().is_some()) {
         return;
     }
-    let id = busy.as_ref().map_or_else(|| id.to_string(), |d| d.id.clone());
-    let Some(v) = st.voice(&id) else { return };
+    let Some(v) = busy.as_ref().map(|d| d.voice.clone()).or_else(|| st.voice(id)) else { return };
     ask(st, parent, v, busy, false);
 }
 
@@ -316,21 +316,29 @@ fn ask(st: &St, parent: &impl IsA<gtk::Widget>, v: crate::voice::Voice, busy: Op
         });
     }
     // Closing only hides a download: it goes on, and the bottom bar shows it.
-    dialog.connect_closed(|_| {
-        if let Some(d) = running() {
-            d.view.replace(None);
-            refresh_pills();
+    let watching: Rc<RefCell<Option<Rc<Download>>>> = Rc::default();
+    dialog.connect_closed({
+        let watching = watching.clone();
+        move |_| {
+            if let Some(mine) = watching.take()
+                && let Some(d) = running()
+                && Rc::ptr_eq(&d, &mine)
+            {
+                d.view.replace(None);
+                refresh_pills();
+            }
         }
     });
 
     // Shows a download in the dialog, and what to do when it ends while the dialog is open.
     let watch = {
-        let (st, id) = (st.clone(), id.clone());
+        let (st, id, watching) = (st.clone(), id.clone(), watching.clone());
         let (dialog, bar, what, detail, hint) =
             (dialog.downgrade(), bar.clone(), what.clone(), detail.clone(), hint.clone());
         let (go, cancel, stop, hide) = (go.clone(), cancel.clone(), stop.clone(), hide.clone());
         let ask_height = ask_height.clone();
         move |d: &Rc<Download>| {
+            *watching.borrow_mut() = Some(d.clone());
             hint.set_visible(false);
             ask_height.set_visible(false);
             for w in [
@@ -362,7 +370,9 @@ fn ask(st: &St, parent: &impl IsA<gtk::Widget>, v: crate::voice::Voice, busy: Op
                         if let Some(dialog) = dialog.upgrade() {
                             dialog.close();
                         }
-                        st.set_voice(&id);
+                        if st.voice(&id).is_some() {
+                            st.set_voice(&id);
+                        }
                     }
                     End::Stopped => {
                         if let Some(dialog) = dialog.upgrade() {
@@ -415,23 +425,27 @@ fn ask(st: &St, parent: &impl IsA<gtk::Widget>, v: crate::voice::Voice, busy: Op
         }
     });
     go.connect_clicked({
-        let (st, id, icon, name) = (st.clone(), id.clone(), v.icon.clone(), name.clone());
-        let found = RefCell::new(new.then_some(v.clone()));
+        let (st, id, icon, name, voice) = (st.clone(), id.clone(), v.icon.clone(), name.clone(), v.clone());
+        let found = RefCell::new(new.then_some(v));
         move |_| {
             if running().is_some() {
                 return;
             }
             // Saved now, with the pitch picked. A second try keeps it.
-            if let Some(mut v) = found.take() {
+            let saved_voice = if let Some(mut v) = found.take() {
                 if let Some(b) = v.blocks.iter_mut().find(|b| b.kind == "ai") {
                     b.set("height", height.get() as f32);
                 }
-                st.save_custom(v);
-            }
+                st.save_custom(v.clone());
+                v
+            } else {
+                voice.clone()
+            };
             let d = Rc::new(Download {
                 id: id.clone(),
                 name: name.clone(),
                 icon: icon.clone(),
+                voice: saved_voice,
                 fraction: Cell::new(0.0),
                 what: RefCell::default(),
                 detail: RefCell::default(),
@@ -441,22 +455,23 @@ fn ask(st: &St, parent: &impl IsA<gtk::Widget>, v: crate::voice::Voice, busy: Op
             });
             RUNNING.with(|r| r.replace(Some(d.clone())));
             watch(&d);
-            run(&st, d, model, engine);
+            run(&st, d, model);
         }
     });
     dialog.present(Some(parent));
 }
 
 /// Downloads on a thread of its own and tells `d` how far it is.
-fn run(st: &St, d: Rc<Download>, model: &'static ai::Model, engine: bool) {
+fn run(st: &St, d: Rc<Download>, model: &'static ai::Model) {
     let (tx, rx) = async_channel::unbounded();
+    let engine = install::installed();
     install::begin();
     std::thread::spawn(move || {
         let send = |s: Step| {
             let _ = tx.send_blocking(s);
         };
         let result = (|| {
-            if !install::installed() {
+            if !engine {
                 install::install_engine(&|n, done, total| send(Step::Engine(n, done, total)))?;
             }
             if !model.downloaded() {
@@ -486,6 +501,9 @@ fn run(st: &St, d: Rc<Download>, model: &'static ai::Model, engine: bool) {
         let mut show = {
             let d = d.clone();
             move |part: usize, done: u64, total: u64| {
+                if part >= parts.len() {
+                    return;
+                }
                 if total > 0 {
                     parts[part] = total;
                 }
@@ -499,12 +517,16 @@ fn run(st: &St, d: Rc<Download>, model: &'static ai::Model, engine: bool) {
         let result = loop {
             match rx.recv().await {
                 Ok(Step::Engine(n, done, total)) => {
-                    d.what.replace(step_text(n).into());
-                    show(n - 1, done, total);
+                    if !d.stopping.get() {
+                        d.what.replace(step_text(n).into());
+                        show(n.saturating_sub(1), done, total);
+                    }
                 }
                 Ok(Step::Voice(f)) => {
-                    d.what.replace(fill(t("Getting {}…"), &[&d.name]));
-                    show(voice, (f as f64 * model.mb as f64 * 1e6) as u64, 0);
+                    if !d.stopping.get() {
+                        d.what.replace(fill(t("Getting {}…"), &[&d.name]));
+                        show(voice, (f as f64 * model.mb as f64 * 1e6) as u64, 0);
+                    }
                 }
                 Ok(Step::Done) => break End::Done,
                 Ok(Step::Stopped) => break End::Stopped,
@@ -530,7 +552,9 @@ fn run(st: &St, d: Rc<Download>, model: &'static ai::Model, engine: bool) {
         match (&result, view.is_some()) {
             (End::Stopped, _) => st.notify(Change::Notice(fill(t("Stopped downloading {}."), &[&d.name]))),
             // Done in the background: the voice waits to be picked.
-            (End::Done, false) => st.notify(Change::Notice(fill(t("{} is ready. Pick it to use it."), &[&d.name]))),
+            (End::Done, false) if st.voice(&d.id).is_some() => {
+                st.notify(Change::Notice(fill(t("{} is ready. Pick it to use it."), &[&d.name])))
+            }
             (End::NoVoice, false) => st.notify(Change::Notice(fill(t("Could not get {}: {}"), &[&d.name, no_voice()]))),
             (End::Failed(e), false) => {
                 // A note has room for one line: the last one says most.
